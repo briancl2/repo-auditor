@@ -60,6 +60,12 @@ echo ""
 FAILURES=""
 FAIL_COUNT=0
 
+PRESCAN_SCRIPT="$SCRIPT_DIR/../.agents/skills/pre-scanning/scripts/pre-scan-target.sh"
+if [ ! -x "$PRESCAN_SCRIPT" ]; then
+    echo "ERROR: pre-scan script not found or not executable: $PRESCAN_SCRIPT" >&2
+    exit 1
+fi
+
 run_tool() {
     local name="$1"
     local outfile="$2"
@@ -85,7 +91,7 @@ echo ""
 
 # 1. Pre-scan (writes to directory, not stdout)
 echo "  [pre-scan] running..."
-if bash "$SCRIPT_DIR/pre-scan-target.sh" "$REPO" "$OUTPUT_DIR/pre-scan" > "$OUTPUT_DIR/pre-scan-log.txt" 2>&1; then
+if bash "$PRESCAN_SCRIPT" "$REPO" "$OUTPUT_DIR/pre-scan" > "$OUTPUT_DIR/pre-scan-log.txt" 2>&1; then
     if [ -f "$OUTPUT_DIR/pre-scan/PRE_SCAN.md" ]; then
         PRESCAN_LINES=$(wc -l < "$OUTPUT_DIR/pre-scan/PRE_SCAN.md" | tr -d ' ')
     else
