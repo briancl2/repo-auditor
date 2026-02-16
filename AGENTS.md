@@ -1,60 +1,92 @@
 # AGENTS.md — repo-auditor
 
-> Standalone repo health auditor — produces machine-readable scorecards for any AI-native repository.
-> Read this file FIRST.
+> Produce machine-readable SCORECARD.json for any repository.
+> Two modes: standard (0 LLM tokens, deterministic) and deep (LLM domain subagents).
+> Every change goes through `make review` before committing. `--no-verify` NEVER permitted.
 
 ## Purpose
 
-`repo-auditor` audits any repository and produces a **SCORECARD.json** with 5 health dimensions (Governance, Surface Health, Skill Maturity, Measurement, Self-Improvement). It provides the diagnostic foundation for the repo-agent fleet.
-
-## Architecture
-
-**Orchestrator → 6 domain subagents → synthesis → SCORECARD.json**
-
-| Subagent | Domain | Output |
-|---|---|---|
-| governance-auditor | AGENTS.md, LEARNINGS.md, CI, protocols | governance_findings.json |
-| surface-auditor | AI surfaces, drift, co-evolution ratio | surface_findings.json |
-| skill-auditor | Skill maturity, density, organicity | skill_findings.json |
-| measurement-auditor | Scoring tools, layers, machine-readable output | measurement_findings.json |
-| improvement-auditor | Stall risk, trajectory, plan infrastructure | improvement_findings.json |
-| theater-auditor | DS-21 signals, enforcement depth | theater_findings.json |
-
-## Invocation
-
-**Mode A — Outbound (from this repo):**
-```bash
-make audit TARGET=~/repos/some-target-repo
-```
-
-**Mode B — Inbound (from a target repo):**
-```
-@repo-auditor at briancl2/repo-auditor, audit this repo
-```
+`repo-auditor` evaluates any repository's AI-native maturity across 5 dimensions,
+producing a SCORECARD.json with composite score (0-100), T1/T2 tiered checks, and
+maturity phase classification.
 
 ## Key Conventions
 
-- Every change goes through `make review` before committing
+- **Standard mode** (default) — 0 LLM tokens, bash scripts only
+- **Deep mode** (`--mode deep`) — LLM-powered domain auditors for richer analysis
+- Pre-commit hook blocks by default (SKIP_REVIEW=1 for emergency only)
 - `--no-verify` is NEVER permitted (L102)
-- Pre-commit hook blocks by default (L105)
-- 0-token pre-scan runs first, then LLM subagents (L65)
-- Tiered output: T1 (blocking) vs T2 (warning) (P3)
+- AGENTS.md is the canonical instruction surface (L104)
+- Target repos are NEVER modified
 
-## Skills
+## Agents (9)
+
+| # | Agent | Model | Purpose |
+|---|---|---|---|
+| 1 | repo-auditor | claude-opus-4.6 | Orchestrator — standard/deep mode dispatch |
+| 2 | repo-auditor-inbound | claude-opus-4.6 | Inbound invocation (Mode B) |
+| 3 | governance-auditor | claude-sonnet-4.5 | D1 Governance dimension (deep mode) |
+| 4 | surface-auditor | claude-sonnet-4.5 | D2 Surface Health dimension (deep mode) |
+| 5 | skill-auditor | claude-sonnet-4.5 | D3 Skill Maturity dimension (deep mode) |
+| 6 | measurement-auditor | claude-sonnet-4.5 | D4 Measurement dimension (deep mode) |
+| 7 | improvement-auditor | claude-sonnet-4.5 | D5 Self-Improvement dimension (deep mode) |
+| 8 | theater-auditor | claude-sonnet-4.5 | DS-21 Automation Theater detection (deep mode) |
+| 9 | audit-synthesis | claude-opus-4.6 | Report synthesis from domain findings (deep mode) |
+
+## Skills (2)
 
 | # | Skill | Purpose |
 |---|---|---|
 | 1 | reviewing-code-locally | Pre-commit code review via Copilot CLI |
+| 2 | pre-scanning | Deterministic pre-scan (0 LLM tokens) — file inventory, AI surfaces |
+
+## Scripts (9)
+
+| Script | Purpose |
+|---|---|
+| `scripts/repo-auditor.sh` | Main orchestrator — pre-scan → score → report |
+| `scripts/score-audit-dimensions.sh` | 5-dimension scorer → SCORECARD.json |
+| `scripts/compare-scorecards.sh` | Pre/post delta computation |
+| `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
+| `scripts/stall-risk-score.sh` | 6-signal stall risk predictor (0-100) |
+| `scripts/extract-repo-dna.sh` | 10-feature Repo DNA fingerprint |
+| `scripts/detect-capability-drift.sh` | DS-20 undocumented tool detector |
+| `scripts/detect-automation-theater.sh` | DS-21 7-signal scanner |
+
+## How to Use
+
+```bash
+# Mode A — Outbound (from this repo)
+make audit TARGET=~/repos/some-repo
+
+# Mode B — Inbound (from target repo, reference this agent)
+# Add to target's AGENTS.md: @repo-auditor at briancl2/repo-auditor
+
+# Quick test
+make test
+
+# Deep mode
+make audit-deep TARGET=~/repos/some-repo
+```
+
+## Outputs
+
+| Artifact | Format | Description |
+|---|---|---|
+| SCORECARD.json | JSON | 5-dimension scores, composite, T1/T2 checks |
+| AUDIT_REPORT.md | Markdown | Human-readable report with findings |
+| PRE_SCAN.md | Markdown | File inventory and AI surface analysis |
 
 ## Token Budget
 
-~30K tokens per standard audit (6 subagents × ~5K each). Pre-scan is 0 tokens.
-
-## Modes
-
 | Mode | Tokens | Description |
 |---|---|---|
-| Quick | 0 | Pre-scan only (deterministic) |
-| Standard | ~30K | Pre-scan + LLM audit |
-| Deep | ~45K | + session log analysis |
-| Comprehensive | ~60K | + paired surface runs |
+| Standard | 0 | Pre-scan + deterministic scoring (bash only) |
+| Deep | ~30K | Pre-scan + 6 LLM domain subagents + synthesis |
+
+## Stop Rules
+
+- Max 200 files scanned per target
+- Max 30 files per domain subagent
+- Max 900 seconds per run
+- Halt on pre-scan failure
