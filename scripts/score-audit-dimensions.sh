@@ -52,6 +52,12 @@ to_int() {
 
 # --- Extract raw values ---
 
+# Extract REPO_PATH early (needed for spec-kit governance/scoring signals)
+REPO_PATH=""
+if [ -f "$DIR/maturity.txt" ]; then
+    REPO_PATH=$(grep "^Path:" "$DIR/maturity.txt" | head -1 | sed 's/^Path: *//' | sed 's/ *$//')
+fi
+
 # From maturity.txt
 GOV_AGENTS_MD="no"
 GOV_LEARNINGS="no"
@@ -85,6 +91,24 @@ for item in "$GOV_AGENTS_MD" "$GOV_LEARNINGS" "$GOV_HYPOTHESES" "$GOV_CI" "$GOV_
         yes) GOV_COUNT=$((GOV_COUNT + 1)) ;;
     esac
 done
+
+# Spec-kit governance: populated constitution.md counts as governance signal
+# Non-template check: must have >10 lines and not contain only placeholders
+GOV_SPECKIT=0
+if [ -n "$REPO_PATH" ]; then
+    for const_path in "$REPO_PATH/.specify/memory/constitution.md" "$REPO_PATH/CONSTITUTION.md"; do
+        if [ -f "$const_path" ]; then
+            const_lines=$(wc -l < "$const_path" | tr -d ' ')
+            placeholders=$(grep -c '\[PRINCIPLE\]\|\[PLACEHOLDER\]\|\[TODO\]' "$const_path" 2>/dev/null) || placeholders=0
+            if [ "$const_lines" -gt 10 ] && [ "$placeholders" -lt 3 ]; then
+                GOV_SPECKIT=1
+                break
+            fi
+        fi
+    done
+    # Add to governance count (max stays at 5 original + 1 speckit = 6)
+    GOV_COUNT=$((GOV_COUNT + GOV_SPECKIT))
+fi
 
 # From DNA (extract as strings, coerce to int only when needed for arithmetic)
 DNA_G=$(extract_num "$DIR/dna.txt" "Governance:" 0)
@@ -150,7 +174,9 @@ fi
 # --- Compute dimension scores (each 0-20) ---
 
 # D1 Governance: avg(GOV_COUNT, DNA_G) × 4 — blend avoids masking disagreement
+# GOV_COUNT now includes speckit constitution signal (0-6 range)
 D1_A=$((GOV_COUNT * 4))
+if [ "$D1_A" -gt 20 ]; then D1_A=20; fi
 D1_B=$((DNA_G_INT * 4))
 D1=$(( (D1_A + D1_B) / 2 ))
 if [ "$D1" -gt 20 ]; then D1=20; fi
@@ -248,7 +274,16 @@ if [ "$D5_TRAJ" -gt 6 ]; then D5_TRAJ=6; fi
 # Plan infra: 0-6 (DNA_PI × 1.5, cap at 6)
 D5_PI=$((DNA_PI_INT * 3 / 2))
 if [ "$D5_PI" -gt 6 ]; then D5_PI=6; fi
-D5=$((D5_STALL + D5_TRAJ + D5_PI))
+# Spec-kit bonus: specs/*/spec.md count adds to plan infra (0-3 bonus pts)
+D5_SPEC=0
+if [ -n "$REPO_PATH" ] && [ -d "$REPO_PATH/specs" ]; then
+    SPEC_MD_COUNT=$(find "$REPO_PATH/specs" -maxdepth 3 -name 'spec.md' 2>/dev/null | wc -l | tr -d ' ') || SPEC_MD_COUNT=0
+    if [ "$SPEC_MD_COUNT" -ge 5 ]; then D5_SPEC=3
+    elif [ "$SPEC_MD_COUNT" -ge 3 ]; then D5_SPEC=2
+    elif [ "$SPEC_MD_COUNT" -ge 1 ]; then D5_SPEC=1
+    fi
+fi
+D5=$((D5_STALL + D5_TRAJ + D5_PI + D5_SPEC))
 if [ "$D5" -gt 20 ]; then D5=20; fi
 
 # Composite

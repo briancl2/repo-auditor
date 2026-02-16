@@ -1,4 +1,4 @@
-# Detection Signatures — DS-1 through DS-21
+# Detection Signatures — DS-1 through DS-25
 
 > Reference document for the repo-auditor detection engine.
 > Each signature identifies a specific maturity gap, stall risk, or operational health issue.
@@ -146,3 +146,35 @@
   - S7: `--no-verify` in committed artifacts
 - **Phase range:** Phase 3+
 - **Dedicated script:** `scripts/detect-automation-theater.sh`
+
+---
+
+## Spec-Kit Compliance (Phase 3+)
+
+### DS-22: Missing Structured Spec Workflow
+- **Detects:** Repo has ≥3 features/PRs but no `specs/` and no `.specify/`
+- **Signal:** Active development without structured specification process
+- **Phase range:** Phase 2+
+- **Check:** `feature_count=$(git log --oneline | wc -l); [ "$feature_count" -ge 50 ] && [ ! -d specs ] && [ ! -d .specify ]`
+- **Fire condition:** feature_count ≥ 3 features (proxied by ≥50 commits) AND NOT -d specs AND NOT -d .specify
+
+### DS-23: Missing Project Constitution
+- **Detects:** Repo has ≥5 AI surfaces but no constitution
+- **Signal:** AI-driven repo without governing principles — drift risk
+- **Phase range:** Phase 3+
+- **Check:** `ai_surfaces ≥ 5 AND NOT -f .specify/memory/constitution.md AND NOT -f CONSTITUTION.md AND NOT grep -q 'constitution' AGENTS.md`
+- **Fire condition:** ai_surfaces ≥ 5 AND no constitution in any standard location
+
+### DS-24: Spec-Kit Present but Dormant
+- **Detects:** `.specify/` directory exists but `specs/` has 0 entries or no speckit agents
+- **Signal:** Spec-kit installed but unused — automation theater risk (DS-21 variant)
+- **Phase range:** Phase 3+
+- **Check:** `-d .specify AND (NOT -d specs OR find specs -name 'spec.md' | wc -l = 0)`
+- **Fire condition:** .specify/ exists AND (no specs/ OR spec_count = 0)
+
+### DS-25: Spec Template Drift
+- **Detects:** Specs exist but <50% have Given/When/Then or Required sections
+- **Signal:** Specifications don't follow structured format — informational, not blocking
+- **Phase range:** Phase 3+
+- **Check:** `total_specs=$(find specs -name spec.md | wc -l); structured=$(grep -rl 'Given.*When.*Then\|FR-[0-9]' specs/*/spec.md | wc -l); [ $((structured * 100 / total_specs)) -lt 50 ]`
+- **Severity:** Informational (drift may be intentional evolution)
