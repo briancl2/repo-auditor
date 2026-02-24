@@ -96,7 +96,7 @@ fi
     echo "# Pre-Scan Report: $REPO_NAME"
     echo ""
     echo "> Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    echo "> Method: deterministic bash scan (0 LLM tokens)"
+    echo "> Method: deterministic bash scan"
     echo ""
     echo "## Repo Metadata"
     echo ""

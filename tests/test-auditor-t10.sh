@@ -25,7 +25,7 @@ if [ ! -d "$TARGET" ]; then
   exit 0
 fi
 
-# Run auditor (standard mode — 0 LLM tokens)
+# Run auditor (standard mode — deterministic)
 echo ""
 echo "--- Running repo-auditor.sh ---"
 bash "$AUDITOR_DIR/scripts/repo-auditor.sh" "$TARGET" "$OUTPUT_DIR"

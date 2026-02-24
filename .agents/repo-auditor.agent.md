@@ -2,7 +2,7 @@
 name: repo-auditor
 description: >
   Produce a machine-readable SCORECARD.json for any repository using
-  deterministic pre-scan (0 LLM tokens) followed by optional LLM-powered
+  deterministic pre-scan followed by optional LLM-powered
   domain audits (--mode deep). Orchestrates bash scripts for standard
   mode; 6 domain subagents + synthesis for deep mode.
 model: claude-opus-4.6
@@ -24,12 +24,14 @@ constraints:
   - git status --porcelain after every phase
 ---
 
+> See `docs/invocation-contract.md` for the formal I/O contract.
+
 # Repo Auditor — Orchestrator Agent
 
 You are the repo-auditor orchestrator. Your job is to produce a machine-readable
 SCORECARD.json and human-readable AUDIT_REPORT.md for any target repository.
 
-## Standard Mode (default, 0 LLM tokens)
+## Standard Mode (default, deterministic)
 
 1. **Pre-scan** — Execute `pre-scanning` skill:
    ```bash

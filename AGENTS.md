@@ -1,7 +1,7 @@
 # AGENTS.md — repo-auditor
 
 > Produce machine-readable SCORECARD.json for any repository.
-> Two modes: standard (0 LLM tokens, deterministic) and deep (LLM domain subagents).
+> Two modes: standard (deterministic) and deep (LLM domain subagents).
 > Every change goes through `make review` before committing. `--no-verify` NEVER permitted.
 
 ## Purpose
@@ -12,7 +12,7 @@ maturity phase classification.
 
 ## Key Conventions
 
-- **Standard mode** (default) — 0 LLM tokens, bash scripts only
+- **Standard mode** (default) — deterministic, bash scripts only
 - **Deep mode** (`--mode deep`) — LLM-powered domain auditors for richer analysis
 - Pre-commit hook blocks by default (SKIP_REVIEW=1 for emergency only)
 - `--no-verify` is NEVER permitted (L102)
@@ -38,9 +38,9 @@ maturity phase classification.
 | # | Skill | Purpose |
 |---|---|---|
 | 1 | reviewing-code-locally | Pre-commit code review via Copilot CLI |
-| 2 | pre-scanning | Deterministic pre-scan (0 LLM tokens) — file inventory, AI surfaces |
+| 2 | pre-scanning | Deterministic pre-scan — file inventory, AI surfaces |
 
-## Scripts (9)
+## Scripts (14)
 
 | Script | Purpose |
 |---|---|
@@ -52,6 +52,12 @@ maturity phase classification.
 | `scripts/extract-repo-dna.sh` | 10-feature Repo DNA fingerprint |
 | `scripts/detect-capability-drift.sh` | DS-20 undocumented tool detector |
 | `scripts/detect-automation-theater.sh` | DS-21 7-signal scanner |
+| `scripts/check.sh` | Gate 2 — shellcheck + inventory + trailer validation |
+| `scripts/work-init.sh` | Gate 1 — work contract init with baseline SCORECARD |
+| `scripts/work-close.sh` | Gate 3 — post-audit + delta + learnings gate |
+| `scripts/score-session.sh` | 25-point session grader |
+| `scripts/pre-commit-hook.sh` | Pre-commit hook — runs `make check` |
+| `scripts/pre-push-hook.sh` | Pre-push hook — additional validation |
 
 ## How to Use
 
@@ -67,7 +73,20 @@ make test
 
 # Deep mode
 make audit-deep TARGET=~/repos/some-repo
+
+# Self-management
+make check                        # Gate 2 — shellcheck + inventory + trailer
+make work DESC="what you're doing" # Gate 1 — open work contract
+make work-close WORK=work/<dir>    # Gate 3 — close with post-audit + learnings
 ```
+
+## Key Files
+
+| File | Purpose |
+|---|---|
+| AGENTS.md | AI instruction surface (this file) |
+| LEARNINGS.md | Operational learnings (append-only) |
+| docs/invocation-contract.md | Formal I/O contract for auditor invocation |
 
 ## Outputs
 
@@ -81,7 +100,7 @@ make audit-deep TARGET=~/repos/some-repo
 
 | Mode | Tokens | Description |
 |---|---|---|
-| Standard | 0 | Pre-scan + deterministic scoring (bash only) |
+| Standard | 0 | Pre-scan + deterministic scoring (bash only, no LLM) |
 | Deep | ~30K | Pre-scan + 6 LLM domain subagents + synthesis |
 
 ## Stop Rules

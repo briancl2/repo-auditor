@@ -14,7 +14,7 @@ make review
 
 ## What It Does
 
-1. **Pre-scans** the target (0 LLM tokens) — AI surfaces, .gitignore, large files
+1. **Pre-scans** the target (deterministic) — AI surfaces, .gitignore, large files
 2. **Dispatches 6 domain subagents** — governance, surfaces, skills, measurement, improvement, theater
 3. **Synthesizes** findings into SCORECARD.json (5 dimensions, 0-100 composite)
 4. **Produces** AUDIT_REPORT.md (human-readable) + per-domain findings
@@ -35,6 +35,12 @@ make review
 ## Dependencies
 
 Shared primitives from [repo-agent-core](https://github.com/briancl2/repo-agent-core) (copied, not symlinked).
+
+## Self-Management
+
+- `make check` — shellcheck + inventory + trailer validation
+- `make work DESC="..."` — open work contract with baseline
+- `make work-close WORK=work/<dir>` — close with post-audit + learnings gate
 
 ## License
 

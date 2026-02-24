@@ -4,21 +4,23 @@
 
 repo-auditor is a **deterministic health scorer** that evaluates AI-native
 repositories across 5 dimensions, producing SCORECARD.json and AUDIT_REPORT.md.
-It consumes 0 LLM tokens — all analysis is pattern-matching and heuristic scoring.
+All analysis is pattern-matching and heuristic scoring.
 
 ## Non-Goals
 
-- No LLM invocations (0-token constraint is a hard invariant).
+- Domain tools are deterministic (no LLM required for standard mode).
 - No recommendations (that's the advisor's job).
 - No modifications to target repos (read-only analysis).
 - No subjective judgments — all scores derive from countable signals.
 
 ## Core Principles
 
-### 1. Zero-LLM-Tokens
-The auditor MUST produce identical output regardless of LLM availability.
-Every check is deterministic: file existence, pattern matching, line counting,
-git log analysis. If a check requires judgment, it belongs in the advisor.
+### 1. Deterministic-First Tools
+Domain tools (pre-scan, maturity, stall-risk, dna, drift, scoring) MUST produce
+identical output regardless of LLM availability. All checks are deterministic:
+file existence, pattern matching, line counting, git log analysis. The agent
+orchestrates these tools and synthesizes results. If a check requires judgment,
+it belongs in deep mode or in the advisor.
 
 ### 2. 5-Dimension Scoring Model
 All repos are scored on 5 orthogonal dimensions (D1-D5), each 0-20 points,

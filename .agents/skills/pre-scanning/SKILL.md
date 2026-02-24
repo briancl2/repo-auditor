@@ -2,7 +2,7 @@
 name: pre-scanning
 version: 1.0.0
 description: >
-  Deterministic pre-scan of target repositories (0 LLM tokens).
+  Deterministic pre-scan of target repositories.
   Produces file inventory, AI surface analysis, .gitignore audit,
   and large file detection. Foundation for all audit dimensions.
 author: briancl2
@@ -15,7 +15,7 @@ tags: [audit, pre-scan, deterministic, inventory]
 
 Produce a deterministic snapshot of a repository's structure, AI surfaces,
 and file inventory. This is the first step in every audit pipeline (standard
-and deep mode) and runs with 0 LLM tokens.
+and deep mode) and runs deterministically.
 
 ## When to Use
 
@@ -45,6 +45,6 @@ bash .agents/skills/pre-scanning/scripts/pre-scan-target.sh <target_path> <outpu
 
 ## Constraints
 
-- Zero LLM tokens — purely deterministic bash
+- Purely deterministic bash
 - Must complete in <30 seconds for repos with <500 files
 - Handles repos up to 200 files by default (stop rule)
