@@ -76,7 +76,7 @@ if [ "$LEARNINGS_ADDED" -le 0 ] && [ -z "$NO_NOVEL_FINDINGS" ]; then
     echo "  LEARNINGS.md has $LEARNINGS_ADDED new L-number entries (need ≥1)." >&2
     echo "  Either:" >&2
     echo "    (a) Append at least one L-number to LEARNINGS.md, or" >&2
-    echo "    (b) Re-run with: make work-close WORK=$WORK_DIR --no-novel-findings \"rationale\"" >&2
+    echo "    (b) Re-run with: bash scripts/work-close.sh \"$WORK_DIR\" --no-novel-findings \"rationale\"" >&2
     echo "" >&2
     exit 1
 fi

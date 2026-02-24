@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-repo-auditor has 10 scripts that produce SCORECARD.json and AUDIT_REPORT.md but
+repo-auditor has 14 scripts (10 domain + 4 infrastructure) that produce SCORECARD.json and AUDIT_REPORT.md but
 no automated test suite to verify correctness. The Makefile has test targets
 (`make audit`) but no regression tests that verify dimension scores against
 known-good baselines for fixture repos.

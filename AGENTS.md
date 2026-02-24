@@ -2,7 +2,7 @@
 
 > Produce machine-readable SCORECARD.json for any repository.
 > Two modes: standard (deterministic) and deep (LLM domain subagents).
-> Every change goes through `make review` before committing. `--no-verify` NEVER permitted.
+> `make check` runs on every commit (pre-commit hook). `make review` recommended for large changes. `--no-verify` NEVER permitted.
 
 ## Purpose
 
@@ -14,7 +14,8 @@ maturity phase classification.
 
 - **Standard mode** (default) — deterministic, bash scripts only
 - **Deep mode** (`--mode deep`) — LLM-powered domain auditors for richer analysis
-- Pre-commit hook blocks by default (SKIP_REVIEW=1 for emergency only)
+- Pre-commit hook runs `make check` (shellcheck + inventory + trailer)
+- `make review` recommended before committing large changes
 - `--no-verify` is NEVER permitted (L102)
 - AGENTS.md is the canonical instruction surface (L104)
 - Target repos are NEVER modified
@@ -55,7 +56,7 @@ maturity phase classification.
 | `scripts/check.sh` | Gate 2 — shellcheck + inventory + trailer validation |
 | `scripts/work-init.sh` | Gate 1 — work contract init with baseline SCORECARD |
 | `scripts/work-close.sh` | Gate 3 — post-audit + delta + learnings gate |
-| `scripts/score-session.sh` | 25-point session grader |
+| `scripts/score-session.sh` | 4-dimension 15-point session grader |
 | `scripts/pre-commit-hook.sh` | Pre-commit hook — runs `make check` |
 | `scripts/pre-push-hook.sh` | Pre-push hook — additional validation |
 

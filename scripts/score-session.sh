@@ -209,14 +209,14 @@ else
 fi
 
 # Check 3: New entries have non-empty source column
+rm -f "$WORK_DIR/.source_check_tmp"
 if [[ $new_learnings -gt 0 ]]; then
-    empty_source=0
-    grep -E '^\| L[0-9]+' "$REPO_ROOT/LEARNINGS.md" | tail -n "$new_learnings" | while IFS= read -r line; do
+    grep -E '^\| L[0-9]+' "$REPO_ROOT/LEARNINGS.md" 2>/dev/null | tail -n "$new_learnings" | while IFS= read -r line; do
         source_col=$(echo "$line" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $4); print $4}')
         if [ -z "$source_col" ]; then
             echo "empty" >> "$WORK_DIR/.source_check_tmp"
         fi
-    done
+    done || true
     if [[ -f "$WORK_DIR/.source_check_tmp" ]]; then
         rm -f "$WORK_DIR/.source_check_tmp"
         le_evidence+=("0pt: Some new entries have empty source column")

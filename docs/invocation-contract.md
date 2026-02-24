@@ -4,8 +4,8 @@
 
 | Parameter | Required | Description |
 |---|---|---|
-| TARGET | Yes | Absolute path to target repository |
-| OUTPUT_DIR | Yes | Absolute path to output directory (will be created) |
+| TARGET | Yes | Path to target repository (absolute recommended) |
+| OUTPUT_DIR | Yes | Path to output directory (will be created; absolute recommended) |
 | MODE | No | `standard` (default) or `deep` |
 
 ## Outputs (all written to OUTPUT_DIR/)

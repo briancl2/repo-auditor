@@ -16,30 +16,29 @@ FAIL=0
 
 # ── Shellcheck ────────────────────────────────────────────────────────
 echo "── shellcheck ──"
-SC_PASS=0
-SC_FAIL=0
-# Exclusions match build-meta-analysis: SC2034,SC2086,SC2155,SC2207,SC2064,SC2044,SC2038
-SC_EXCLUDE="SC2034,SC2086,SC2155,SC2207,SC2064,SC2044,SC2038"
-for f in scripts/*.sh; do
-    if shellcheck -S warning -e "$SC_EXCLUDE" "$f" > /dev/null 2>&1; then
-        SC_PASS=$((SC_PASS + 1))
-    else
-        echo "  FAIL: $f"
-        shellcheck -S warning -e "$SC_EXCLUDE" "$f" 2>&1 | head -20
-        SC_FAIL=$((SC_FAIL + 1))
-        FAIL=1
-    fi
-done
-echo "  shellcheck: $SC_PASS pass, $SC_FAIL fail"
+if ! command -v shellcheck > /dev/null 2>&1; then
+    echo "  FAIL: shellcheck not installed (brew install shellcheck)"
+    FAIL=1
+else
+    SC_PASS=0
+    SC_FAIL=0
+    SC_EXCLUDE="SC2034,SC2086,SC2155,SC2207,SC2064,SC2044,SC2038"
+    for f in scripts/*.sh; do
+        if shellcheck -S warning -e "$SC_EXCLUDE" "$f" > /dev/null 2>&1; then
+            SC_PASS=$((SC_PASS + 1))
+        else
+            echo "  FAIL: $f"
+            shellcheck -S warning -e "$SC_EXCLUDE" "$f" 2>&1 | head -20 || true
+            SC_FAIL=$((SC_FAIL + 1))
+            FAIL=1
+        fi
+    done
+    echo "  shellcheck: $SC_PASS pass, $SC_FAIL fail"
+fi
 
 # ── Inventory match ───────────────────────────────────────────────────
 echo "── inventory ──"
-EXPECTED=11  # 10 original + check.sh + work-init.sh = 12, but start at 11 (check.sh itself)
-# Count: repo-auditor.sh, score-audit-dimensions.sh, compare-scorecards.sh,
-# classify-repo-maturity.sh, stall-risk-score.sh, extract-repo-dna.sh,
-# detect-capability-drift.sh, detect-automation-theater.sh, pre-commit-hook.sh,
-# pre-push-hook.sh, check.sh, work-init.sh, work-close.sh, score-session.sh = 14
-EXPECTED=14
+EXPECTED=14  # 10 original + check.sh + work-init.sh + work-close.sh + score-session.sh
 COUNTED=$(find scripts -maxdepth 1 -name '*.sh' -type f | wc -l | tr -d ' ')
 if [ "$COUNTED" != "$EXPECTED" ]; then
     echo "  FAIL: expected $EXPECTED scripts, found $COUNTED"
@@ -48,7 +47,7 @@ else
     echo "  PASS: inventory ($COUNTED scripts)"
 fi
 
-# ── Trailer check (WARNING only during rebuild) ──────────────────────
+# ── Trailer check ─────────────────────────────────────────────────────
 echo "── trailer ──"
 LAST_MSG=$(git log -1 --format=%B 2>/dev/null || echo "")
 if echo "$LAST_MSG" | grep -qE '^(Spec-ID|Spec-Exempt):'; then
@@ -56,7 +55,8 @@ if echo "$LAST_MSG" | grep -qE '^(Spec-ID|Spec-Exempt):'; then
 elif [ -z "$LAST_MSG" ]; then
     echo "  SKIP: no commits yet"
 else
-    echo "  WARNING: last commit lacks Spec-ID or Spec-Exempt trailer (not enforced during rebuild)"
+    echo "  FAIL: last commit lacks Spec-ID or Spec-Exempt trailer"
+    FAIL=1
 fi
 
 # ── Result ────────────────────────────────────────────────────────────

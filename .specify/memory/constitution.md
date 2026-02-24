@@ -67,4 +67,4 @@ a coverage warning, not a failure.
 This constitution supersedes informal practices. Amendments require
 documented rationale and review.
 
-**Version**: 1.0 | **Ratified**: 2026-02-16
+**Version**: 2.0 | **Ratified**: 2026-02-24 | **Amendment**: §1 rewritten from "Zero-LLM-Tokens" to "Deterministic-First Tools" per spec 052 (L271 RCA)
