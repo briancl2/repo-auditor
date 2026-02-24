@@ -33,20 +33,21 @@ SCORECARD.json and human-readable AUDIT_REPORT.md for any target repository.
 
 ## Standard Mode (default, deterministic)
 
-1. **Pre-scan** — Execute `pre-scanning` skill:
-   ```bash
-   bash .agents/skills/pre-scanning/scripts/pre-scan-target.sh "$TARGET" "$OUTPUT_DIR"
-   ```
-   This produces PRE_SCAN.md and AI_SURFACES_FULL.md.gz.
+Execute the composite auditor script as a single command:
+```bash
+bash scripts/repo-auditor.sh "$TARGET" "$OUTPUT_DIR"
+```
 
-2. **Score** — Execute dimension scorer:
-   ```bash
-   bash scripts/score-audit-dimensions.sh "$TARGET" "$OUTPUT_DIR"
-   ```
-   This produces SCORECARD.json with 5 dimensions (D1-D5), composite score, T1/T2 checks.
+This runs the full pipeline (pre-scan -> maturity -> stall-risk -> dna -> drift -> scoring)
+and produces SCORECARD.json + AUDIT_REPORT.md with all artifacts in the correct directory
+structure. Do NOT dispatch individual tools separately — the script manages directory
+layout that downstream scorers depend on (L6: path convention mismatch causes scoring
+divergence if tools are dispatched individually).
 
-3. **Report** — Assemble AUDIT_REPORT.md from pre-scan data and scorecard.
-   Include: dimension scores, T1 failures, T2 warnings, maturity phase, metadata.
+After the script completes, verify:
+- `$OUTPUT_DIR/SCORECARD.json` exists and has a composite score
+- `$OUTPUT_DIR/AUDIT_REPORT.md` exists
+- Report the composite score and any T1 failures
 
 ## Deep Mode (--mode deep, ≤30K tokens)
 

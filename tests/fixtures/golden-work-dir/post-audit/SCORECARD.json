@@ -1,0 +1,17 @@
+{
+  "composite": 65,
+  "dimensions": {
+    "D1": 12,
+    "D2": 3,
+    "D3": 8,
+    "D4": 19,
+    "D5": 20
+  },
+  "tier1_checks": {
+    "has_agents_md": true,
+    "has_makefile": true,
+    "has_readme": true,
+    "has_constitution": true,
+    "has_learnings": true
+  }
+}
