@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0.0",
   "session_id": "golden-regrade",
-  "timestamp": "2026-02-24T02:52:17Z",
+  "timestamp": "2026-02-24T13:55:48Z",
   "work_dir": "tests/fixtures/golden-work-dir",
-  "grader_version": "21b5316",
+  "grader_version": "bc60180",
   "dimensions": {
     "hypothesis_discipline": {
       "score": 3,
@@ -19,7 +19,7 @@
       "max": 4,
       "evidence": [
         "1pt: Gate 1 ran (WORK.md + pre-audit/ present)",
-        "0pt: 2/5 recent commits have trailers",
+        "0pt: 4/5 recent commits have trailers",
         "1pt: No --no-verify detected in recent commits",
         "1pt: Gate 3 ran (post-audit/ present)"
       ]
