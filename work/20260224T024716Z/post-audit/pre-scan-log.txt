@@ -1,0 +1,16 @@
+================================================================
+Pre-Scan Complete: repo-auditor
+================================================================
+Total files:        96
+AI surfaces:        30 (18a, 2s, 1i, 9p)
+Co-Evolution Ratio: 0.11
+Large files (>200L): 14
+Tier:               small → single session, budget 200
+AI dump size:       2186 lines, 95304 bytes
+
+Outputs:
+  /Users/briancl2/repos/repo-auditor/work/20260224T024716Z/post-audit/pre-scan/PRE_SCAN.md            (repo structure)
+  /Users/briancl2/repos/repo-auditor/work/20260224T024716Z/post-audit/pre-scan/AI_SURFACES_FULL.md    (full AI surface text)
+  /Users/briancl2/repos/repo-auditor/work/20260224T024716Z/post-audit/pre-scan/LARGE_FILES.md         (files >200L)
+  /Users/briancl2/repos/repo-auditor/work/20260224T024716Z/post-audit/pre-scan/GITIGNORE_ANALYSIS.md  (.gitignore analysis)
+================================================================
