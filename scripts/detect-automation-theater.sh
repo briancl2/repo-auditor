@@ -184,6 +184,27 @@ if [ -n "$SESSION_DIR" ] && [ -d "$SESSION_DIR" ]; then
     fi
 fi
 
+# --- S8: Dead code density (DS-21enh) ---
+echo "  [S8] Dead code density..."
+ACTIVE_SCRIPTS=0
+ARCHIVED_SCRIPTS=0
+# Count active scripts (excluding archive dirs)
+ACTIVE_SCRIPTS=$(find "$REPO" -type f -name '*.sh' \
+  ! -path '*/archive/*' ! -path '*/.git/*' ! -path '*/node_modules/*' \
+  2>/dev/null | wc -l | tr -d ' ')
+# Count archived scripts
+ARCHIVED_SCRIPTS=$(find "$REPO" -type f -name '*.sh' -path '*/archive/*' \
+  ! -path '*/.git/*' 2>/dev/null | wc -l | tr -d ' ')
+TOTAL_SCRIPTS=$((ACTIVE_SCRIPTS + ARCHIVED_SCRIPTS))
+echo "    active=$ACTIVE_SCRIPTS archived=$ARCHIVED_SCRIPTS total=$TOTAL_SCRIPTS"
+if [ "$TOTAL_SCRIPTS" -gt 0 ]; then
+    DEAD_RATIO=$((ARCHIVED_SCRIPTS * 100 / TOTAL_SCRIPTS))
+    echo "    dead_code_density=${DEAD_RATIO}%"
+    if [ "$DEAD_RATIO" -gt 10 ]; then
+        add_finding "S8" "Dead code density ${DEAD_RATIO}% (${ARCHIVED_SCRIPTS}/${TOTAL_SCRIPTS} scripts archived) — consider cleanup"
+    fi
+fi
+
 # --- Summary ---
 echo ""
 echo "================================================================"

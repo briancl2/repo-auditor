@@ -1,4 +1,4 @@
-# Detection Signatures — DS-1 through DS-29
+# Detection Signatures — DS-1 through DS-30
 
 > Reference document for the repo-auditor detection engine.
 > Each signature identifies a specific maturity gap, stall risk, or operational health issue.
@@ -135,7 +135,7 @@
 - **Phase range:** Phase 3+
 
 ### DS-21: Automation Theater
-- **Detects:** 7 signals for capabilities that exist but aren't exercised
+- **Detects:** 8 signals for capabilities that exist but aren't exercised
 - **Signals:**
   - S1: Hook scripts not installed
   - S2: Makefile targets never invoked
@@ -144,6 +144,7 @@
   - S5: Agent files never dispatched
   - S6: Enforcement defaults to soft
   - S7: `--no-verify` in committed artifacts
+  - S8: Dead code density >10% (archived/total scripts) — DS-21enh
 - **Phase range:** Phase 3+
 - **Dedicated script:** `scripts/detect-automation-theater.sh`
 
@@ -201,3 +202,13 @@
 - **Anti-gaming:** Multi-signal classification (not prefix heuristic). Large ceremony (>200L) still counted.
 - **Threshold:** PROVISIONAL (65%). Per-repo baseline recommended.
 - **Source:** F3 (Stage 5 retro), 65% baseline on BMA, C1+C3 consensus on multi-signal
+
+### DS-30: Grader Ceiling Lock
+- **Detects:** OPERATING_MODEL_SCORECARD variance <2 across 3+ consecutive scorecards
+- **Signal:** Grader is saturated — cannot distinguish good sessions from mediocre ones
+- **Phase range:** Phase 3+ (requires >=3 scorecards)
+- **Check:** `bash scripts/detect-grader-ceiling.sh <repo> --threshold 2`
+- **Cold-start grace:** <3 scorecards = skip (exit 2, no finding)
+- **Metric:** range (max-min) of most recent N composite scores
+- **Threshold:** PROVISIONAL (range <2). Per-grader baseline recommended.
+- **Source:** F13 (Stage 5 retro), 18-20/22 band on BMA

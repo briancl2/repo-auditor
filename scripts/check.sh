@@ -38,7 +38,7 @@ fi
 
 # ── Inventory match ───────────────────────────────────────────────────
 echo "── inventory ──"
-EXPECTED=16  # 14 prev + detect-warning-noise.sh + detect-ceremony-ratio.sh
+EXPECTED=17  # 16 prev + detect-grader-ceiling.sh (DS-30)
 COUNTED=$(find scripts -maxdepth 1 -name '*.sh' -type f | wc -l | tr -d ' ')
 if [ "$COUNTED" != "$EXPECTED" ]; then
     echo "  FAIL: expected $EXPECTED scripts, found $COUNTED"
