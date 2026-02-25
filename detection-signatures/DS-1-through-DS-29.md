@@ -1,4 +1,4 @@
-# Detection Signatures — DS-1 through DS-25
+# Detection Signatures — DS-1 through DS-29
 
 > Reference document for the repo-auditor detection engine.
 > Each signature identifies a specific maturity gap, stall risk, or operational health issue.
@@ -178,3 +178,26 @@
 - **Phase range:** Phase 3+
 - **Check:** `total_specs=$(find specs -name spec.md | wc -l); structured=$(grep -rl 'Given.*When.*Then\|FR-[0-9]' specs/*/spec.md | wc -l); [ $((structured * 100 / total_specs)) -lt 50 ]`
 - **Severity:** Informational (drift may be intentional evolution)
+
+---
+
+## Operational Health (DS-27+)
+
+### DS-27: Warning Ledger Noise Ratio
+- **Detects:** WARNING_LEDGER.jsonl with unacked/total ratio > 25%
+- **Signal:** Warning system producing noise that will be ignored — erosion of alarm credibility
+- **Phase range:** Phase 3+ (requires warning ledger)
+- **Check:** `bash scripts/detect-warning-noise.sh <repo> --threshold 25`
+- **Multi-signal:** unacked_count/total + unacked_categories/total_categories
+- **Threshold:** PROVISIONAL (25%). Per-repo baseline recommended.
+- **Source:** F15 (Stage 5 retro), SNR 6.3% baseline on BMA
+
+### DS-29: Ceremony Commit Ratio
+- **Detects:** >65% of recent commits modify ONLY ceremony/tracking files
+- **Signal:** Process overhead dominates substantive work — ceremony inflation risk
+- **Phase range:** Phase 3+ (requires git history)
+- **Check:** `bash scripts/detect-ceremony-ratio.sh <repo> --threshold 65`
+- **Multi-signal:** file path classification + diff stat size + per-repo baseline
+- **Anti-gaming:** Multi-signal classification (not prefix heuristic). Large ceremony (>200L) still counted.
+- **Threshold:** PROVISIONAL (65%). Per-repo baseline recommended.
+- **Source:** F3 (Stage 5 retro), 65% baseline on BMA, C1+C3 consensus on multi-signal
