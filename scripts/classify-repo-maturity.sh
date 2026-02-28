@@ -16,9 +16,24 @@ fi
 
 cd "$REPO"
 
+# .auditorignore support — exclude archival directories from all counts
+FIND_EXCLUDES="-not -path './.git/*' -not -name '.DS_Store'"
+FIND_EXCLUDES_AGENTS="-not -path './.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/archive/*' -not -path '*/Archive/*'"
+FIND_EXCLUDES_SKILLS="-not -path './.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/benchmarks/*'"
+if [ -f ".auditorignore" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        line=$(echo "$line" | sed 's/#.*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+        [ -z "$line" ] && continue
+        dir=$(echo "$line" | sed 's|/$||')
+        FIND_EXCLUDES="$FIND_EXCLUDES -not -path './${dir}/*'"
+        FIND_EXCLUDES_AGENTS="$FIND_EXCLUDES_AGENTS -not -path '*/${dir}/*'"
+        FIND_EXCLUDES_SKILLS="$FIND_EXCLUDES_SKILLS -not -path '*/${dir}/*'"
+    done < ".auditorignore"
+fi
+
 # Count AI surfaces (max depth 5 to avoid traversal slowness on large repos)
-AGENTS=$(find . -maxdepth 5 -name "*.agent.md" -not -path './.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/archive/*' -not -path '*/Archive/*' 2>/dev/null | wc -l | tr -d ' ')
-SKILLS=$(find . -maxdepth 5 -name "SKILL.md" -not -path './.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/benchmarks/*' 2>/dev/null | wc -l | tr -d ' ')
+AGENTS=$(eval "find . -maxdepth 5 -name '*.agent.md' $FIND_EXCLUDES_AGENTS" 2>/dev/null | wc -l | tr -d ' ')
+SKILLS=$(eval "find . -maxdepth 5 -name 'SKILL.md' $FIND_EXCLUDES_SKILLS" 2>/dev/null | wc -l | tr -d ' ')
 
 # Co-Evolution Ratio (P10-1): skills / max(agents, 1)
 # Healthy repos have ratio ≥1.0 (skills keep pace with agents)
@@ -30,7 +45,7 @@ else
 fi
 
 # Broadened scoring detection (L51): check multiple naming patterns + CI + tests
-SCORING_SCRIPTS=$(find . -maxdepth 4 -not -path './.git/*' -not -path '*/node_modules/*' \( -name "score-*.sh" -o -name "score*.py" -o -name "validate-*.sh" -o -name "validate_*.py" -o -name "test_*.py" -o -name "*_test.py" -o -name "test-*.sh" \) 2>/dev/null | wc -l | tr -d ' ')
+SCORING_SCRIPTS=$(eval "find . -maxdepth 4 $FIND_EXCLUDES -not -path '*/node_modules/*' \( -name 'score-*.sh' -o -name 'score*.py' -o -name 'validate-*.sh' -o -name 'validate_*.py' -o -name 'test_*.py' -o -name '*_test.py' -o -name 'test-*.sh' \)" 2>/dev/null | wc -l | tr -d ' ')
 CI_WORKFLOWS=0
 if [ -d ".github/workflows" ]; then
     CI_WORKFLOWS=$(find .github/workflows -maxdepth 1 \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | wc -l | tr -d ' ')
@@ -46,8 +61,8 @@ if [ -f "pytest.ini" ] || [ -f "pyproject.toml" ]; then
 fi
 SCORING=$((SCORING_SCRIPTS + CI_WORKFLOWS + MAKEFILE_TESTS + PYTEST_EXISTS))
 
-PROMPTS=$(find . -maxdepth 5 -name "*.prompt.md" -not -path './.git/*' 2>/dev/null | wc -l | tr -d ' ')
-INSTRUCTIONS=$(find . -maxdepth 5 -name "*.instructions.md" -not -path './.git/*' 2>/dev/null | wc -l | tr -d ' ')
+PROMPTS=$(eval "find . -maxdepth 5 -name '*.prompt.md' $FIND_EXCLUDES" 2>/dev/null | wc -l | tr -d ' ')
+INSTRUCTIONS=$(eval "find . -maxdepth 5 -name '*.instructions.md' $FIND_EXCLUDES" 2>/dev/null | wc -l | tr -d ' ')
 
 # DS-8: Imported-framework agents (L52) — bulk-imported generic agents not customized
 IMPORTED_FRAMEWORK=0
@@ -84,7 +99,7 @@ AUDIT_AGENTS=$(find . -maxdepth 4 -name "*.agent.md" -not -path './.git/*' 2>/de
 [ "$AUDIT_AGENTS" -gt 0 ] && SELF_AUDIT=1
 
 # Total files (quick estimate, maxdepth 5)
-TOTAL_FILES=$(find . -maxdepth 5 -type f -not -path './.git/*' -not -name '.DS_Store' 2>/dev/null | wc -l | tr -d ' ')
+TOTAL_FILES=$(eval "find . -maxdepth 5 -type f $FIND_EXCLUDES" 2>/dev/null | wc -l | tr -d ' ')
 
 # Classification
 PHASE=0

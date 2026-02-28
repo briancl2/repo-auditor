@@ -15,7 +15,19 @@ REPO="${1:?Usage: extract-repo-dna.sh <repo_path>}"
 cd "$REPO"
 
 REPO_NAME=$(basename "$(pwd)")
-TOTAL_FILES=$(find . -type f -not -path './.git/*' -not -name '.DS_Store' 2>/dev/null | wc -l | tr -d ' ')
+
+# .auditorignore support — exclude archival directories from file counts
+FIND_EXCLUDES="-not -path './.git/*' -not -name '.DS_Store'"
+if [ -f ".auditorignore" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        line=$(echo "$line" | sed 's/#.*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+        [ -z "$line" ] && continue
+        dir=$(echo "$line" | sed 's|/$||')
+        FIND_EXCLUDES="$FIND_EXCLUDES -not -path './${dir}/*'"
+    done < ".auditorignore"
+fi
+
+TOTAL_FILES=$(eval "find . -type f $FIND_EXCLUDES" 2>/dev/null | wc -l | tr -d ' ')
 
 # ============================================================
 # S: Surface Count (0-20)
@@ -24,14 +36,14 @@ S=0
 [ -f "AGENTS.md" ] && S=$((S + 1))
 [ -f "CLAUDE.md" ] && S=$((S + 1))
 [ -f ".github/copilot-instructions.md" ] && S=$((S + 1))
-EXTRA_INST=$(find . -maxdepth 5 -name "*.instructions.md" -not -path './.git/*' 2>/dev/null | wc -l | tr -d ' ')
+EXTRA_INST=$(eval "find . -maxdepth 5 -name '*.instructions.md' $FIND_EXCLUDES" 2>/dev/null | wc -l | tr -d ' ')
 S=$((S + EXTRA_INST))
 [ "$S" -gt 20 ] && S=20
 
 # ============================================================
 # K: Skill Density (0-100)
 # ============================================================
-SKILL_COUNT=$(find . -maxdepth 5 -name "SKILL.md" -not -path './.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' 2>/dev/null | wc -l | tr -d ' ')
+SKILL_COUNT=$(eval "find . -maxdepth 5 -name 'SKILL.md' $FIND_EXCLUDES -not -path '*/tests/*' -not -path '*/fixtures/*'" 2>/dev/null | wc -l | tr -d ' ')
 if [ "$TOTAL_FILES" -gt 0 ]; then
     K=$(awk "BEGIN {v = $SKILL_COUNT / $TOTAL_FILES * 1000; if (v > 100) v = 100; printf \"%d\", v}")
 else
@@ -41,7 +53,7 @@ fi
 # ============================================================
 # Ao: Agent Organicity (0.0-1.0)
 # ============================================================
-AGENT_FILES=$(find . -maxdepth 5 -name "*.agent.md" -not -path './.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/archive/*' 2>/dev/null || true)
+AGENT_FILES=$(eval "find . -maxdepth 5 -name '*.agent.md' $FIND_EXCLUDES -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/archive/*'" 2>/dev/null || true)
 AGENT_COUNT=0
 [ -n "$AGENT_FILES" ] && AGENT_COUNT=$(echo "$AGENT_FILES" | wc -l | tr -d ' ')
 

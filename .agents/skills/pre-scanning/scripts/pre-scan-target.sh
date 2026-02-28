@@ -29,27 +29,45 @@ TARGET_ABS=$(cd "$TARGET" && pwd)
 REPO_NAME=$(basename "$TARGET_ABS")
 
 # ============================================================
-# Count files by category
+# .auditorignore support — exclude archival directories from file counts
+# Format: one directory per line (trailing / optional), # comments, blank lines
 # ============================================================
-TOTAL_FILES=$(find "$TARGET_ABS" -type f -not -path '*/.git/*' -not -name '.DS_Store' 2>/dev/null | wc -l | tr -d ' ')
+FIND_EXCLUDES="-not -path '*/.git/*' -not -name '.DS_Store'"
+AUDITORIGNORE_ACTIVE="no"
+if [ -f "$TARGET_ABS/.auditorignore" ]; then
+    AUDITORIGNORE_ACTIVE="yes"
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Skip comments and blank lines
+        line=$(echo "$line" | sed 's/#.*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+        [ -z "$line" ] && continue
+        # Strip trailing slash for consistency
+        dir=$(echo "$line" | sed 's|/$||')
+        FIND_EXCLUDES="$FIND_EXCLUDES -not -path '*/${dir}/*'"
+    done < "$TARGET_ABS/.auditorignore"
+fi
 
-AGENT_FILES=$(find "$TARGET_ABS" -maxdepth 5 -name "*.agent.md" -not -path '*/.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/archive/*' -not -path '*/Archive/*' 2>/dev/null || true)
+# ============================================================
+# Count files by category (all find commands respect .auditorignore)
+# ============================================================
+TOTAL_FILES=$(eval "find \"$TARGET_ABS\" -type f $FIND_EXCLUDES" 2>/dev/null | wc -l | tr -d ' ')
+
+AGENT_FILES=$(eval "find \"$TARGET_ABS\" -maxdepth 5 -name '*.agent.md' $FIND_EXCLUDES -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/archive/*' -not -path '*/Archive/*'" 2>/dev/null || true)
 AGENT_COUNT=0
 [ -n "$AGENT_FILES" ] && AGENT_COUNT=$(echo "$AGENT_FILES" | wc -l | tr -d ' ')
 
-SKILL_FILES=$(find "$TARGET_ABS" -maxdepth 5 -name "SKILL.md" -not -path '*/.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/benchmarks/*' 2>/dev/null || true)
+SKILL_FILES=$(eval "find \"$TARGET_ABS\" -maxdepth 5 -name 'SKILL.md' $FIND_EXCLUDES -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/benchmarks/*'" 2>/dev/null || true)
 SKILL_COUNT=0
 [ -n "$SKILL_FILES" ] && SKILL_COUNT=$(echo "$SKILL_FILES" | wc -l | tr -d ' ')
 
-INSTRUCTION_FILES=$(find "$TARGET_ABS" -maxdepth 5 \( -name "*.instructions.md" -o -name "copilot-instructions.md" -o -name "AGENTS.md" -o -name "CLAUDE.md" \) -not -path '*/.git/*' 2>/dev/null || true)
+INSTRUCTION_FILES=$(eval "find \"$TARGET_ABS\" -maxdepth 5 \\( -name '*.instructions.md' -o -name 'copilot-instructions.md' -o -name 'AGENTS.md' -o -name 'CLAUDE.md' \\) $FIND_EXCLUDES" 2>/dev/null || true)
 INSTRUCTION_COUNT=0
 [ -n "$INSTRUCTION_FILES" ] && INSTRUCTION_COUNT=$(echo "$INSTRUCTION_FILES" | wc -l | tr -d ' ')
 
-PROMPT_FILES=$(find "$TARGET_ABS" -maxdepth 5 -name "*.prompt.md" -not -path '*/.git/*' 2>/dev/null || true)
+PROMPT_FILES=$(eval "find \"$TARGET_ABS\" -maxdepth 5 -name '*.prompt.md' $FIND_EXCLUDES" 2>/dev/null || true)
 PROMPT_COUNT=0
 [ -n "$PROMPT_FILES" ] && PROMPT_COUNT=$(echo "$PROMPT_FILES" | wc -l | tr -d ' ')
 
-SCORING_FILES=$(find "$TARGET_ABS" -maxdepth 4 -not -path '*/.git/*' -not -path '*/node_modules/*' \( -name "score-*.sh" -o -name "score*.py" -o -name "validate-*.sh" -o -name "validate_*.py" -o -name "test_*.py" -o -name "*_test.py" -o -name "test-*.sh" \) 2>/dev/null || true)
+SCORING_FILES=$(eval "find \"$TARGET_ABS\" -maxdepth 4 $FIND_EXCLUDES -not -path '*/node_modules/*' \\( -name 'score-*.sh' -o -name 'score*.py' -o -name 'validate-*.sh' -o -name 'validate_*.py' -o -name 'test_*.py' -o -name '*_test.py' -o -name 'test-*.sh' \\)" 2>/dev/null || true)
 SCORING_COUNT=0
 [ -n "$SCORING_FILES" ] && SCORING_COUNT=$(echo "$SCORING_FILES" | wc -l | tr -d ' ')
 
@@ -286,6 +304,7 @@ echo "================================================================"
 echo "Pre-Scan Complete: $REPO_NAME"
 echo "================================================================"
 echo "Total files:        $TOTAL_FILES"
+echo "Auditorignore:      $AUDITORIGNORE_ACTIVE"
 echo "AI surfaces:        $AI_SURFACE_TOTAL (${AGENT_COUNT}a, ${SKILL_COUNT}s, ${INSTRUCTION_COUNT}i, ${PROMPT_COUNT}p)"
 echo "Co-Evolution Ratio: $COEVO_RATIO"
 echo "Large files (>200L): $LARGE_COUNT"

@@ -375,16 +375,14 @@ fi
 
 # T2-NO-REVIEW: no reviewing-code-locally skill or make review target (DS-21, L102)
 HAS_REVIEW_SKILL="no"
-if [ -f "$DIR/pre-scan/PRE_SCAN.md" ] 2>/dev/null; then
-    if grep -qiE "reviewing-code-locally|code.review" "$DIR/pre-scan/PRE_SCAN.md" 2>/dev/null; then
-        HAS_REVIEW_SKILL="yes"
+for scan_file in "$DIR/pre-scan/PRE_SCAN.md" "$DIR/pre-scan-log.txt" "$DIR/pre-scan/AI_SURFACES_FULL.md"; do
+    if [ -f "$scan_file" ] 2>/dev/null; then
+        if grep -qiE "reviewing-code-locally|code.review" "$scan_file" 2>/dev/null; then
+            HAS_REVIEW_SKILL="yes"
+            break
+        fi
     fi
-fi
-if [ -f "$DIR/pre-scan-log.txt" ] 2>/dev/null; then
-    if grep -qiE "reviewing-code-locally|code.review" "$DIR/pre-scan-log.txt" 2>/dev/null; then
-        HAS_REVIEW_SKILL="yes"
-    fi
-fi
+done
 if [ "$HAS_REVIEW_SKILL" = "no" ]; then
     T2_WARNINGS="${T2_WARNINGS}\"T2-NO-REVIEW: no code review skill detected (L102)\","
     T2_COUNT=$((T2_COUNT + 1))
@@ -392,16 +390,14 @@ fi
 
 # T2-NO-CRITIC: no adversarial critic agent or skill
 HAS_CRITIC="no"
-if [ -f "$DIR/pre-scan/PRE_SCAN.md" ] 2>/dev/null; then
-    if grep -qiE "critic|adversarial.*review|skeptic" "$DIR/pre-scan/PRE_SCAN.md" 2>/dev/null; then
-        HAS_CRITIC="yes"
+for scan_file in "$DIR/pre-scan/PRE_SCAN.md" "$DIR/pre-scan-log.txt" "$DIR/pre-scan/AI_SURFACES_FULL.md"; do
+    if [ -f "$scan_file" ] 2>/dev/null; then
+        if grep -qiE "critic|adversarial.*review|skeptic" "$scan_file" 2>/dev/null; then
+            HAS_CRITIC="yes"
+            break
+        fi
     fi
-fi
-if [ -f "$DIR/pre-scan-log.txt" ] 2>/dev/null; then
-    if grep -qiE "critic|adversarial.*review|skeptic" "$DIR/pre-scan-log.txt" 2>/dev/null; then
-        HAS_CRITIC="yes"
-    fi
-fi
+done
 if [ "$HAS_CRITIC" = "no" ]; then
     T2_WARNINGS="${T2_WARNINGS}\"T2-NO-CRITIC: no adversarial critic detected (L29)\","
     T2_COUNT=$((T2_COUNT + 1))
