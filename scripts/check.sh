@@ -38,7 +38,7 @@ fi
 
 # ── Inventory match ───────────────────────────────────────────────────
 echo "── inventory ──"
-EXPECTED=18  # 17 prev + detect-content-staleness.sh (DS-31)
+EXPECTED=20  # 18 prev + detect-feed-forward-stall.sh + detect-measurement-disconnect.sh (DS-32/33)
 COUNTED=$(find scripts -maxdepth 1 -name '*.sh' -type f | wc -l | tr -d ' ')
 if [ "$COUNTED" != "$EXPECTED" ]; then
     echo "  FAIL: expected $EXPECTED scripts, found $COUNTED"
