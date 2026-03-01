@@ -9,7 +9,7 @@ model: claude-opus-4.6
 tools: [read, search, execute, agent]
 required_context:
   - AGENTS.md
-  - detection-signatures/DS-1-through-DS-31.md
+  - detection-signatures/DS-1-through-DS-33.md
 stop_rules:
   max_files_scanned: 200
   timeout_seconds: 900

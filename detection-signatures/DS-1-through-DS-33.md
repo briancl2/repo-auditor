@@ -224,3 +224,26 @@
 - **Dedicated script:** `scripts/detect-content-staleness.sh`
 - **T2 integration:** T2-STALE-CONTENT in score-audit-dimensions.sh (fail-closed)
 - **Source:** v120 manual audit (17 findings), v122 ground truth test (10% recall), L312
+
+
+---
+
+## Feed-Forward Detection (Stage 8)
+
+### DS-32: Feed-Forward Stall
+- **Detects:** Learnings extracted but not producing structural changes. LEARNINGS.md grows but scripts/constitution/agents unchanged for N sessions.
+- **Signal:** The learning loop is running (findings extracted) but the improvement loop is stalled (no structural prevention).
+- **Phase range:** Phase 3+ (requires LEARNINGS.md + session history)
+- **Check:** Compare LEARNINGS.md growth (L-number count delta) against structural file changes (scripts/, .specify/, .agents/, Makefile) over N=3 recent sessions. If learnings > 0 and structural changes = 0, flag.
+- **Fire condition:** >=3 consecutive sessions with new L-numbers AND 0 structural file changes
+- **Severity:** HIGH (learning without action is Documentation as Action, P4)
+- **Source:** v122 ground truth test (9 FN), v119 retro F6+F10. Stage 8 M2 item 8.9.
+
+### DS-33: Measurement-Action Disconnect
+- **Detects:** Measurement artifacts produced (SCORECARD, SER, COMPLIANCE_DELTA) but no measurement-driven changes. Scoring system is running but not steering.
+- **Signal:** SCORECARD deltas reported as 0 or stagnant for N sessions without investigation or remediation spec.
+- **Phase range:** Phase 3+ (requires >=3 scorecards)
+- **Check:** Count work contracts with SCORECARD delta <= 0 across N=3 sessions. If all 3 are zero-delta AND work type is code-change, flag.
+- **Fire condition:** N>=3 consecutive code-change sessions with SCORECARD delta = 0
+- **Severity:** MEDIUM (measurement ceiling may be auditor limitation, not product stall)
+- **Source:** v119 retro F3 (BMA 73/100 stall, 9 sessions), v121 critique C1 CRITICAL. Stage 8 M2 item 8.9.

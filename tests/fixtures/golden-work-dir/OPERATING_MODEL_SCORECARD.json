@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0.0",
   "session_id": "golden-regrade",
-  "timestamp": "2026-02-24T13:55:48Z",
+  "timestamp": "2026-02-28T16:10:18Z",
   "work_dir": "tests/fixtures/golden-work-dir",
-  "grader_version": "bc60180",
+  "grader_version": "8c3f76e",
   "dimensions": {
     "hypothesis_discipline": {
       "score": 3,
@@ -19,8 +19,8 @@
       "max": 4,
       "evidence": [
         "1pt: Gate 1 ran (WORK.md + pre-audit/ present)",
-        "0pt: 4/5 recent commits have trailers",
-        "1pt: No --no-verify detected in recent commits",
+        "1pt: All 5 recent commits (fallback, no .start_sha) commits have Spec-ID/Spec-Exempt trailer",
+        "0pt: 1 commits with No-Verify-Reason in recent commits (fallback, no .start_sha)",
         "1pt: Gate 3 ran (post-audit/ present)"
       ]
     },
