@@ -1,4 +1,4 @@
-# Detection Signatures — DS-1 through DS-30
+# Detection Signatures — DS-1 through DS-31
 
 > Reference document for the repo-auditor detection engine.
 > Each signature identifies a specific maturity gap, stall risk, or operational health issue.
@@ -212,3 +212,15 @@
 - **Metric:** range (max-min) of most recent N composite scores
 - **Threshold:** PROVISIONAL (range <2). Per-grader baseline recommended.
 - **Source:** F13 (Stage 5 retro), 18-20/22 band on BMA
+
+### DS-31: Content Staleness
+- **Detects:** Numeric claims, ID ranges, cross-file values, or stage references that have drifted from reality
+- **Signal:** Instruction surface is no longer accurate; agents receive stale directives
+- **Phase range:** 2+
+- **Check:** `bash scripts/detect-content-staleness.sh <repo_path>`
+- **Fire condition:** STALE count > 0
+- **Check classes:** CS-COUNT (numeric count mismatch), CS-RANGE (ID range drift), CS-XFILE (cross-file value disagreement), CS-STAGE (stale stage/state references)
+- **Severity:** HIGH (count/range mismatches), MED (cross-file values), LOW (stage refs)
+- **Dedicated script:** `scripts/detect-content-staleness.sh`
+- **T2 integration:** T2-STALE-CONTENT in score-audit-dimensions.sh (fail-closed)
+- **Source:** v120 manual audit (17 findings), v122 ground truth test (10% recall), L312

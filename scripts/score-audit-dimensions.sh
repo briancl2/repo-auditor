@@ -422,6 +422,34 @@ if [ -f "$THEATER_SCRIPT" ]; then
     fi
 fi
 
+# T2-STALE-CONTENT: Content staleness detected (DS-31)
+# Fail-closed: if detector script errors, count as warning (no stderr suppression)
+STALENESS_SCRIPT="$(cd "$(dirname "$0")" && pwd)/detect-content-staleness.sh"
+if [ -f "$STALENESS_SCRIPT" ]; then
+    REPO_PATH_CS=""
+    if [ -f "$DIR/maturity.txt" ]; then
+        REPO_PATH_CS=$(grep "^Path:" "$DIR/maturity.txt" | head -1 | sed 's/^Path: *//' | sed 's/ *$//')
+    fi
+    if [ -n "$REPO_PATH_CS" ] && [ -d "$REPO_PATH_CS" ]; then
+        STALENESS_OUTPUT=$(bash "$STALENESS_SCRIPT" "$REPO_PATH_CS" 2>&1) || true
+        STALENESS_EXIT=$?
+        STALE_COUNT=$(echo "$STALENESS_OUTPUT" | grep -oE 'FAIL: ([0-9]+)' | grep -oE '[0-9]+' | head -1) || true
+        if [ -z "$STALE_COUNT" ]; then
+            # Try alternate format: "FAIL (N stale"
+            STALE_COUNT=$(echo "$STALENESS_OUTPUT" | grep -oE 'FAIL \([0-9]+' | grep -oE '[0-9]+' | head -1) || true
+        fi
+        if [ -z "$STALE_COUNT" ]; then STALE_COUNT=0; fi
+        if [ "$STALENESS_EXIT" -ne 0 ] && [ "$STALE_COUNT" -eq 0 ]; then
+            # Detector itself failed — fail closed (per C1 HIGH)
+            T2_WARNINGS="${T2_WARNINGS}\"T2-STALE-CONTENT: detector error (exit $STALENESS_EXIT)\","
+            T2_COUNT=$((T2_COUNT + 1))
+        elif [ "$STALE_COUNT" -gt 0 ]; then
+            T2_WARNINGS="${T2_WARNINGS}\"T2-STALE-CONTENT: ${STALE_COUNT} stale content assertions (DS-31)\","
+            T2_COUNT=$((T2_COUNT + 1))
+        fi
+    fi
+fi
+
 # Remove trailing comma from warnings
 T2_WARNINGS=$(echo "$T2_WARNINGS" | sed 's/,$//')
 
