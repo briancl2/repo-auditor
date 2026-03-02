@@ -32,7 +32,7 @@ REPO_NAME=$(basename "$TARGET_ABS")
 # .auditorignore support — exclude archival directories from file counts
 # Format: one directory per line (trailing / optional), # comments, blank lines
 # ============================================================
-FIND_EXCLUDES="-not -path '*/.git/*' -not -name '.DS_Store'"
+FIND_EXCLUDES="-not -path '*/.git/*' -not -name '.DS_Store' -not -path '*/.venv/*' -not -path '*/venv/*' -not -path '*/node_modules/*' -not -path '*/.tox/*' -not -path '*/.mypy_cache/*' -not -path '*/__pycache__/*' -not -path '*/vendor/*' -not -path '*/.eggs/*'"
 AUDITORIGNORE_ACTIVE="no"
 if [ -f "$TARGET_ABS/.auditorignore" ]; then
     AUDITORIGNORE_ACTIVE="yes"
