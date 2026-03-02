@@ -27,6 +27,7 @@ scripts=(
     "detect-commit-entropy.sh"
     "detect-test-theater.sh"
     "detect-broken-links.sh"
+    "detect-velocity-bypass.sh"
 )
 
 idx=0
