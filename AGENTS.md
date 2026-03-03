@@ -41,44 +41,92 @@ maturity phase classification.
 | 1 | reviewing-code-locally | Pre-commit code review via Copilot CLI |
 | 2 | pre-scanning | Deterministic pre-scan — file inventory, AI surfaces |
 
-## Scripts (14)
+## Scripts (34)
+
+### Core Pipeline
 
 | Script | Purpose |
 |---|---|
-| `scripts/repo-auditor.sh` | Main orchestrator — pre-scan → score → report |
-| `scripts/score-audit-dimensions.sh` | 5-dimension scorer → SCORECARD.json |
+| `scripts/repo-auditor.sh` | Main orchestrator -- pre-scan, score, report |
+| `scripts/score-audit-dimensions.sh` | 5-dimension scorer, SCORECARD.json |
 | `scripts/compare-scorecards.sh` | Pre/post delta computation |
 | `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
 | `scripts/stall-risk-score.sh` | 6-signal stall risk predictor (0-100) |
 | `scripts/extract-repo-dna.sh` | 10-feature Repo DNA fingerprint |
-| `scripts/detect-capability-drift.sh` | DS-20 undocumented tool detector |
-| `scripts/detect-automation-theater.sh` | DS-21 7-signal scanner |
-| `scripts/check.sh` | Gate 2 — shellcheck + inventory + trailer validation |
-| `scripts/work-init.sh` | Gate 1 — work contract init with baseline SCORECARD |
-| `scripts/work-close.sh` | Gate 3 — post-audit + delta + learnings gate |
 | `scripts/score-session.sh` | 4-dimension 15-point session grader |
-| `scripts/pre-commit-hook.sh` | Pre-commit hook — runs `make check` |
-| `scripts/pre-push-hook.sh` | Pre-push hook — additional validation |
+
+### Detection Signatures
+
+| Script | DS | Purpose |
+|---|---|---|
+| `scripts/detect-capability-drift.sh` | DS-20 | Undocumented tool detector |
+| `scripts/detect-automation-theater.sh` | DS-21 | 7-signal automation theater scanner |
+| `scripts/detect-warning-noise.sh` | DS-27 | Warning ledger noise ratio |
+| `scripts/detect-ceremony-ratio.sh` | DS-29 | Ceremony commit ratio detection |
+| `scripts/detect-grader-ceiling.sh` | DS-30 | Grader ceiling lock detection |
+| `scripts/detect-content-staleness.sh` | DS-31 | Instruction surface content drift |
+| `scripts/detect-feed-forward-stall.sh` | DS-32 | Feed-forward stall detection |
+| `scripts/detect-measurement-disconnect.sh` | DS-33 | Measurement-action disconnect |
+| `scripts/detect-stale-todos.sh` | DS-34 | Stale TODO/FIXME detection |
+| `scripts/detect-unused-deps.sh` | DS-35 | Unused dependency detection |
+| `scripts/detect-green-only-ci.sh` | DS-36 | Green-only CI detection |
+| `scripts/detect-readme-drift.sh` | DS-37 | README capability drift |
+| `scripts/detect-config-proliferation.sh` | DS-38 | Config format proliferation |
+| `scripts/detect-silent-errors.sh` | DS-39 | Silent error handling detection |
+| `scripts/detect-commit-entropy.sh` | DS-40 | Commit message entropy |
+| `scripts/detect-test-theater.sh` | DS-41 | Test theater detection |
+| `scripts/detect-broken-links.sh` | DS-42 | Broken internal link detection |
+| `scripts/detect-velocity-bypass.sh` | DS-43 | Autonomous velocity bypass |
+| `scripts/detect-new-signatures.sh` | -- | Unified runner for DS-34 through DS-42 |
+
+### Helpers
+
+| Script | Purpose |
+|---|---|
+| `scripts/assemble_ds_results.py` | Assemble DS-34 through DS-42 results |
+| `scripts/backtest_ds34_42.py` | Backtest DS-34 through DS-42 against targets |
+| `scripts/ds_json_helper.py` | Safe JSON output for detection scripts |
+
+### Gates and Hooks
+
+| Script | Purpose |
+|---|---|
+| `scripts/check.sh` | Gate 2 -- shellcheck + inventory + trailer validation |
+| `scripts/work-init.sh` | Gate 1 -- work contract init with baseline SCORECARD |
+| `scripts/work-close.sh` | Gate 3 -- post-audit + delta + learnings gate |
+| `scripts/pre-commit-hook.sh` | Pre-commit hook -- runs make check |
+| `scripts/pre-push-hook.sh` | Pre-push hook -- additional validation |
 
 ## How to Use
 
 ```bash
-# Mode A — Outbound (from this repo)
+# Mode A -- Outbound (from this repo)
 make audit TARGET=~/repos/some-repo
 
-# Mode B — Inbound (from target repo, reference this agent)
+# Mode B -- Inbound (from target repo, reference this agent)
 # Add to target's AGENTS.md: @repo-auditor at briancl2/repo-auditor
 
-# Quick test
-make test
+# Quick audit (fewer checks)
+make audit-quick TARGET=~/repos/some-repo
 
 # Deep mode
 make audit-deep TARGET=~/repos/some-repo
 
+# Validate artifacts
+make validate
+
+# Quick test
+make test
+
 # Self-management
-make check                        # Gate 2 — shellcheck + inventory + trailer
-make work DESC="what you're doing" # Gate 1 — open work contract
-make work-close WORK=work/<dir>    # Gate 3 — close with post-audit + learnings
+make check                         # Gate 2 -- shellcheck + inventory + trailer
+make review                        # Code review of staged changes
+make work DESC="what you're doing" # Gate 1 -- open work contract
+make work-close WORK=work/<dir>    # Gate 3 -- close with post-audit + learnings
+
+# Setup
+make install-hooks                 # Install pre-commit + pre-push hooks
+make help                          # Show all available targets
 ```
 
 ## Key Files
