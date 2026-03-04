@@ -42,6 +42,15 @@ if [ ! -d "$REPO" ]; then
     exit 1
 fi
 
+# ── C4: Pre-operation guard rails (Stage 11.2) ───────────────────────
+GUARD_SCRIPT="$SCRIPT_DIR/operation-guard.sh"
+if [ -x "$GUARD_SCRIPT" ]; then
+    if ! bash "$GUARD_SCRIPT" "$REPO" 2>&1; then
+        echo "ERROR: Operation guard FAILED. Aborting audit." >&2
+        exit 1
+    fi
+fi
+
 # Resolve repo name for display
 REPO_NAME="$(basename "$REPO")"
 
@@ -237,6 +246,25 @@ echo "Outputs:"
 echo "  $OUTPUT_DIR/AUDIT_REPORT.md"
 echo "  $OUTPUT_DIR/SCORECARD.json"
 echo "================================================================"
+
+# ── C1: Runtime evaluation of audit quality (Stage 11.2) ─────────────
+EVAL_SCRIPT="$SCRIPT_DIR/score-operation.sh"
+if [ -x "$EVAL_SCRIPT" ]; then
+    echo ""
+    bash "$EVAL_SCRIPT" "$OUTPUT_DIR" || true
+    # Also produce JSON artifact alongside audit outputs
+    bash "$EVAL_SCRIPT" "$OUTPUT_DIR" --json > "$OUTPUT_DIR/OPERATION_EVAL.json" 2>/dev/null || true
+fi
+
+# ── Release lockfile (C4 cleanup) ────────────────────────────────────
+LOCKDIR="/tmp/repo-auditor-locks"
+LOCKFILE="$LOCKDIR/$(echo "$REPO" | tr '/' '_').lock"
+if [ -f "$LOCKFILE" ]; then
+    LOCK_PID=$(cat "$LOCKFILE" 2>/dev/null || echo "")
+    if [ "$LOCK_PID" = "$$" ]; then
+        rm -f "$LOCKFILE"
+    fi
+fi
 
 if [ "$FAIL_COUNT" -gt 0 ]; then
     exit 1
