@@ -155,14 +155,14 @@ fi
     echo "## Directory Structure (depth 2)"
     echo ""
     echo '```'
-    find "$TARGET_ABS" -maxdepth 2 -type d -not -path '*/.git/*' -not -path '*/.git' -not -path '*/node_modules/*' -not -path '*/__pycache__/*' 2>/dev/null | sed "s|$TARGET_ABS/||g" | sed "s|$TARGET_ABS||g" | sort | head -60
+    eval "find \"$TARGET_ABS\" -maxdepth 2 -type d $FIND_EXCLUDES -not -path '*/.git'" 2>/dev/null | sed "s|$TARGET_ABS/||g" | sed "s|$TARGET_ABS||g" | sort | head -60
     echo '```'
     echo ""
     echo "## File Distribution"
     echo ""
     echo "| extension | count |"
     echo "|---|---|"
-    find "$TARGET_ABS" -type f -name '*.*' -not -path '*/.git/*' -not -name '.DS_Store' 2>/dev/null | sed 's/.*\.//' | sort | uniq -c | sort -rn | head -15 | while read count ext; do
+    eval "find \"$TARGET_ABS\" -type f -name '*.*' $FIND_EXCLUDES" 2>/dev/null | sed 's/.*\.//' | sort | uniq -c | sort -rn | head -15 | while read count ext; do
         echo "| .$ext | $count |"
     done
     echo ""
@@ -258,7 +258,7 @@ AI_SURFACES_LINES=$(wc -l < "$OUTPUT_DIR/AI_SURFACES_FULL.md" | tr -d ' ')
     echo ""
     echo "| file | lines | type |"
     echo "|---|---|---|"
-    find "$TARGET_ABS" -type f -not -path '*/.git/*' -not -name '.DS_Store' -not -path '*/node_modules/*' -not -path '*/__pycache__/*' 2>/dev/null | while read f; do
+    eval "find \"$TARGET_ABS\" -type f $FIND_EXCLUDES" 2>/dev/null | while read f; do
         lines=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
         if [ "$lines" -gt 200 ]; then
             rel=$(echo "$f" | sed "s|$TARGET_ABS/||g")
