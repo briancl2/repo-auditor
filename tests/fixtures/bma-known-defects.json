@@ -1,0 +1,64 @@
+{
+  "description": "Known defects in BMA that standard bash audit cannot detect but semantic deep-audit SHOULD detect. Used to validate deep-audit.py acceptance criterion: >=3 findings that bash misses.",
+  "target": "build-meta-analysis",
+  "fixture_version": "1.0.0",
+  "created": "2026-03-04",
+  "created_by": "v151 session (Stage 11.3)",
+  "minimum_expected_hits": 3,
+  "known_defects": [
+    {
+      "id": "KD-1",
+      "check": "schema-orphan",
+      "description": "Schema 'ds-finding.schema.json' has no validation consumer in executable code",
+      "file": "schemas/ds-finding.schema.json",
+      "severity": "HIGH",
+      "why_bash_misses": "Requires cross-referencing schema filename across all script files, not just checking file existence",
+      "verification": "grep -rn 'ds-finding.schema.json' scripts/ Makefile --include='*.sh' --include='*.py' | wc -l should be 0"
+    },
+    {
+      "id": "KD-2",
+      "check": "schema-orphan",
+      "description": "Schema 'principle-ledger.schema.json' has no validation consumer in executable code",
+      "file": "schemas/principle-ledger.schema.json",
+      "severity": "HIGH",
+      "why_bash_misses": "Same as KD-1: cross-file reference analysis beyond pattern matching",
+      "verification": "grep -rn 'principle-ledger.schema.json' scripts/ Makefile --include='*.sh' --include='*.py' | wc -l should be 0"
+    },
+    {
+      "id": "KD-3",
+      "check": "constitution-enforcement",
+      "description": "Constitution claims T1 via 'make sync-counters' but Makefile target does not exist",
+      "file": ".specify/memory/constitution.md",
+      "severity": "HIGH",
+      "why_bash_misses": "Requires parsing prose in constitution, extracting make target names, then checking Makefile for those targets",
+      "verification": "grep 'sync-counters' Makefile | wc -l should be 0"
+    },
+    {
+      "id": "KD-4",
+      "check": "cross-reference",
+      "description": "Skills 'fleet-dispatch' and 'scorecard-comparison' exist on disk but missing from AGENTS.md Skills table",
+      "file": ".agents/skills/fleet-dispatch, .agents/skills/scorecard-comparison",
+      "severity": "MEDIUM",
+      "why_bash_misses": "Requires comparing directory listing to parsed markdown table rows",
+      "verification": "ls -d .agents/skills/fleet-dispatch/ .agents/skills/scorecard-comparison/ should succeed; grep 'fleet-dispatch\\|scorecard-comparison' in Skills table should find 0"
+    },
+    {
+      "id": "KD-5",
+      "check": "dead-script",
+      "description": "Scripts 'backfill-principle-ledger.py' and 'test-l1-apply-hygiene.sh' are never referenced from any caller",
+      "file": "scripts/backfill-principle-ledger.py, scripts/test-l1-apply-hygiene.sh",
+      "severity": "MEDIUM",
+      "why_bash_misses": "Requires full-repo cross-reference search to prove ABSENCE of references, not just presence of the file",
+      "verification": "grep -rn 'backfill-principle-ledger\\|test-l1-apply-hygiene' Makefile AGENTS.md scripts/ .github/ .agents/ tests/ should find 0 external refs"
+    },
+    {
+      "id": "KD-6",
+      "check": "count-staleness",
+      "description": "AGENTS.md has inconsistent learnings counts (342 vs L1-L329 vs actual 344+)",
+      "file": "AGENTS.md",
+      "severity": "LOW",
+      "why_bash_misses": "Requires extracting numbers from prose in multiple locations, comparing them, and counting actual entries",
+      "verification": "grep -n 'learnings\\|L1-L' AGENTS.md shows different numbers"
+    }
+  ]
+}

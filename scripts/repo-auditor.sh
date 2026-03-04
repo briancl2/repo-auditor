@@ -10,7 +10,11 @@
 #
 # Then runs score-audit-dimensions.sh to produce a 5-dimension scorecard.
 #
-# Usage: bash scripts/repo-auditor.sh <repo_path> [output_dir]
+# Usage: bash scripts/repo-auditor.sh <repo_path> [output_dir] [--mode deep]
+#
+# Modes:
+#   standard (default) — 5 bash tools + dimension scorer
+#   deep               — standard + semantic cross-reference analysis (5 checks)
 #
 # Outputs:
 #   <output_dir>/AUDIT_REPORT.md   — Human-readable composite report
@@ -32,8 +36,30 @@
 
 set -euo pipefail
 
-REPO="${1:?Usage: repo-auditor.sh <repo_path> [output_dir]}"
-OUTPUT_DIR="${2:-audit_output}"
+# ── Argument parsing ──────────────────────────────────────────────────
+AUDIT_MODE="standard"
+POSITIONAL=()
+for arg in "$@"; do
+    case "$arg" in
+        --mode)
+            # Next arg will set AUDIT_MODE via prev_arg check
+            ;;
+        deep|standard)
+            if [ "${prev_arg:-}" = "--mode" ]; then
+                AUDIT_MODE="$arg"
+            else
+                POSITIONAL+=("$arg")
+            fi
+            ;;
+        *)
+            POSITIONAL+=("$arg")
+            ;;
+    esac
+    prev_arg="$arg"
+done
+
+REPO="${POSITIONAL[0]:?Usage: repo-auditor.sh <repo_path> [output_dir] [--mode deep]}"
+OUTPUT_DIR="${POSITIONAL[1]:-audit_output}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # W6 fix: validate repo path exists
@@ -43,16 +69,18 @@ if [ ! -d "$REPO" ]; then
 fi
 
 # ── C4: Pre-operation guard rails (Stage 11.2) ───────────────────────
+# ── C4: Shared lockdir (H3 fix: single definition, passed to guard) ──
+LOCKDIR="/tmp/repo-auditor-locks"
+
 GUARD_SCRIPT="$SCRIPT_DIR/operation-guard.sh"
 if [ -x "$GUARD_SCRIPT" ]; then
-    if ! bash "$GUARD_SCRIPT" "$REPO" 2>&1; then
+    if ! bash "$GUARD_SCRIPT" "$REPO" --lockdir "$LOCKDIR" 2>&1; then
         echo "ERROR: Operation guard FAILED. Aborting audit." >&2
         exit 1
     fi
 fi
 
 # ── C4: Acquire operation lock (PID matches this process) ────────────
-LOCKDIR="/tmp/repo-auditor-locks"
 LOCKFILE="$LOCKDIR/$(echo "$REPO" | tr '/' '_').lock"
 mkdir -p "$LOCKDIR"
 echo $$ > "$LOCKFILE"
@@ -70,6 +98,7 @@ echo "================================================================"
 echo ""
 echo "Target:  $REPO"
 echo "Output:  $OUTPUT_DIR"
+echo "Mode:    $AUDIT_MODE"
 echo ""
 
 # Track failures (no associative arrays per L10)
@@ -253,6 +282,40 @@ echo "Outputs:"
 echo "  $OUTPUT_DIR/AUDIT_REPORT.md"
 echo "  $OUTPUT_DIR/SCORECARD.json"
 echo "================================================================"
+
+# ── Deep mode: Semantic cross-reference analysis (Stage 11.3) ────────
+if [ "$AUDIT_MODE" = "deep" ]; then
+    DEEP_SCRIPT="$SCRIPT_DIR/deep-audit.py"
+    if [ -f "$DEEP_SCRIPT" ]; then
+        echo ""
+        echo "--- Running Deep Semantic Analysis ---"
+        echo ""
+        if python3 "$DEEP_SCRIPT" "$REPO" --output-dir "$OUTPUT_DIR" 2>&1; then
+            echo "  [deep-audit] Semantic analysis complete"
+            # Append deep findings summary to AUDIT_REPORT.md
+            if [ -f "$OUTPUT_DIR/DEEP_FINDINGS.json" ]; then
+                DEEP_COUNT=$(python3 -c "import json; d=json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json')); print(d['total_findings'])" 2>/dev/null || echo "0")
+                DEEP_HIGH=$(python3 -c "import json; d=json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json')); print(d['findings_by_severity']['HIGH'])" 2>/dev/null || echo "0")
+                cat >> "$OUTPUT_DIR/AUDIT_REPORT.md" << DEEPEOF
+
+## Deep Semantic Analysis
+
+| Metric | Value |
+|---|---|
+| Mode | deep |
+| Total findings | $DEEP_COUNT |
+| HIGH severity | $DEEP_HIGH |
+
+See DEEP_FINDINGS.json for full details.
+DEEPEOF
+            fi
+        else
+            echo "  [deep-audit] WARNING: Semantic analysis failed (non-fatal)"
+        fi
+    else
+        echo "  [deep-audit] WARNING: deep-audit.py not found at $DEEP_SCRIPT"
+    fi
+fi
 
 # ── C1: Runtime evaluation of audit quality (Stage 11.2) ─────────────
 EVAL_SCRIPT="$SCRIPT_DIR/score-operation.sh"

@@ -203,6 +203,16 @@ else
     add_issue "maturity.txt missing (no phase classification)"
 fi
 
+# ── Check 9 (bonus): Deep findings present (Stage 11.3) ──────────────
+DEEP_FILE="$AUDIT_DIR/DEEP_FINDINGS.json"
+if [ -f "$DEEP_FILE" ]; then
+    DEEP_COUNT=$(python3 -c "import json; print(json.load(open('$DEEP_FILE'))['total_findings'])" 2>/dev/null || echo "0")
+    DEEP_HIGH=$(python3 -c "import json; print(json.load(open('$DEEP_FILE'))['findings_by_severity']['HIGH'])" 2>/dev/null || echo "0")
+    if [ "$DEEP_COUNT" -gt 0 ] 2>/dev/null; then
+        EVIDENCE="${EVIDENCE}  [deep] Deep semantic analysis: $DEEP_COUNT findings ($DEEP_HIGH HIGH)\n"
+    fi
+fi
+
 # ── Output ────────────────────────────────────────────────────────────
 if [ "$JSON_MODE" = "true" ]; then
     # Output JSON for machine consumption
