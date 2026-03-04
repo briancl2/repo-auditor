@@ -36,7 +36,9 @@ New checks must declare which dimension they contribute to.
 ### 4. Evidence-Based Only
 Every score point awarded must trace to a specific file, pattern, or git artifact.
 The AUDIT_REPORT.md must include evidence citations for every score. "Vibes-based"
-scoring is a violation.
+scoring is a violation. **Grader accuracy is a first-class metric (P3v2):** ground-truth
+test on >=3 targets, golden fixture baseline, recalibrate scoring at stage boundaries.
+Scorer stalls require measurement investigation before product investigation.
 
 ### 5. Detection Signatures (DS-1 through DS-21)
 Detection signatures are named, versioned patterns that identify specific
@@ -67,4 +69,22 @@ a coverage warning, not a failure.
 This constitution supersedes informal practices. Amendments require
 documented rationale and review.
 
-**Version**: 2.0 | **Ratified**: 2026-02-24 | **Amendment**: §1 rewritten from "Zero-LLM-Tokens" to "Deterministic-First Tools" per spec 052 (L271 RCA)
+### Universal Principle Amendments (Stage 11.6)
+
+The following amendments from the 12 Universal Principles are binding:
+
+- **P3v2 (Fix Measurement First):** Grader accuracy is a first-class metric.
+  Ground-truth test on >=3 targets, golden fixture baseline, recalibrate at
+  stage boundaries. Reflected in §4 above.
+- **P6v5 (Enforced Over Advisory):** T1.5 tier recognized: mechanical triggers
+  that invoke behavioral checks (e.g., auto-SER at work-close). score-operation.sh
+  and operation-guard.sh are T1.5 mechanisms.
+- **P7v3 (Feed Forward Automatically):** work-close REFUSES without learning
+  extraction or explicit `--no-novel-findings <rationale>`. Learning-to-DS
+  propagation rate tracked (target >=30%). Reflected in self-management §7+§11.
+- **P11v3 (Seek Adversarial Counsel):** Mandatory critique triggers: (1) new spec,
+  (2) principle revision, (3) >200 new lines across ALL modified repos,
+  (4) handoff with >3 deliverables, (5) stage gate. Critique-Status header
+  required on triggered commits. Skip-with-rationale allowed.
+
+**Version**: 3.0 | **Ratified**: 2026-03-04 | **Amendment**: §4 P3v2 calibration + UA Stage 11.6 (P6v5, P7v3, P11v3)
