@@ -81,7 +81,7 @@ The following amendments from the 12 Universal Principles are binding:
   and operation-guard.sh are T1.5 mechanisms.
 - **P7v3 (Feed Forward Automatically):** work-close REFUSES without learning
   extraction or explicit `--no-novel-findings <rationale>`. Learning-to-DS
-  propagation rate tracked (target >=30%). Reflected in self-management §7+§11.
+  propagation rate tracked (target >=30%).
 - **P11v3 (Seek Adversarial Counsel):** Mandatory critique triggers: (1) new spec,
   (2) principle revision, (3) >200 new lines across ALL modified repos,
   (4) handoff with >3 deliverables, (5) stage gate. Critique-Status header
