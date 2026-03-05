@@ -1,0 +1,25 @@
+# config/policy.yaml — Operational policy for repo-auditor
+# Extracted from AGENTS.md prose + scripts (Stage 13 Pattern P3)
+version: 1
+
+thresholds:
+  max_files_scanned: 200        # from AGENTS.md stop rules
+  max_timeout_seconds: 1200     # from run-continuous-loop.sh
+  max_detection_signatures: 50  # practical limit per run
+  pre_scan_timeout_seconds: 60  # from repo-auditor.sh
+
+quality_gates:
+  min_dimensions_scored: 5      # all 5 dimensions must have non-null scores
+  min_composite_score: 0        # no minimum (any target can be audited)
+  max_drift_percent: 30         # T2 warning threshold
+  min_co_evo_ratio: 0.5         # T2 warning threshold
+
+bounds:
+  max_files_per_subagent: 30    # from AGENTS.md deep mode
+  max_deep_mode_tokens: 30000   # from AGENTS.md mode table
+  max_audit_retries: 2          # retry failed tools max 2 times
+
+ratchet:
+  enabled: false
+  consecutive_passes_required: 5
+  decrease_pct: 0.02
