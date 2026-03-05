@@ -283,37 +283,87 @@ echo "  $OUTPUT_DIR/AUDIT_REPORT.md"
 echo "  $OUTPUT_DIR/SCORECARD.json"
 echo "================================================================"
 
-# ── Deep mode: Semantic cross-reference analysis (Stage 11.3) ────────
+# ── Deep mode: Domain subagent dispatch via copilot CLI (v163) ───────
 if [ "$AUDIT_MODE" = "deep" ]; then
-    DEEP_SCRIPT="$SCRIPT_DIR/deep-audit.py"
-    if [ -f "$DEEP_SCRIPT" ]; then
-        echo ""
-        echo "--- Running Deep Semantic Analysis ---"
-        echo ""
-        if python3 "$DEEP_SCRIPT" "$REPO" --output-dir "$OUTPUT_DIR" 2>&1; then
-            echo "  [deep-audit] Semantic analysis complete"
-            # Append deep findings summary to AUDIT_REPORT.md
-            if [ -f "$OUTPUT_DIR/DEEP_FINDINGS.json" ]; then
-                DEEP_COUNT=$(python3 -c "import json; d=json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json')); print(d['total_findings'])" 2>/dev/null || echo "0")
-                DEEP_HIGH=$(python3 -c "import json; d=json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json')); print(d['findings_by_severity']['HIGH'])" 2>/dev/null || echo "0")
-                cat >> "$OUTPUT_DIR/AUDIT_REPORT.md" << DEEPEOF
+    echo ""
+    echo "--- Running Deep Mode: Domain Subagent Dispatch ---"
+    echo ""
 
-## Deep Semantic Analysis
+    PAYLOADS_DIR="$OUTPUT_DIR/payloads"
+    mkdir -p "$PAYLOADS_DIR"
 
-| Metric | Value |
-|---|---|
-| Mode | deep |
-| Total findings | $DEEP_COUNT |
-| HIGH severity | $DEEP_HIGH |
+    AGENTS_DIR="$SCRIPT_DIR/../.agents"
+    DEEP_MODEL="${DEEP_MODEL:-claude-sonnet-4.5}"
+    DEEP_TIMEOUT="${DEEP_TIMEOUT:-120}"
+    _to="timeout"; command -v timeout >/dev/null 2>&1 || _to="gtimeout"
+    _has_timeout=false; command -v "$_to" >/dev/null 2>&1 && _has_timeout=true
 
-See DEEP_FINDINGS.json for full details.
-DEEPEOF
+    # Domain agents to dispatch (6 domains)
+    DEEP_DOMAINS="governance surface skill measurement improvement theater"
+    DEEP_OK=0
+    DEEP_FAIL=0
+
+    for domain in $DEEP_DOMAINS; do
+        agent_file="$AGENTS_DIR/${domain}-auditor.agent.md"
+        payload_file="$PAYLOADS_DIR/${domain}.md"
+        if [ ! -f "$agent_file" ]; then
+            echo "  [$domain] SKIP: agent file not found"
+            DEEP_FAIL=$((DEEP_FAIL + 1))
+            continue
+        fi
+        echo "  [$domain] dispatching..."
+        prompt_text="Read .agents/${domain}-auditor.agent.md for instructions. Audit the target repo at $REPO. Write all findings to stdout in markdown table format."
+        dispatch_ok=false
+        if [ "$_has_timeout" = true ]; then
+            if (cd "$SCRIPT_DIR/.." && $_to "$DEEP_TIMEOUT" copilot --model "$DEEP_MODEL" \
+                -p "$prompt_text" --allow-all --no-ask-user < /dev/null > "$payload_file" 2>/dev/null); then
+                dispatch_ok=true
             fi
         else
-            echo "  [deep-audit] WARNING: Semantic analysis failed (non-fatal)"
+            if (cd "$SCRIPT_DIR/.." && copilot --model "$DEEP_MODEL" \
+                -p "$prompt_text" --allow-all --no-ask-user < /dev/null > "$payload_file" 2>/dev/null); then
+                dispatch_ok=true
+            fi
         fi
-    else
-        echo "  [deep-audit] WARNING: deep-audit.py not found at $DEEP_SCRIPT"
+        if [ "$dispatch_ok" = true ] && [ -s "$payload_file" ]; then
+            echo "  [$domain] done ($(wc -l < "$payload_file" | tr -d ' ') lines)"
+            DEEP_OK=$((DEEP_OK + 1))
+        else
+            echo "  [$domain] FAILED"
+            DEEP_FAIL=$((DEEP_FAIL + 1))
+        fi
+    done
+
+    echo ""
+    echo "  Domain dispatch: $DEEP_OK OK, $DEEP_FAIL failed"
+
+    # Synthesis: combine domain findings into deep audit summary
+    if [ "$DEEP_OK" -gt 0 ]; then
+        echo ""
+        echo "  [synthesis] combining domain findings..."
+        synth_prompt="Read .agents/audit-synthesis.agent.md for instructions. Combine all domain audit payloads in $OUTPUT_DIR/payloads/ into a unified deep audit summary. Write a JSON summary to stdout with total_findings and findings_by_severity."
+        synth_ok=false
+        if [ "$_has_timeout" = true ]; then
+            if (cd "$SCRIPT_DIR/.." && $_to "$DEEP_TIMEOUT" copilot --model claude-opus-4.6 \
+                -p "$synth_prompt" --allow-all --no-ask-user < /dev/null > "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null); then
+                synth_ok=true
+            fi
+        else
+            if (cd "$SCRIPT_DIR/.." && copilot --model claude-opus-4.6 \
+                -p "$synth_prompt" --allow-all --no-ask-user < /dev/null > "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null); then
+                synth_ok=true
+            fi
+        fi
+        if [ "$synth_ok" = true ] && [ -s "$OUTPUT_DIR/DEEP_FINDINGS.json" ]; then
+            echo "  [synthesis] done"
+            # Append deep findings summary to AUDIT_REPORT.md
+            DEEP_COUNT=$(python3 -c "import json; d=json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json')); print(d.get('total_findings',0))" 2>/dev/null || echo "$DEEP_OK domains")
+            DEEP_HIGH=$(python3 -c "import json; d=json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json')); print(d.get('findings_by_severity',{}).get('HIGH',0))" 2>/dev/null || echo "?")
+            printf '\n## Deep Semantic Analysis\n\n| Metric | Value |\n|---|---|\n| Mode | deep |\n| Domains dispatched | %s/%s |\n| Total findings | %s |\n| HIGH severity | %s |\n\nSee DEEP_FINDINGS.json and payloads/ for full details.\n' \
+                "$DEEP_OK" "6" "$DEEP_COUNT" "$DEEP_HIGH" >> "$OUTPUT_DIR/AUDIT_REPORT.md"
+        else
+            echo "  [synthesis] FAILED (domain payloads still available in payloads/)"
+        fi
     fi
 fi
 
