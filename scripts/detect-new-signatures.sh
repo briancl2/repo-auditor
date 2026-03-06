@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # detect-new-signatures.sh — Unified runner for DS-34+
-# Runs the post-DS-33 extension signatures and outputs a combined JSON report.
+# Runs the extended post-DS-33 signatures and outputs a combined JSON report.
 # Usage: bash scripts/detect-new-signatures.sh <repo_path> [output_dir]
 set -euo pipefail
 REPO="${1:?Usage: detect-new-signatures.sh <repo_path> [output_dir]}"

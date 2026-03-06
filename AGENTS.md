@@ -34,12 +34,14 @@ maturity phase classification.
 | 8 | theater-auditor | claude-sonnet-4.5 | DS-21 Automation Theater detection (deep mode) |
 | 9 | audit-synthesis | claude-opus-4.6 | Report synthesis from domain findings (deep mode) |
 
-## Skills (2)
+## Skills (4)
 
 | # | Skill | Purpose |
 |---|---|---|
 | 1 | reviewing-code-locally | Pre-commit code review via Copilot CLI |
 | 2 | pre-scanning | Deterministic pre-scan — file inventory, AI surfaces |
+| 3 | detection-signatures | Detection signature runner (DS-34 through DS-43) |
+| 4 | scoring | 5-dimension scoring pipeline + stall risk + maturity |
 
 ## Scripts (37)
 
@@ -132,13 +134,14 @@ make install-hooks                 # Install pre-commit + pre-push hooks
 make help                          # Show all available targets
 ```
 
-## Key Files
+## Key Documents
 
-| File | Purpose |
+| Document | Purpose |
 |---|---|
-| AGENTS.md | AI instruction surface (this file) |
-| LEARNINGS.md | Operational learnings (append-only) |
-| docs/invocation-contract.md | Formal I/O contract for auditor invocation |
+| `AGENTS.md` | AI instruction surface (this file) |
+| `LEARNINGS.md` | Operational learnings (append-only) |
+| `docs/invocation-contract.md` | Formal I/O contract for auditor invocation |
+| `.specify/memory/constitution.md` | Project constitution -- governance principles |
 
 ## Outputs
 

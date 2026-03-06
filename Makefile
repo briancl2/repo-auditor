@@ -29,7 +29,6 @@ audit:
 
 audit-deep:
 	@echo "=== repo-auditor: Deep Mode ==="
-	@echo "TODO: Wire deep mode with LLM domain subagents"
 	@mkdir -p $(OUTPUT_DIR)
 	@bash scripts/repo-auditor.sh "$(TARGET)" "$(OUTPUT_DIR)"
 
@@ -40,10 +39,9 @@ audit-quick:
 
 test:
 	@echo "=== Running auditor test suite ==="
-	@bash tests/test-auditor-schemas.sh
-	@bash tests/test-audit-hardening.sh
-	@bash tests/test-detect-closeout-control-drift.sh
-	@bash tests/test-newsletter-calibration-detectors.sh
+	@for t in tests/test-*.sh; do \
+		echo "--- $$t ---"; bash "$$t" || exit 1; \
+	done
 	@echo ""
 	@echo "=== All tests passed ==="
 
