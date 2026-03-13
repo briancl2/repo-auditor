@@ -29,21 +29,23 @@ TARGET_ABS=$(cd "$TARGET" && pwd)
 REPO_NAME=$(basename "$TARGET_ABS")
 
 # ============================================================
-# .auditorignore support — exclude archival directories from file counts
+# .auditorignore support — prune archival directories from traversal
 # Format: one directory per line (trailing / optional), # comments, blank lines
 # Uses array-safe construction to avoid eval fragility (v158b critique fix).
+# Pruning matters here: filtering excluded paths out of results still walks the
+# entire tree, which can dominate self-audit runs when tracked work history is
+# large.
 # ============================================================
-FIND_EXCLUDES=(
-    -not -path '*/.git/*'
-    -not -name '.DS_Store'
-    -not -path '*/.venv/*'
-    -not -path '*/venv/*'
-    -not -path '*/node_modules/*'
-    -not -path '*/.tox/*'
-    -not -path '*/.mypy_cache/*'
-    -not -path '*/__pycache__/*'
-    -not -path '*/vendor/*'
-    -not -path '*/.eggs/*'
+FIND_PRUNE_MATCHES=(
+    -path "$TARGET_ABS/.git" -o
+    -path '*/.venv' -o
+    -path '*/venv' -o
+    -path '*/node_modules' -o
+    -path '*/.tox' -o
+    -path '*/.mypy_cache' -o
+    -path '*/__pycache__' -o
+    -path '*/vendor' -o
+    -path '*/.eggs'
 )
 AUDITORIGNORE_ACTIVE="no"
 if [ -f "$TARGET_ABS/.auditorignore" ]; then
@@ -54,32 +56,44 @@ if [ -f "$TARGET_ABS/.auditorignore" ]; then
         [ -z "$line" ] && continue
         # Strip trailing slash for consistency
         dir=$(echo "$line" | sed 's|/$||')
-        FIND_EXCLUDES+=(-not -path "*/${dir}/*")
+        FIND_PRUNE_MATCHES+=(-o -path "$TARGET_ABS/$dir")
     done < "$TARGET_ABS/.auditorignore"
 fi
+
+find_target() {
+    find "$TARGET_ABS" \
+        \( "${FIND_PRUNE_MATCHES[@]}" \) -prune -o \
+        "$@" -not -name '.DS_Store' -print 2>/dev/null
+}
+
+find_target_null() {
+    find "$TARGET_ABS" \
+        \( "${FIND_PRUNE_MATCHES[@]}" \) -prune -o \
+        "$@" -not -name '.DS_Store' -print0 2>/dev/null
+}
 
 # ============================================================
 # Count files by category (all find commands respect .auditorignore)
 # ============================================================
-TOTAL_FILES=$(find "$TARGET_ABS" -type f "${FIND_EXCLUDES[@]}" 2>/dev/null | wc -l | tr -d ' ')
+TOTAL_FILES=$(find_target -type f | wc -l | tr -d ' ')
 
-AGENT_FILES=$(find "$TARGET_ABS" -maxdepth 5 -name '*.agent.md' "${FIND_EXCLUDES[@]}" -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/archive/*' -not -path '*/Archive/*' 2>/dev/null || true)
+AGENT_FILES=$(find_target -maxdepth 5 -type f -name '*.agent.md' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/archive/*' -not -path '*/Archive/*' || true)
 AGENT_COUNT=0
 [ -n "$AGENT_FILES" ] && AGENT_COUNT=$(echo "$AGENT_FILES" | wc -l | tr -d ' ')
 
-SKILL_FILES=$(find "$TARGET_ABS" -maxdepth 5 -name 'SKILL.md' "${FIND_EXCLUDES[@]}" -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/benchmarks/*' 2>/dev/null || true)
+SKILL_FILES=$(find_target -maxdepth 5 -type f -name 'SKILL.md' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/benchmarks/*' || true)
 SKILL_COUNT=0
 [ -n "$SKILL_FILES" ] && SKILL_COUNT=$(echo "$SKILL_FILES" | wc -l | tr -d ' ')
 
-INSTRUCTION_FILES=$(find "$TARGET_ABS" -maxdepth 5 \( -name '*.instructions.md' -o -name 'copilot-instructions.md' -o -name 'AGENTS.md' -o -name 'CLAUDE.md' \) "${FIND_EXCLUDES[@]}" 2>/dev/null || true)
+INSTRUCTION_FILES=$(find_target -maxdepth 5 -type f \( -name '*.instructions.md' -o -name 'copilot-instructions.md' -o -name 'AGENTS.md' -o -name 'CLAUDE.md' \) || true)
 INSTRUCTION_COUNT=0
 [ -n "$INSTRUCTION_FILES" ] && INSTRUCTION_COUNT=$(echo "$INSTRUCTION_FILES" | wc -l | tr -d ' ')
 
-PROMPT_FILES=$(find "$TARGET_ABS" -maxdepth 5 -name '*.prompt.md' "${FIND_EXCLUDES[@]}" 2>/dev/null || true)
+PROMPT_FILES=$(find_target -maxdepth 5 -type f -name '*.prompt.md' || true)
 PROMPT_COUNT=0
 [ -n "$PROMPT_FILES" ] && PROMPT_COUNT=$(echo "$PROMPT_FILES" | wc -l | tr -d ' ')
 
-SCORING_FILES=$(find "$TARGET_ABS" -maxdepth 4 "${FIND_EXCLUDES[@]}" -not -path '*/node_modules/*' \( -name 'score-*.sh' -o -name 'score*.py' -o -name 'validate-*.sh' -o -name 'validate_*.py' -o -name 'test_*.py' -o -name '*_test.py' -o -name 'test-*.sh' \) 2>/dev/null || true)
+SCORING_FILES=$(find_target -maxdepth 4 -type f \( -name 'score-*.sh' -o -name 'score*.py' -o -name 'validate-*.sh' -o -name 'validate_*.py' -o -name 'test_*.py' -o -name '*_test.py' -o -name 'test-*.sh' \) || true)
 SCORING_COUNT=0
 [ -n "$SCORING_FILES" ] && SCORING_COUNT=$(echo "$SCORING_FILES" | wc -l | tr -d ' ')
 
@@ -167,14 +181,14 @@ fi
     echo "## Directory Structure (depth 2)"
     echo ""
     echo '```'
-    find "$TARGET_ABS" -maxdepth 2 -type d "${FIND_EXCLUDES[@]}" -not -path '*/.git' 2>/dev/null | sed "s|$TARGET_ABS/||g" | sed "s|$TARGET_ABS||g" | sort | head -60
+    find_target -maxdepth 2 -type d | sed "s|$TARGET_ABS/||g" | sed "s|$TARGET_ABS||g" | sort | head -60
     echo '```'
     echo ""
     echo "## File Distribution"
     echo ""
     echo "| extension | count |"
     echo "|---|---|"
-    find "$TARGET_ABS" -type f -name '*.*' "${FIND_EXCLUDES[@]}" 2>/dev/null | sed 's/.*\.//' | sort | uniq -c | sort -rn | head -15 | while read count ext; do
+    find_target -type f -name '*.*' | sed 's/.*\.//' | sort | uniq -c | sort -rn | head -15 | while read count ext; do
         echo "| .$ext | $count |"
     done
     echo ""
@@ -270,14 +284,30 @@ AI_SURFACES_LINES=$(wc -l < "$OUTPUT_DIR/AI_SURFACES_FULL.md" | tr -d ' ')
     echo ""
     echo "| file | lines | type |"
     echo "|---|---|---|"
-    find "$TARGET_ABS" -type f "${FIND_EXCLUDES[@]}" 2>/dev/null | while read f; do
-        lines=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
-        if [ "$lines" -gt 200 ]; then
-            rel=$(echo "$f" | sed "s|$TARGET_ABS/||g")
-            ext="${f##*.}"
-            echo "| $rel | $lines | $ext |"
-        fi
-    done | sort -t'|' -k3 -rn | head -50
+    find_target_null -type f | xargs -0 wc -l 2>/dev/null | sort -rn | \
+    awk -v prefix="$TARGET_ABS/" '
+        /^[[:space:]]*[0-9]+[[:space:]]+total$/ { next }
+        {
+            line=$0
+            sub(/^[[:space:]]+/, "", line)
+            lines=line
+            sub(/[[:space:]].*$/, "", lines)
+            if ((lines + 0) <= 200) {
+                next
+            }
+            file=line
+            sub(/^[0-9]+[[:space:]]+/, "", file)
+            rel=file
+            sub("^" prefix, "", rel)
+            ext=rel
+            if (ext ~ /\./) {
+                sub(/^.*\./, "", ext)
+            } else {
+                ext="unknown"
+            }
+            print "| " rel " | " lines " | " ext " |"
+        }
+    ' | head -50
     echo ""
 } > "$OUTPUT_DIR/LARGE_FILES.md"
 
