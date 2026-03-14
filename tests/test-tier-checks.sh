@@ -20,7 +20,7 @@ cd "$EMPTY_REPO" && git init -q 2>/dev/null
 OUTPUT="$TMPDIR/empty-output"
 mkdir -p "$OUTPUT"
 
-if bash "$AUDITOR_DIR/scripts/score-audit-dimensions.sh" "$EMPTY_REPO" "$OUTPUT" 2>/dev/null; then
+if bash "$AUDITOR_DIR/scripts/repo-auditor.sh" "$EMPTY_REPO" "$OUTPUT" 2>/dev/null; then
   if [ -f "$OUTPUT/SCORECARD.json" ]; then
     FAILURES=$(python3 -c "import json; d=json.load(open('$OUTPUT/SCORECARD.json')); print(d.get('tier1_checks',{}).get('failed',0))" 2>/dev/null || echo "0")
     if [ "$FAILURES" -gt 0 ]; then
@@ -50,7 +50,7 @@ echo "	echo ok" >> "$BASIC_REPO/Makefile"
 OUTPUT2="$TMPDIR/basic-output"
 mkdir -p "$OUTPUT2"
 
-if bash "$AUDITOR_DIR/scripts/score-audit-dimensions.sh" "$BASIC_REPO" "$OUTPUT2" 2>/dev/null; then
+if bash "$AUDITOR_DIR/scripts/repo-auditor.sh" "$BASIC_REPO" "$OUTPUT2" 2>/dev/null; then
   if [ -f "$OUTPUT2/SCORECARD.json" ]; then
     PASSED=$(python3 -c "import json; d=json.load(open('$OUTPUT2/SCORECARD.json')); print(d.get('tier1_checks',{}).get('passed',0))" 2>/dev/null || echo "0")
     if [ "$PASSED" -gt 0 ]; then

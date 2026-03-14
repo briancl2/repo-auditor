@@ -21,10 +21,17 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-FIXTURE="$REPO_ROOT/tests/fixtures/golden-work-dir"
+FIXTURE_SRC="$REPO_ROOT/tests/fixtures/golden-work-dir"
+TEST_TMPDIR=$(mktemp -d)
+FIXTURE="$TEST_TMPDIR/golden-work-dir"
 OUTPUT="$FIXTURE/OPERATING_MODEL_SCORECARD.json"
 
+cleanup() { rm -rf "$TEST_TMPDIR"; }
+trap cleanup EXIT
+
 echo "=== Golden Fixture Grader Test ==="
+
+cp -R "$FIXTURE_SRC" "$FIXTURE"
 
 # Clean any prior output
 rm -f "$OUTPUT"

@@ -37,22 +37,40 @@ fi
 # Get recent commits (N sessions approximated by N*5 commits as heuristic)
 COMMIT_WINDOW=$((SESSIONS * 5))
 
-# Count L-number additions in recent commits
-LEARNING_ADDS=$(git log --oneline -"$COMMIT_WINDOW" --diff-filter=M -- LEARNINGS.md 2>/dev/null | wc -l | tr -d ' ')
+RECENT_COMMITS=$(git rev-list --max-count="$COMMIT_WINDOW" HEAD 2>/dev/null || true)
+LEARNING_ADDS=0
+STRUCTURAL_CHANGES=0
+NEW_LNUMBER_LINES=""
 
-# Count structural file changes in the same window
-# Structural = scripts/, .specify/, .agents/, .github/agents/, Makefile, schemas/
-STRUCTURAL_CHANGES=$(git log --oneline -"$COMMIT_WINDOW" --diff-filter=AMRD -- \
-  'scripts/*.sh' 'scripts/*.py' \
-  '.specify/' '.agents/' '.github/agents/' \
-  'Makefile' 'schemas/' 2>/dev/null | wc -l | tr -d ' ')
+if [ -n "$RECENT_COMMITS" ]; then
+  while IFS= read -r sha; do
+    [ -z "$sha" ] && continue
 
-# Also check for L-number growth specifically (more precise signal)
-# Count distinct L-numbers added in recent diffs
-NEW_LNUMBERS=$(git log -"$COMMIT_WINDOW" -p -- LEARNINGS.md 2>/dev/null | \
-  grep -E '^\+\| L[0-9]+' 2>/dev/null | \
-  grep -oE 'L[0-9]+' 2>/dev/null | \
-  sort -u | wc -l | tr -d ' ')
+    CHANGED_FILES=$(git show --pretty=format: --name-only --diff-filter=AMRD "$sha" 2>/dev/null || true)
+
+    if printf '%s\n' "$CHANGED_FILES" | grep -qEx 'LEARNINGS\.md'; then
+      LEARNING_ADDS=$((LEARNING_ADDS + 1))
+
+      LNUMBERS=$(git show --pretty=format: --unified=0 "$sha" -- LEARNINGS.md 2>/dev/null | \
+        grep -E '^\+\| L[0-9]+' 2>/dev/null | \
+        grep -oE 'L[0-9]+' 2>/dev/null || true)
+      if [ -n "$LNUMBERS" ]; then
+        NEW_LNUMBER_LINES="${NEW_LNUMBER_LINES}${LNUMBERS}\n"
+      fi
+    fi
+
+    if printf '%s\n' "$CHANGED_FILES" | grep -qE '^(scripts/.*\.(sh|py)|\.specify/|\.agents/|\.github/agents/|Makefile$|schemas/)'; then
+      STRUCTURAL_CHANGES=$((STRUCTURAL_CHANGES + 1))
+    fi
+  done <<EOF
+$RECENT_COMMITS
+EOF
+fi
+
+NEW_LNUMBERS=0
+if [ -n "$NEW_LNUMBER_LINES" ]; then
+  NEW_LNUMBERS=$(printf '%b' "$NEW_LNUMBER_LINES" | sed '/^$/d' | sort -u | wc -l | tr -d ' ')
+fi
 
 # Fire condition: learnings growing but 0 structural changes
 FIRES=false

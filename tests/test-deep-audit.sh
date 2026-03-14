@@ -12,9 +12,18 @@
 
 set -euo pipefail
 
-BMA_PATH="${1:?Usage: test-deep-audit.sh <bma_repo_path>}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+DEFAULT_BMA_PATH=""
+if [ -d "$REPO_ROOT/../build-meta-analysis" ]; then
+    DEFAULT_BMA_PATH="$(cd "$REPO_ROOT/../build-meta-analysis" && pwd)"
+fi
+BMA_PATH="${1:-$DEFAULT_BMA_PATH}"
+if [ -z "$BMA_PATH" ]; then
+    echo "Usage: test-deep-audit.sh <bma_repo_path>" >&2
+    exit 1
+fi
+
 DEEP_AUDIT="$REPO_ROOT/scripts/deep-audit.py"
 FIXTURE="$REPO_ROOT/tests/fixtures/bma-known-defects.json"
 OUTPUT_DIR=$(mktemp -d)

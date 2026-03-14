@@ -96,7 +96,13 @@ done
 
 # Check self-audit agents
 SELF_AUDIT=0
-AUDIT_AGENTS=$(find . -maxdepth 4 -name "*.agent.md" -not -path './.git/*' 2>/dev/null | head -50 | xargs grep -liE "audit|optimize|critic|diagnostic" 2>/dev/null | wc -l | tr -d ' ') || AUDIT_AGENTS=0
+AUDIT_AGENTS=0
+while IFS= read -r agent_file; do
+    [ -z "$agent_file" ] && continue
+    if grep -qiE "audit|optimize|critic|diagnostic" "$agent_file" 2>/dev/null; then
+        AUDIT_AGENTS=$((AUDIT_AGENTS + 1))
+    fi
+done < <(find . -maxdepth 4 -name "*.agent.md" -not -path './.git/*' 2>/dev/null | head -50)
 [ "$AUDIT_AGENTS" -gt 0 ] && SELF_AUDIT=1
 
 # Total files — full recursive count so maturity output matches scored receipts
