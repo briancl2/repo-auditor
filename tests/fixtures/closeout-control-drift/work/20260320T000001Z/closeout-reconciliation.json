@@ -1,0 +1,11 @@
+{
+  "helper_outputs": {
+    "measurement_summary": {
+      "canonicality": "NON_CANONICAL",
+      "oracle_binding": {
+        "artifact_path": "work/20260320T000001Z/closeout-reconciliation.json",
+        "authority_note": "helper-only"
+      }
+    }
+  }
+}

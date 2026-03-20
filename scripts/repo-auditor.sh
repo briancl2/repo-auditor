@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # repo-auditor.sh — Composite repo health audit (deterministic)
 #
-# Wraps 5 proven deterministic tools into a single audit run:
+# Wraps 5 proven deterministic tools plus the DS-34+ signature sweep into a
+# single audit run:
 #   1. pre-scan-target.sh    → AI surface inventory
 #   2. classify-repo-maturity.sh → Phase classification
 #   3. stall-risk-score.sh   → 6-signal stall risk
 #   4. extract-repo-dna.sh   → 10-feature DNA fingerprint
 #   5. detect-capability-drift.sh → Tool tracking drift
+#   6. detect-new-signatures.sh → Extended DS bundle (DS-34+)
 #
 # Then runs score-audit-dimensions.sh to produce a 5-dimension scorecard.
 #
@@ -24,6 +26,7 @@
 #   <output_dir>/stall-risk.txt    — stall-risk-score.sh output
 #   <output_dir>/dna.txt           — extract-repo-dna.sh output
 #   <output_dir>/drift.txt         — detect-capability-drift.sh output
+#   <output_dir>/DS-34-plus-results.json — Extended signature bundle
 #
 # Guardrails:
 #   - No associative arrays (macOS bash 3.2 compat, L10)
@@ -131,7 +134,7 @@ run_tool() {
     fi
 }
 
-echo "--- Running 5 audit tools ---"
+echo "--- Running core audit tools + DS-34+ signature sweep ---"
 echo ""
 
 # 1. Pre-scan (writes to directory, not stdout)
@@ -155,6 +158,7 @@ run_tool "maturity" "$OUTPUT_DIR/maturity.txt" bash "$SCRIPT_DIR/classify-repo-m
 run_tool "stall-risk" "$OUTPUT_DIR/stall-risk.txt" bash "$SCRIPT_DIR/stall-risk-score.sh" "$REPO"
 run_tool "dna" "$OUTPUT_DIR/dna.txt" bash "$SCRIPT_DIR/extract-repo-dna.sh" "$REPO"
 run_tool "drift" "$OUTPUT_DIR/drift.txt" bash "$SCRIPT_DIR/detect-capability-drift.sh" "$REPO"
+run_tool "ds-34-plus" "$OUTPUT_DIR/ds-34-plus-log.txt" bash "$SCRIPT_DIR/detect-new-signatures.sh" "$REPO" "$OUTPUT_DIR"
 
 echo ""
 
@@ -260,6 +264,7 @@ $SCORECARD_SUMMARY
 | stall-risk-score.sh | stall-risk.txt | $([ -s "$OUTPUT_DIR/stall-risk.txt" ] && echo "✅" || echo "❌") |
 | extract-repo-dna.sh | dna.txt | $([ -s "$OUTPUT_DIR/dna.txt" ] && echo "✅" || echo "❌") |
 | detect-capability-drift.sh | drift.txt | $([ -s "$OUTPUT_DIR/drift.txt" ] && echo "✅" || echo "❌") |
+| detect-new-signatures.sh | DS-34-plus-results.json | $([ -f "$OUTPUT_DIR/DS-34-plus-results.json" ] && echo "✅" || echo "❌") |
 
 ## Failures
 

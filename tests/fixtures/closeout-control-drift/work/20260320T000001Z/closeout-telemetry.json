@@ -1,0 +1,25 @@
+{
+  "closeout_window_seconds": 300,
+  "active_closeout_seconds": 400,
+  "inactive_gap_seconds": 0,
+  "artifact_payload_bytes": 1200,
+  "payload_paths": [
+    "WORK.md",
+    "measurement-summary.json"
+  ],
+  "compaction_count": 0,
+  "phase_timestamps": {
+    "review_receipt": "2026-03-20T00:00:00Z"
+  },
+  "session_sources": [
+    {
+      "matching_event_count": 10,
+      "compaction_count": 1
+    }
+  ],
+  "summary": {
+    "payload_files_total": 1,
+    "phase_timestamps_total": 2,
+    "session_sources_total": 1
+  }
+}

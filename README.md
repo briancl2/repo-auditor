@@ -25,6 +25,7 @@ make review
 |---|---|---|
 | `SCORECARD.json` | Machine-readable | repo-upgrade-advisor, repo-optimizer, continuous loop |
 | `AUDIT_REPORT.md` | Human-readable | Developer |
+| `DS-34-plus-results.json` | Machine-readable | Signature-level diagnostics |
 | `*_findings.json` | Per-domain details | Internal |
 
 ## Invocation Modes

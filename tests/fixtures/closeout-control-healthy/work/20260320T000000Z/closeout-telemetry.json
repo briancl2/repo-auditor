@@ -1,0 +1,25 @@
+{
+  "closeout_window_seconds": 600,
+  "active_closeout_seconds": 540,
+  "inactive_gap_seconds": 60,
+  "artifact_payload_bytes": 1200,
+  "payload_paths": [
+    "WORK.md",
+    "closeout-reconciliation.json"
+  ],
+  "compaction_count": 1,
+  "phase_timestamps": {
+    "review_receipt": "2026-03-20T00:00:00Z"
+  },
+  "session_sources": [
+    {
+      "matching_event_count": 10,
+      "compaction_count": 1
+    }
+  ],
+  "summary": {
+    "payload_files_total": 2,
+    "phase_timestamps_total": 1,
+    "session_sources_total": 1
+  }
+}

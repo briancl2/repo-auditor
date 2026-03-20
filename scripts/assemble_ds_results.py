@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""assemble_ds_results.py — Assemble DS-34-42 results from temp dir.
+"""assemble_ds_results.py — Assemble DS-34+ results from temp dir.
 
 Usage: python3 assemble_ds_results.py <tmpdir> <repo_name> <repo_path> [output_dir]
 """
@@ -16,21 +16,31 @@ def main():
     output_dir = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] else ""
 
     results = []
-    for i in range(9):
-        fpath = os.path.join(tmpdir, f"ds_{i}.json")
+    files = sorted(
+        [
+            name
+            for name in os.listdir(tmpdir)
+            if name.startswith("ds_") and name.endswith(".json")
+        ],
+        key=lambda name: int(name[3:-5]),
+    )
+
+    for name in files:
+        fpath = os.path.join(tmpdir, name)
         try:
             with open(fpath) as f:
                 results.append(json.load(f))
         except Exception as e:
-            results.append({"error": str(e), "index": i})
+            results.append({"error": str(e), "file": name})
 
     fired = sum(1 for r in results if r.get("fired"))
+    total = len(results)
     report = {
         "repo": repo_name,
         "repo_path": repo_path,
-        "total_ds": 9,
+        "total_ds": total,
         "fired_count": fired,
-        "detection_rate_pct": round(fired * 100 / 9, 1),
+        "detection_rate_pct": round(fired * 100 / total, 1) if total else 0.0,
         "results": results,
     }
 
@@ -38,7 +48,7 @@ def main():
 
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
-        with open(os.path.join(output_dir, "DS-34-42-results.json"), "w") as f:
+        with open(os.path.join(output_dir, "DS-34-plus-results.json"), "w") as f:
             json.dump(report, f, indent=2)
 
 

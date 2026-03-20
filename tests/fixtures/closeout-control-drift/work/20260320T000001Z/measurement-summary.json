@@ -1,0 +1,7 @@
+{
+  "canonicality": "CANONICAL",
+  "oracle_binding": {
+    "artifact_path": "work/20260320T000001Z/not-the-reconciliation.json",
+    "authority_note": "wrong-authority"
+  }
+}

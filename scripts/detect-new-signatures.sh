@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# detect-new-signatures.sh — Unified runner for DS-34 through DS-42
-# Runs all 9 DS and outputs combined JSON report.
+# detect-new-signatures.sh — Unified runner for DS-34+
+# Runs the post-DS-33 extension signatures and outputs a combined JSON report.
 # Usage: bash scripts/detect-new-signatures.sh <repo_path> [output_dir]
 set -euo pipefail
 REPO="${1:?Usage: detect-new-signatures.sh <repo_path> [output_dir]}"
@@ -15,7 +15,7 @@ fi
 TMPDIR_DS=$(mktemp -d)
 trap 'rm -rf "$TMPDIR_DS"' EXIT
 
-echo "=== DS-34-42: $(basename "$REPO") ===" >&2
+echo "=== DS-34+: $(basename "$REPO") ===" >&2
 
 scripts=(
     "detect-stale-todos.sh"
@@ -28,6 +28,7 @@ scripts=(
     "detect-test-theater.sh"
     "detect-broken-links.sh"
     "detect-velocity-bypass.sh"
+    "detect-closeout-control-drift.sh"
 )
 
 idx=0

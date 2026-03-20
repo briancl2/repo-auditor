@@ -41,6 +41,7 @@ audit-quick:
 test:
 	@echo "=== Running auditor test suite ==="
 	@bash tests/test-auditor-schemas.sh
+	@bash tests/test-detect-closeout-control-drift.sh
 	@echo ""
 	@echo "=== All tests passed ==="
 

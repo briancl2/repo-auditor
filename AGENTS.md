@@ -41,7 +41,7 @@ maturity phase classification.
 | 1 | reviewing-code-locally | Pre-commit code review via Copilot CLI |
 | 2 | pre-scanning | Deterministic pre-scan — file inventory, AI surfaces |
 
-## Scripts (34)
+## Scripts (35)
 
 ### Core Pipeline
 
@@ -77,13 +77,14 @@ maturity phase classification.
 | `scripts/detect-test-theater.sh` | DS-41 | Test theater detection |
 | `scripts/detect-broken-links.sh` | DS-42 | Broken internal link detection |
 | `scripts/detect-velocity-bypass.sh` | DS-43 | Autonomous velocity bypass |
-| `scripts/detect-new-signatures.sh` | -- | Unified runner for DS-34 through DS-42 |
+| `scripts/detect-closeout-control-drift.sh` | DS-44 | Stage 15 closeout-control drift detection |
+| `scripts/detect-new-signatures.sh` | -- | Unified runner for DS-34+ |
 
 ### Helpers
 
 | Script | Purpose |
 |---|---|
-| `scripts/assemble_ds_results.py` | Assemble DS-34 through DS-42 results |
+| `scripts/assemble_ds_results.py` | Assemble DS-34+ results |
 | `scripts/backtest_ds34_42.py` | Backtest DS-34 through DS-42 against targets |
 | `scripts/ds_json_helper.py` | Safe JSON output for detection scripts |
 
@@ -144,6 +145,7 @@ make help                          # Show all available targets
 | SCORECARD.json | JSON | 5-dimension scores, composite, T1/T2 checks |
 | AUDIT_REPORT.md | Markdown | Human-readable report with findings |
 | PRE_SCAN.md | Markdown | File inventory and AI surface analysis |
+| DS-34-plus-results.json | JSON | Extended signature bundle for DS-34 and later |
 
 ## Token Budget
 
