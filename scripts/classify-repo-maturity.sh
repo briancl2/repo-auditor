@@ -16,8 +16,9 @@ fi
 
 cd "$REPO"
 
-# .auditorignore support — exclude archival directories from all counts
-FIND_EXCLUDES="-not -path './.git/*' -not -name '.DS_Store'"
+# .auditorignore support — exclude archival directories from all counts.
+# Keep default excludes aligned with pre-scan + DNA counted-file surfaces.
+FIND_EXCLUDES="-not -path './.git/*' -not -name '.DS_Store' -not -path '*/.venv/*' -not -path '*/venv/*' -not -path '*/node_modules/*' -not -path '*/.tox/*' -not -path '*/.mypy_cache/*' -not -path '*/__pycache__/*' -not -path '*/vendor/*' -not -path '*/.eggs/*'"
 FIND_EXCLUDES_AGENTS="-not -path './.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/archive/*' -not -path '*/Archive/*'"
 FIND_EXCLUDES_SKILLS="-not -path './.git/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/benchmarks/*'"
 if [ -f ".auditorignore" ]; then
@@ -95,11 +96,11 @@ done
 
 # Check self-audit agents
 SELF_AUDIT=0
-AUDIT_AGENTS=$(find . -maxdepth 4 -name "*.agent.md" -not -path './.git/*' 2>/dev/null | head -50 | xargs grep -liE "audit|optimize|critic|diagnostic" 2>/dev/null | wc -l | tr -d ' ')
+AUDIT_AGENTS=$(find . -maxdepth 4 -name "*.agent.md" -not -path './.git/*' 2>/dev/null | head -50 | xargs grep -liE "audit|optimize|critic|diagnostic" 2>/dev/null | wc -l | tr -d ' ') || AUDIT_AGENTS=0
 [ "$AUDIT_AGENTS" -gt 0 ] && SELF_AUDIT=1
 
-# Total files (quick estimate, maxdepth 5)
-TOTAL_FILES=$(eval "find . -maxdepth 5 -type f $FIND_EXCLUDES" 2>/dev/null | wc -l | tr -d ' ')
+# Total files — full recursive count so maturity output matches scored receipts
+TOTAL_FILES=$(eval "find . -type f $FIND_EXCLUDES" 2>/dev/null | wc -l | tr -d ' ')
 
 # Classification
 PHASE=0

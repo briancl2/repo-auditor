@@ -16,8 +16,9 @@ cd "$REPO"
 
 REPO_NAME=$(basename "$(pwd)")
 
-# .auditorignore support — exclude archival directories from file counts
-FIND_EXCLUDES="-not -path './.git/*' -not -name '.DS_Store'"
+# .auditorignore support — exclude archival directories from file counts.
+# Keep default excludes aligned with pre-scan + maturity counted-file surfaces.
+FIND_EXCLUDES="-not -path './.git/*' -not -name '.DS_Store' -not -path '*/.venv/*' -not -path '*/venv/*' -not -path '*/node_modules/*' -not -path '*/.tox/*' -not -path '*/.mypy_cache/*' -not -path '*/__pycache__/*' -not -path '*/vendor/*' -not -path '*/.eggs/*'"
 if [ -f ".auditorignore" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
         line=$(echo "$line" | sed 's/#.*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')

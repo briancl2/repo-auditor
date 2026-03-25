@@ -147,18 +147,23 @@ fi
 # Surface count + total files from pre-scan log
 SURFACE_COUNT=0
 TOTAL_FILES=0
+PRE_SCAN_TOTAL_FILES=0
 if [ -f "$DIR/pre-scan-log.txt" ]; then
     SURFACE_COUNT=$(grep "^AI surfaces:" "$DIR/pre-scan-log.txt" | head -1 | sed 's/^AI surfaces:[[:space:]]*//' | grep -oE '^[0-9]+' | head -1) || SURFACE_COUNT=0
     if [ -z "$SURFACE_COUNT" ]; then SURFACE_COUNT=0; fi
     TOTAL_FILES=$(grep "^Total files:" "$DIR/pre-scan-log.txt" | head -1 | sed 's/^Total files:[[:space:]]*//' | grep -oE '^[0-9]+' | head -1) || TOTAL_FILES=0
     if [ -z "$TOTAL_FILES" ]; then TOTAL_FILES=0; fi
+    PRE_SCAN_TOTAL_FILES="$TOTAL_FILES"
 fi
 
 # Scoring tools count from maturity
 SCORING_TOOLS=0
+MATURITY_TOTAL_FILES=0
 if [ -f "$DIR/maturity.txt" ]; then
     SCORING_TOOLS=$(grep "^Scoring tools:" "$DIR/maturity.txt" | head -1 | grep -oE '[0-9]+' | head -1) || SCORING_TOOLS=0
     if [ -z "$SCORING_TOOLS" ]; then SCORING_TOOLS=0; fi
+    MATURITY_TOTAL_FILES=$(grep "^Files:" "$DIR/maturity.txt" | head -1 | grep -oE '[0-9]+' | head -1) || MATURITY_TOTAL_FILES=0
+    if [ -z "$MATURITY_TOTAL_FILES" ]; then MATURITY_TOTAL_FILES=0; fi
 fi
 
 # Skill and agent counts
@@ -169,6 +174,21 @@ if [ -f "$DIR/maturity.txt" ]; then
     if [ -z "$SKILL_COUNT" ]; then SKILL_COUNT=0; fi
     AGENT_COUNT=$(grep "^Agents:" "$DIR/maturity.txt" | head -1 | grep -oE '[0-9]+' | head -1) || AGENT_COUNT=0
     if [ -z "$AGENT_COUNT" ]; then AGENT_COUNT=0; fi
+fi
+
+DNA_TOTAL_FILES=0
+if [ -f "$DIR/dna.txt" ]; then
+    DNA_TOTAL_FILES=$(grep "Skill Density:" "$DIR/dna.txt" | head -1 | sed 's/.*\/ *\([0-9][0-9]*\) files.*/\1/') || DNA_TOTAL_FILES=0
+    if [ -z "$DNA_TOTAL_FILES" ] || ! echo "$DNA_TOTAL_FILES" | grep -qE '^[0-9]+$'; then DNA_TOTAL_FILES=0; fi
+fi
+if [ "$DNA_TOTAL_FILES" -eq 0 ] 2>/dev/null; then DNA_TOTAL_FILES="$TOTAL_FILES"; fi
+if [ "$MATURITY_TOTAL_FILES" -eq 0 ] 2>/dev/null; then MATURITY_TOTAL_FILES="$TOTAL_FILES"; fi
+
+COUNT_RECON_STATUS="aligned"
+COUNT_RECON_NOTE="maturity.txt, dna.txt, and pre-scan-log.txt agree on the counted file surface used for scorer receipts."
+if [ "$TOTAL_FILES" -ne "$MATURITY_TOTAL_FILES" ] || [ "$TOTAL_FILES" -ne "$DNA_TOTAL_FILES" ]; then
+    COUNT_RECON_STATUS="mismatch"
+    COUNT_RECON_NOTE="Count surfaces disagree and require reconciliation before this scorecard can act as a portable widening receipt."
 fi
 
 # --- Compute dimension scores (each 0-20) ---
@@ -276,6 +296,7 @@ D5_PI=$((DNA_PI_INT * 3 / 2))
 if [ "$D5_PI" -gt 6 ]; then D5_PI=6; fi
 # Spec-kit bonus: specs/*/spec.md count adds to plan infra (0-3 bonus pts)
 D5_SPEC=0
+SPEC_MD_COUNT=0
 if [ -n "$REPO_PATH" ] && [ -d "$REPO_PATH/specs" ]; then
     SPEC_MD_COUNT=$(find "$REPO_PATH/specs" -maxdepth 3 -name 'spec.md' 2>/dev/null | wc -l | tr -d ' ') || SPEC_MD_COUNT=0
     if [ "$SPEC_MD_COUNT" -ge 5 ]; then D5_SPEC=3
@@ -453,6 +474,135 @@ fi
 # Remove trailing comma from warnings
 T2_WARNINGS=$(echo "$T2_WARNINGS" | sed 's/,$//')
 
+# --- Write score receipts ---
+CONTEXT_MANIFEST_FILE="${CONTEXT_SCORE_MANIFEST:-$DIR/CONTEXT_SCORE_MANIFEST.json}"
+CONTEXT_MANIFEST_BASENAME="$(basename "$CONTEXT_MANIFEST_FILE")"
+AUDIT_CONTEXT_ID="${AUDIT_CONTEXT_ID:-standard}"
+COMPARE_ORACLE_VERSION="${COMPARE_ORACLE_VERSION:-1.0.0}"
+COUNT_RECON_NOTE_JSON=$(python3 -c 'import json, sys; print(json.dumps(sys.argv[1]))' "$COUNT_RECON_NOTE")
+
+cat > "$DIR/SCORECARD_RECEIPTS.json" << EOF
+{
+  "meta": {
+    "receipt_version": "1.0.0",
+    "audit_context_id": "$AUDIT_CONTEXT_ID",
+    "context_manifest": "$CONTEXT_MANIFEST_BASENAME",
+    "compare_oracle_version": "$COMPARE_ORACLE_VERSION",
+    "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  },
+  "count_reconciliation": {
+    "status": "$COUNT_RECON_STATUS",
+    "authoritative_total_files": $TOTAL_FILES,
+    "pre_scan_total_files": $PRE_SCAN_TOTAL_FILES,
+    "maturity_total_files": $MATURITY_TOTAL_FILES,
+    "dna_total_files": $DNA_TOTAL_FILES,
+    "note": $COUNT_RECON_NOTE_JSON
+  },
+  "dimensions": {
+    "D3_skill_maturity": {
+      "score": $D3,
+      "fields": {
+        "skill_count": {
+          "raw": $SKILL_COUNT,
+          "points": $D3_COUNT,
+          "bands": ">=20 => 5, >=10 => 4, >=5 => 3, >=1 => 1"
+        },
+        "density": {
+          "raw": $DNA_K_INT,
+          "inputs": {
+            "skill_count": $SKILL_COUNT,
+            "total_files": $DNA_TOTAL_FILES
+          },
+          "points": $D3_DENSITY,
+          "bands": ">=50 => 5, >=20 => 4, >=10 => 3, >=1 => 1"
+        },
+        "velocity": {
+          "raw": $(echo "$DNA_KV" | awk '{printf "%.2f", $1 + 0}'),
+          "points": $D3_VEL,
+          "bands": ">=1.0 => 5, >=0.5 => 3, >=0.1 => 1"
+        },
+        "organicity": {
+          "raw": $(echo "$DNA_AO" | awk '{printf "%.2f", $1 + 0}'),
+          "points": $D3_ORG,
+          "bands": ">=0.8 => 5, >=0.5 => 3, >=0.1 => 1"
+        }
+      }
+    },
+    "D4_measurement": {
+      "score": $D4,
+      "fields": {
+        "scoring_tools": {
+          "raw": $SCORING_TOOLS,
+          "points": $D4_SCORE,
+          "bands": ">=20 => 5, >=10 => 4, >=5 => 3, >=1 => 1"
+        },
+        "scoring_layers": {
+          "raw": $DNA_SC_INT,
+          "points": $D4_SC,
+          "bands": "direct value capped at 5"
+        },
+        "audit_depth": {
+          "raw": $DNA_AD_INT,
+          "points": $D4_AD,
+          "bands": "direct value capped at 5"
+        },
+        "abstraction": {
+          "raw": $DNA_AB_INT,
+          "points": $D4_AB,
+          "bands": "direct value capped at 5"
+        }
+      }
+    },
+    "D5_self_improvement": {
+      "score": $D5,
+      "fields": {
+        "stall_risk": {
+          "raw": $STALL_SCORE,
+          "points": $D5_STALL,
+          "formula": "floor((100 - stall_risk) * 8 / 100)"
+        },
+        "trajectory": {
+          "raw": $DNA_TRAJECTORY_INT,
+          "points": $D5_TRAJ,
+          "formula": "floor(trajectory * 6 / 100)"
+        },
+        "plan_infra": {
+          "raw": $DNA_PI_INT,
+          "points": $D5_PI,
+          "formula": "floor(plan_infra * 3 / 2)"
+        },
+        "spec_bonus": {
+          "raw": $D5_SPEC,
+          "inputs": {
+            "spec_md_count": $SPEC_MD_COUNT
+          },
+          "points": $D5_SPEC,
+          "bands": ">=5 spec.md => 3, >=3 => 2, >=1 => 1"
+        }
+      }
+    }
+  },
+  "receipt_integrity": {
+    "status": "$([ "$COUNT_RECON_STATUS" = "aligned" ] && echo "pass" || echo "warning")",
+    "required_terms_present": [
+      "D3.skill_count",
+      "D3.density",
+      "D3.velocity",
+      "D3.organicity",
+      "D4.scoring_tools",
+      "D4.scoring_layers",
+      "D4.audit_depth",
+      "D4.abstraction",
+      "D5.stall_risk",
+      "D5.trajectory",
+      "D5.plan_infra",
+      "D5.spec_bonus"
+    ],
+    "missing_terms": []
+  }
+}
+EOF
+
 # --- Write SCORECARD.json ---
 cat > "$DIR/SCORECARD.json" << EOF
 {
@@ -461,10 +611,15 @@ cat > "$DIR/SCORECARD.json" << EOF
     "D2_surface_health": { "score": $D2, "max": 20, "components": { "surfaces": $SURFACE_COUNT, "total_files": $TOTAL_FILES, "co_evo": $(echo "$CO_EVO" | awk '{printf "%.2f", $1 + 0}'), "drift_pct": $DRIFT_PCT_RAW } },
     "D3_skill_maturity": { "score": $D3, "max": 20, "components": { "skill_count": $SKILL_COUNT, "density": $DNA_K_INT, "velocity": $(echo "$DNA_KV" | awk '{printf "%.2f", $1 + 0}'), "organicity": $(echo "$DNA_AO" | awk '{printf "%.2f", $1 + 0}') } },
     "D4_measurement": { "score": $D4, "max": 20, "components": { "scoring_tools": $SCORING_TOOLS, "scoring_layers": $DNA_SC_INT, "audit_depth": $DNA_AD_INT, "abstraction": $DNA_AB_INT } },
-    "D5_self_improvement": { "score": $D5, "max": 20, "components": { "stall_risk": $STALL_SCORE, "trajectory": $DNA_TRAJECTORY_INT, "plan_infra": $DNA_PI_INT } }
+    "D5_self_improvement": { "score": $D5, "max": 20, "components": { "stall_risk": $STALL_SCORE, "trajectory": $DNA_TRAJECTORY_INT, "plan_infra": $DNA_PI_INT, "spec_bonus": $D5_SPEC, "spec_md_count": $SPEC_MD_COUNT } }
   },
   "composite": $COMPOSITE,
   "max_composite": 100,
+  "receipts": {
+    "file": "SCORECARD_RECEIPTS.json",
+    "version": "1.0.0",
+    "count_reconciliation_status": "$COUNT_RECON_STATUS"
+  },
   "tier1_checks": {
     "total": $T1_TOTAL,
     "passed": $T1_PASSED,
@@ -480,11 +635,42 @@ cat > "$DIR/SCORECARD.json" << EOF
     "maturity_score": $DNA_MATURITY_INT,
     "agents": $AGENT_COUNT,
     "skills": $SKILL_COUNT,
+    "context_id": "$AUDIT_CONTEXT_ID",
+    "context_manifest": "$CONTEXT_MANIFEST_BASENAME",
+    "compare_oracle_version": "$COMPARE_ORACLE_VERSION",
     "auditor_version": "2.2",
     "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   }
 }
 EOF
+
+python3 - "$DIR/SCORECARD.json" "$DIR/SCORECARD_RECEIPTS.json" << 'PY'
+import json
+import sys
+
+scorecard_path, receipts_path = sys.argv[1], sys.argv[2]
+scorecard = json.load(open(scorecard_path))
+receipts = json.load(open(receipts_path))
+
+assert scorecard["dimensions"]["D5_self_improvement"]["components"]["spec_bonus"] >= 0
+assert scorecard["dimensions"]["D5_self_improvement"]["components"]["spec_md_count"] >= 0
+assert scorecard["meta"]["context_manifest"]
+assert scorecard["receipts"]["file"] == "SCORECARD_RECEIPTS.json"
+
+required_fields = {
+    "D3_skill_maturity": ["skill_count", "density", "velocity", "organicity"],
+    "D4_measurement": ["scoring_tools", "scoring_layers", "audit_depth", "abstraction"],
+    "D5_self_improvement": ["stall_risk", "trajectory", "plan_infra", "spec_bonus"],
+}
+for dim, fields in required_fields.items():
+    present = receipts["dimensions"][dim]["fields"]
+    for field in fields:
+        assert field in present, f"missing receipt field: {dim}.{field}"
+
+assert receipts["count_reconciliation"]["authoritative_total_files"] >= 0
+assert receipts["count_reconciliation"]["maturity_total_files"] >= 0
+assert receipts["count_reconciliation"]["dna_total_files"] >= 0
+PY
 
 # --- Print summary to stdout ---
 echo "================================================================"
@@ -509,4 +695,5 @@ if [ "$T2_COUNT" -gt 0 ]; then
 fi
 echo ""
 echo "  Written: $DIR/SCORECARD.json"
+echo "  Receipts: $DIR/SCORECARD_RECEIPTS.json"
 echo "================================================================"

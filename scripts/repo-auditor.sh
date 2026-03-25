@@ -12,7 +12,7 @@
 #
 # Then runs score-audit-dimensions.sh to produce a 5-dimension scorecard.
 #
-# Usage: bash scripts/repo-auditor.sh <repo_path> [output_dir] [--mode deep]
+# Usage: bash scripts/repo-auditor.sh <repo_path> [output_dir] [options]
 #
 # Modes:
 #   standard (default) — 5 bash tools + dimension scorer
@@ -21,6 +21,8 @@
 # Outputs:
 #   <output_dir>/AUDIT_REPORT.md   — Human-readable composite report
 #   <output_dir>/SCORECARD.json    — Machine-readable 5-dimension scores
+#   <output_dir>/SCORECARD_RECEIPTS.json — Raw scorer receipts + count reconciliation
+#   <output_dir>/CONTEXT_SCORE_MANIFEST.json — Context / git / local-artifact preflight
 #   <output_dir>/pre-scan/         — Pre-scan artifacts (PRE_SCAN.md, etc.)
 #   <output_dir>/maturity.txt      — classify-repo-maturity.sh output
 #   <output_dir>/stall-risk.txt    — stall-risk-score.sh output
@@ -41,27 +43,33 @@ set -euo pipefail
 
 # ── Argument parsing ──────────────────────────────────────────────────
 AUDIT_MODE="standard"
+AUDIT_CONTEXT_ID="${AUDIT_CONTEXT_ID:-standard}"
+REQUIRE_PORTABLE_CONTEXT=0
+COMPARE_ORACLE_VERSION="${COMPARE_ORACLE_VERSION:-1.0.0}"
 POSITIONAL=()
-for arg in "$@"; do
-    case "$arg" in
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
         --mode)
-            # Next arg will set AUDIT_MODE via prev_arg check
+            AUDIT_MODE="${2:?Usage: --mode <standard|deep>}"
+            shift 2
             ;;
-        deep|standard)
-            if [ "${prev_arg:-}" = "--mode" ]; then
-                AUDIT_MODE="$arg"
-            else
-                POSITIONAL+=("$arg")
-            fi
+        --context-id)
+            AUDIT_CONTEXT_ID="${2:?Usage: --context-id <name>}"
+            shift 2
+            ;;
+        --require-portable-context)
+            REQUIRE_PORTABLE_CONTEXT=1
+            shift
             ;;
         *)
-            POSITIONAL+=("$arg")
+            POSITIONAL+=("$1")
+            shift
             ;;
     esac
-    prev_arg="$arg"
 done
 
-REPO="${POSITIONAL[0]:?Usage: repo-auditor.sh <repo_path> [output_dir] [--mode deep]}"
+REPO="${POSITIONAL[0]:?Usage: repo-auditor.sh <repo_path> [output_dir] [options]}"
 OUTPUT_DIR="${POSITIONAL[1]:-audit_output}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -102,11 +110,35 @@ echo ""
 echo "Target:  $REPO"
 echo "Output:  $OUTPUT_DIR"
 echo "Mode:    $AUDIT_MODE"
+echo "Context: $AUDIT_CONTEXT_ID"
 echo ""
 
 # Track failures (no associative arrays per L10)
 FAILURES=""
 FAIL_COUNT=0
+
+CONTEXT_SCRIPT="$SCRIPT_DIR/write_context_score_manifest.py"
+CONTEXT_MANIFEST="$OUTPUT_DIR/CONTEXT_SCORE_MANIFEST.json"
+
+echo "--- Writing context-score manifest ---"
+echo ""
+CONTEXT_CMD=(python3 "$CONTEXT_SCRIPT" "$REPO" "$CONTEXT_MANIFEST" --context-id "$AUDIT_CONTEXT_ID" --compare-oracle-version "$COMPARE_ORACLE_VERSION")
+if [ "$REQUIRE_PORTABLE_CONTEXT" -eq 1 ]; then
+    CONTEXT_CMD+=(--require-portable-context)
+fi
+if "${CONTEXT_CMD[@]}" > "$OUTPUT_DIR/context-manifest-log.txt" 2>&1; then
+    echo "  [context] ✅ manifest written"
+else
+    rc=$?
+    echo "  [context] ⚠️  exit $rc (details in context-manifest-log.txt)"
+    FAILURES="$FAILURES context-manifest"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    if [ "$REQUIRE_PORTABLE_CONTEXT" -eq 1 ]; then
+        echo "ERROR: portable context required but preflight rejected this audit." >&2
+        exit 1
+    fi
+fi
+echo ""
 
 PRESCAN_SCRIPT="$SCRIPT_DIR/../.agents/skills/pre-scanning/scripts/pre-scan-target.sh"
 if [ ! -x "$PRESCAN_SCRIPT" ]; then
@@ -165,12 +197,15 @@ echo ""
 # --- Score dimensions ---
 echo "--- Scoring 5 audit dimensions ---"
 echo ""
-if bash "$SCRIPT_DIR/score-audit-dimensions.sh" "$OUTPUT_DIR" 2>"$OUTPUT_DIR/scorer-errors.txt"; then
+if AUDIT_CONTEXT_ID="$AUDIT_CONTEXT_ID" \
+    CONTEXT_SCORE_MANIFEST="$CONTEXT_MANIFEST" \
+    COMPARE_ORACLE_VERSION="$COMPARE_ORACLE_VERSION" \
+    bash "$SCRIPT_DIR/score-audit-dimensions.sh" "$OUTPUT_DIR" 2>"$OUTPUT_DIR/scorer-errors.txt"; then
     # Validate JSON
-    if python3 -c "import json; json.load(open('$OUTPUT_DIR/SCORECARD.json'))" 2>/dev/null; then
-        echo "  [scorecard] ✅ SCORECARD.json written (valid JSON)"
+    if python3 -c "import json; json.load(open('$OUTPUT_DIR/SCORECARD.json')); json.load(open('$OUTPUT_DIR/SCORECARD_RECEIPTS.json'))" 2>/dev/null; then
+        echo "  [scorecard] ✅ SCORECARD.json + SCORECARD_RECEIPTS.json written (valid JSON)"
     else
-        echo "  [scorecard] ⚠️  SCORECARD.json written but INVALID JSON"
+        echo "  [scorecard] ⚠️  score artifacts written but INVALID JSON"
         FAILURES="$FAILURES scorecard-json"
         FAIL_COUNT=$((FAIL_COUNT + 1))
     fi
@@ -214,7 +249,10 @@ fi
 
 # Parse drift output
 if [ -f "$OUTPUT_DIR/drift.txt" ]; then
-    DRIFT_PCT=$(grep "Undocumented:" "$OUTPUT_DIR/drift.txt" | head -1 | sed 's/.*(//' | sed 's/).*//')
+    DRIFT_PCT=$(grep "Undocumented:" "$OUTPUT_DIR/drift.txt" | head -1 | sed 's/.*(//' | sed 's/).*//' || true)
+    if [ -z "$DRIFT_PCT" ]; then
+        DRIFT_PCT="?"
+    fi
 fi
 
 # Parse pre-scan log
@@ -248,6 +286,7 @@ cat > "$OUTPUT_DIR/AUDIT_REPORT.md" << EOF
 | Drift | $DRIFT_PCT |
 | Total Files | $TOTAL_FILES |
 | AI Surfaces | $AI_SURFACES |
+| Context Manifest | $(basename "$CONTEXT_MANIFEST") |
 
 ## Dimension Scorecard
 
@@ -255,16 +294,23 @@ cat > "$OUTPUT_DIR/AUDIT_REPORT.md" << EOF
 $SCORECARD_SUMMARY
 \`\`\`
 
+## Score Receipts
+
+- Context manifest: \`$(basename "$CONTEXT_MANIFEST")\`
+- Scorer receipts: \`SCORECARD_RECEIPTS.json\`
+
 ## Tool Outputs
 
 | Tool | Output File | Status |
 |---|---|---|
+| context-score manifest | CONTEXT_SCORE_MANIFEST.json | $([ -f "$CONTEXT_MANIFEST" ] && echo "✅" || echo "❌") |
 | pre-scan-target.sh | pre-scan/ | $([ -f "$OUTPUT_DIR/pre-scan/PRE_SCAN.md" ] && echo "✅" || echo "❌") |
 | classify-repo-maturity.sh | maturity.txt | $([ -s "$OUTPUT_DIR/maturity.txt" ] && echo "✅" || echo "❌") |
 | stall-risk-score.sh | stall-risk.txt | $([ -s "$OUTPUT_DIR/stall-risk.txt" ] && echo "✅" || echo "❌") |
 | extract-repo-dna.sh | dna.txt | $([ -s "$OUTPUT_DIR/dna.txt" ] && echo "✅" || echo "❌") |
 | detect-capability-drift.sh | drift.txt | $([ -s "$OUTPUT_DIR/drift.txt" ] && echo "✅" || echo "❌") |
 | detect-new-signatures.sh | DS-34-plus-results.json | $([ -f "$OUTPUT_DIR/DS-34-plus-results.json" ] && echo "✅" || echo "❌") |
+| score receipts | SCORECARD_RECEIPTS.json | $([ -f "$OUTPUT_DIR/SCORECARD_RECEIPTS.json" ] && echo "✅" || echo "❌") |
 
 ## Failures
 
@@ -286,6 +332,8 @@ echo ""
 echo "Outputs:"
 echo "  $OUTPUT_DIR/AUDIT_REPORT.md"
 echo "  $OUTPUT_DIR/SCORECARD.json"
+echo "  $OUTPUT_DIR/SCORECARD_RECEIPTS.json"
+echo "  $OUTPUT_DIR/CONTEXT_SCORE_MANIFEST.json"
 echo "================================================================"
 
 # ── Deep mode: Domain subagent dispatch via copilot CLI (v163) ───────
