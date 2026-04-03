@@ -46,6 +46,8 @@ AUDIT_MODE="standard"
 AUDIT_CONTEXT_ID="${AUDIT_CONTEXT_ID:-standard}"
 REQUIRE_PORTABLE_CONTEXT=0
 COMPARE_ORACLE_VERSION="${COMPARE_ORACLE_VERSION:-1.0.0}"
+# Optional env fallback for automation wrappers that do not pass the CLI flag.
+REPRESENTATIVENESS_AUTHORITY="${REPRESENTATIVENESS_AUTHORITY_REPO:-}"
 POSITIONAL=()
 
 while [ "$#" -gt 0 ]; do
@@ -61,6 +63,10 @@ while [ "$#" -gt 0 ]; do
         --require-portable-context)
             REQUIRE_PORTABLE_CONTEXT=1
             shift
+            ;;
+        --representativeness-authority)
+            REPRESENTATIVENESS_AUTHORITY="${2:?Usage: --representativeness-authority <repo_path>}"
+            shift 2
             ;;
         *)
             POSITIONAL+=("$1")
@@ -125,6 +131,9 @@ echo ""
 CONTEXT_CMD=(python3 "$CONTEXT_SCRIPT" "$REPO" "$CONTEXT_MANIFEST" --context-id "$AUDIT_CONTEXT_ID" --compare-oracle-version "$COMPARE_ORACLE_VERSION")
 if [ "$REQUIRE_PORTABLE_CONTEXT" -eq 1 ]; then
     CONTEXT_CMD+=(--require-portable-context)
+fi
+if [ -n "$REPRESENTATIVENESS_AUTHORITY" ]; then
+    CONTEXT_CMD+=(--representativeness-authority "$REPRESENTATIVENESS_AUTHORITY")
 fi
 if "${CONTEXT_CMD[@]}" > "$OUTPUT_DIR/context-manifest-log.txt" 2>&1; then
     echo "  [context] ✅ manifest written"
@@ -267,6 +276,65 @@ if [ -f "$OUTPUT_DIR/SCORECARD.json" ]; then
     SCORECARD_SUMMARY=$(cat "$OUTPUT_DIR/SCORECARD.json")
 fi
 
+FIRED_SIGNATURES_MD="None."
+if [ -f "$OUTPUT_DIR/DS-34-plus-results.json" ]; then
+    FIRED_SIGNATURES_MD=$(python3 - "$OUTPUT_DIR/DS-34-plus-results.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+data = json.load(open(path))
+rows = []
+for item in data.get("results", []):
+    if not item.get("fired"):
+        continue
+    ds_id = item.get("ds_id", "?")
+    name = item.get("name", "Unnamed signature")
+    severity = item.get("severity", "?")
+    evidence = str(item.get("evidence", "")).strip().replace("\n", " ")
+    if len(evidence) > 180:
+        evidence = evidence[:177] + "..."
+    rows.append(f"| {ds_id} | {name} | {severity} | {evidence or 'n/a'} |")
+
+if rows:
+    print("| Signature | Name | Severity | Evidence |")
+    print("|---|---|---|---|")
+    print("\n".join(rows))
+else:
+    print("None.")
+PY
+)
+fi
+
+REPRESENTATIVENESS_MD="No explicit representativeness authority comparison was requested."
+if [ -f "$CONTEXT_MANIFEST" ]; then
+    REPRESENTATIVENESS_MD=$(python3 - "$CONTEXT_MANIFEST" <<'PY'
+import json
+import sys
+
+manifest = json.load(open(sys.argv[1]))
+rep = manifest.get("representativeness", {})
+if not rep.get("enabled"):
+    print("No explicit representativeness authority comparison was requested.")
+    raise SystemExit(0)
+
+authority = rep.get("authority_repo_path") or "(missing)"
+risks = rep.get("risks") or []
+notes = rep.get("notes") or []
+if risks:
+    print(f"**WARNING:** audited target is not representative of authority repo `{authority}`.")
+    print("")
+    print("| Risk | Note |")
+    print("|---|---|")
+    for idx, risk in enumerate(risks):
+        note = notes[idx] if idx < len(notes) else ""
+        print(f"| {risk} | {note} |")
+else:
+    print(f"Authority comparison passed for `{authority}`.")
+PY
+)
+fi
+
 cat > "$OUTPUT_DIR/AUDIT_REPORT.md" << EOF
 # Audit Report: $REPO_NAME
 
@@ -298,6 +366,14 @@ $SCORECARD_SUMMARY
 
 - Context manifest: \`$(basename "$CONTEXT_MANIFEST")\`
 - Scorer receipts: \`SCORECARD_RECEIPTS.json\`
+
+## Representativeness
+
+$REPRESENTATIVENESS_MD
+
+## Fired High-Signal Detections
+
+$FIRED_SIGNATURES_MD
 
 ## Tool Outputs
 

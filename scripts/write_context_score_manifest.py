@@ -81,21 +81,7 @@ def artifact_entry(
     }
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("target_repo")
-    parser.add_argument("output_path")
-    parser.add_argument("--context-id", default="standard")
-    parser.add_argument("--compare-oracle-version", default="1.0.0")
-    parser.add_argument("--require-portable-context", action="store_true")
-    args = parser.parse_args()
-
-    target = Path(args.target_repo).resolve()
-    output_path = Path(args.output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    ignored = parse_auditorignore(target)
-
+def build_repo_snapshot(target: Path, ignored: set[str]) -> dict[str, object]:
     git_present, git_toplevel = run_git(target, "rev-parse", "--show-toplevel")
     git_head_present = False
     git_head = ""
@@ -134,17 +120,8 @@ def main() -> int:
     if counted_local_only_files_total > 0:
         portable_risks.append("counted_local_artifact_inflation_possible")
 
-    portable_ready = not portable_risks
-
-    manifest = {
-        "schema_version": "1.0.0",
-        "audit_context_id": args.context_id,
-        "target_repo_path": str(target),
-        "compare_oracle_version": args.compare_oracle_version,
-        "auditorignore": {
-            "active": bool(ignored),
-            "entries": sorted(ignored),
-        },
+    return {
+        "path": str(target),
         "git": {
             "present": git_present,
             "toplevel": git_toplevel if git_present else "",
@@ -159,16 +136,95 @@ def main() -> int:
             "counted_local_only_files_total": counted_local_only_files_total,
         },
         "portable_authority": {
-            "ready": portable_ready,
+            "ready": not portable_risks,
             "risks": portable_risks,
         },
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("target_repo")
+    parser.add_argument("output_path")
+    parser.add_argument("--context-id", default="standard")
+    parser.add_argument("--compare-oracle-version", default="1.0.0")
+    parser.add_argument("--require-portable-context", action="store_true")
+    parser.add_argument("--representativeness-authority")
+    args = parser.parse_args()
+
+    target = Path(args.target_repo).resolve()
+    output_path = Path(args.output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    ignored = parse_auditorignore(target)
+
+    target_snapshot = build_repo_snapshot(target, ignored)
+    portable_ready = bool(target_snapshot["portable_authority"]["ready"])
+
+    representativeness: dict[str, object] = {
+        "enabled": False,
+        "authority_repo_path": "",
+        "ready": False,
+        "risks": [],
+        "notes": [],
+    }
+    if args.representativeness_authority:
+        authority = Path(args.representativeness_authority).resolve()
+        authority_ignored = parse_auditorignore(authority)
+        representativeness["enabled"] = True
+        representativeness["authority_repo_path"] = str(authority)
+        if authority.is_dir():
+            authority_snapshot = build_repo_snapshot(authority, authority_ignored)
+            target_git = target_snapshot["git"]
+            authority_git = authority_snapshot["git"]
+            target_artifacts = target_snapshot["local_artifact_counts"]
+            authority_artifacts = authority_snapshot["local_artifact_counts"]
+            risks: list[str] = []
+            notes: list[str] = []
+            if not target_git.get("status_short") and authority_git.get("status_short"):
+                risks.append("clean_clone_not_representative_of_dirty_authority")
+                notes.append("audited target is clean while authority repo has local changes")
+            if (
+                int(target_artifacts["counted_local_only_files_total"])
+                != int(authority_artifacts["counted_local_only_files_total"])
+            ):
+                risks.append("local_artifact_shape_differs_from_authority")
+                notes.append("counted local-only artifact totals differ between audited target and authority repo")
+            if (
+                target_git.get("head")
+                and authority_git.get("head")
+                and target_git["head"] != authority_git["head"]
+            ):
+                risks.append("authority_head_differs_from_audited_target")
+                notes.append("audited target and authority repo are on different commits")
+            representativeness["ready"] = True
+            representativeness["authority_snapshot"] = authority_snapshot
+            representativeness["risks"] = risks
+            representativeness["notes"] = notes
+        else:
+            representativeness["risks"] = ["authority_repo_missing"]
+            representativeness["notes"] = ["representativeness authority repo path does not exist"]
+
+    manifest = {
+        "schema_version": "1.0.0",
+        "audit_context_id": args.context_id,
+        "target_repo_path": str(target),
+        "compare_oracle_version": args.compare_oracle_version,
+        "auditorignore": {
+            "active": bool(ignored),
+            "entries": sorted(ignored),
+        },
+        "git": target_snapshot["git"],
+        "local_artifact_counts": target_snapshot["local_artifact_counts"],
+        "portable_authority": target_snapshot["portable_authority"],
+        "representativeness": representativeness,
         "preflight_checks": [
             {
                 "id": "git-root-belongs-to-target",
-                "status": "pass" if git_root_matches_target else "fail",
+                "status": "pass" if target_snapshot["git"]["root_matches_target"] else "fail",
                 "detail": (
                     "git rev-parse --show-toplevel resolves to the audited repo"
-                    if git_root_matches_target
+                    if target_snapshot["git"]["root_matches_target"]
                     else "git history is missing or resolves outside the audited repo"
                 ),
             },
@@ -188,6 +244,19 @@ def main() -> int:
             },
         ],
     }
+
+    if representativeness["enabled"]:
+        manifest["preflight_checks"].append(
+            {
+                "id": "representativeness-authority-compare",
+                "status": "pass" if not representativeness["risks"] else "warn",
+                "detail": (
+                    "Audited target is representative of the provided authority repo."
+                    if not representativeness["risks"]
+                    else "Audited target differs materially from the provided authority repo; treat widening claims cautiously."
+                ),
+            }
+        )
 
     output_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 

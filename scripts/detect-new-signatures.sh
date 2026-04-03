@@ -29,6 +29,8 @@ scripts=(
     "detect-broken-links.sh"
     "detect-velocity-bypass.sh"
     "detect-closeout-control-drift.sh"
+    "detect-workflow-contract-drift.sh"
+    "detect-llm-validation-gap.sh"
 )
 
 idx=0

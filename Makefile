@@ -43,6 +43,7 @@ test:
 	@bash tests/test-auditor-schemas.sh
 	@bash tests/test-audit-hardening.sh
 	@bash tests/test-detect-closeout-control-drift.sh
+	@bash tests/test-newsletter-calibration-detectors.sh
 	@echo ""
 	@echo "=== All tests passed ==="
 

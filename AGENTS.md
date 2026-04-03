@@ -41,7 +41,7 @@ maturity phase classification.
 | 1 | reviewing-code-locally | Pre-commit code review via Copilot CLI |
 | 2 | pre-scanning | Deterministic pre-scan — file inventory, AI surfaces |
 
-## Scripts (35)
+## Scripts (37)
 
 ### Core Pipeline
 
@@ -78,6 +78,8 @@ maturity phase classification.
 | `scripts/detect-broken-links.sh` | DS-42 | Broken internal link detection |
 | `scripts/detect-velocity-bypass.sh` | DS-43 | Autonomous velocity bypass |
 | `scripts/detect-closeout-control-drift.sh` | DS-44 | Stage 15 closeout-control drift detection |
+| `scripts/detect-workflow-contract-drift.sh` | DS-45 | Helper vs agent/prompt/skill workflow-contract drift |
+| `scripts/detect-llm-validation-gap.sh` | DS-46 | Validation coverage misses live LLM workflow path |
 | `scripts/detect-new-signatures.sh` | -- | Unified runner for DS-34+ |
 
 ### Helpers

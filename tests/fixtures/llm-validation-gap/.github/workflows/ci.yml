@@ -1,0 +1,5 @@
+jobs:
+  quality:
+    steps:
+      - run: bash tools/test_benchmark_regression.sh
+      - run: bash tools/validate_pipeline_strict.sh 2026-01-01 2026-01-31

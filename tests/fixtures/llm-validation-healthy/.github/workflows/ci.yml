@@ -1,0 +1,5 @@
+jobs:
+  replay:
+    steps:
+      - run: bash tools/run_example_orchestrated.sh 2026-01-01 2026-01-31
+      - run: bash tools/validate_pipeline_strict.sh 2026-01-01 2026-01-31
