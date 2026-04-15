@@ -1,0 +1,2246 @@
+{
+  "report_metadata": {
+    "generated_at": "2026-03-17T23:55:26.521342+00:00",
+    "schema_version": "1.2",
+    "queue_semantics_version": "action_ready_floor_v1",
+    "report_path": "token-allocation-report-2026-03-17.md",
+    "summary_path": "token-allocation-report-summary.json",
+    "snapshot_id": "20260317T235442Z",
+    "decision_readiness": "partially_calibrated",
+    "benchmark_reliability": "pass",
+    "analysis_scope": {
+      "repos": [
+        "bma",
+        "fleet"
+      ],
+      "since": "2026-03-15",
+      "include_migration": false,
+      "include_remote": false,
+      "included_rows": 303,
+      "excluded_rows": 8,
+      "excluded_reasons": {
+        "migration": 8
+      },
+      "fingerprint": "{\"include_migration\":false,\"include_remote\":false,\"repos\":[\"bma\",\"fleet\"],\"since\":\"2026-03-15\"}"
+    },
+    "analysis_scope_fingerprint": "{\"include_migration\":false,\"include_remote\":false,\"repos\":[\"bma\",\"fleet\"],\"since\":\"2026-03-15\"}",
+    "primary_audience": "operator_decision_support",
+    "secondary_audience": "downstream_transfer_artifact",
+    "tertiary_audience": "historical_benchmark_record",
+    "decision_summary": "This snapshot is still primarily an evidence-collection surface; provisional candidates exist, but none cleared the action-ready evidence floor.",
+    "ranking_views": {
+      "impact_rank": "Ranks hotspots by live-token impact so the largest drivers stay visible. When decision readiness is below calibrated, this is spend visibility only, not stable portfolio truth.",
+      "action_ready_rank": "Ranks only hotspots that clear the action-ready evidence floor (deterministic supplement, >= 12 labeled sessions, confidence >= 0.60)."
+    },
+    "confidence_surfaces": {
+      "classification_confidence": "How grounded the hotspot identity is as a portfolio row. This does not mean the hotspot is safe to act on.",
+      "actionability_status": "Whether the hotspot cleared the promotion gate for bounded action, exploratory brief use, or evidence collection only."
+    },
+    "global_guardrails": [
+      "Impact rank and hotspot share stay tentative spend anchors only while decision readiness remains partially_calibrated and unlinked share remains 33.99%.",
+      "Only `action_ready_candidate` rows are evidence-backed action guidance; exploratory and provisional rows are not approval to optimize.",
+      "Blocked and provisional hotspots must satisfy their per-hotspot completion condition before they can move into an action queue."
+    ],
+    "intent_lineage": [
+      {
+        "date": "2026-03-15",
+        "source_session_id": "019cf3ad-efca-7b62-840c-ea5bc7c086ee",
+        "source_session_file": "rollout-2026-03-15T17-46-28-019cf3ad-efca-7b62-840c-ea5bc7c086ee.jsonl",
+        "prompt_excerpt": "i want to create a plan to do some token and model usage assessment and optimization. i want to accomplish the following tasks: 1) reduce LLM costs 2) align model selection to suit use case needs 3) understand token usage hotspots"
+      },
+      {
+        "date": "2026-03-16",
+        "source_session_id": "019cf418-9c49-7da0-8e9f-1f41d0f408f0",
+        "source_session_file": "rollout-2026-03-15T19-42-59-019cf418-9c49-7da0-8e9f-1f41d0f408f0.jsonl",
+        "prompt_excerpt": "give me a summary report in terms of ROI on token efficiency, trends, and where you'd focus to reduce token usage and reduce LLM costs"
+      }
+    ],
+    "input_artifacts": [
+      "allocation-hotspots.json",
+      "workflow-investigations.json",
+      "problem-areas.json",
+      "deep-dive-packets.json",
+      "hotspot-evidence-packets.json",
+      "over-determined-signals.json",
+      "insight-benchmark.json"
+    ]
+  },
+  "topline_metrics": {
+    "session_count": 303,
+    "live_tokens": 538886353,
+    "cached_tokens": 510358479,
+    "context_load_tokens": 1049244832,
+    "included_rows": 303,
+    "excluded_rows": 8,
+    "analysis_coverage_pct": 97.43,
+    "proxy_rows": 12,
+    "proxy_share_pct": 3.96,
+    "unlinked_rows": 103,
+    "unlinked_share_pct": 33.99,
+    "attempted_rows": 2,
+    "attempted_share_pct": 0.66,
+    "benchmark_sample_rows": 90,
+    "benchmark_reliability": "pass",
+    "decision_readiness": "partially_calibrated",
+    "excluded_reasons": {
+      "migration": 8
+    },
+    "blocked_hotspot_count": 6,
+    "provisional_candidate_count": 6,
+    "action_ready_count": 0,
+    "impact_rank_precision": "tentative_spend_visibility",
+    "impact_rank_precision_note": "Impact rank and hotspot share stay tentative spend anchors only while decision readiness remains partially_calibrated and unlinked share remains 33.99%."
+  },
+  "analysis_scope": {
+    "repos": [
+      "bma",
+      "fleet"
+    ],
+    "since": "2026-03-15",
+    "include_migration": false,
+    "include_remote": false,
+    "included_rows": 303,
+    "excluded_rows": 8,
+    "excluded_reasons": {
+      "migration": 8
+    },
+    "fingerprint": "{\"include_migration\":false,\"include_remote\":false,\"repos\":[\"bma\",\"fleet\"],\"since\":\"2026-03-15\"}"
+  },
+  "history_context": {
+    "prior_snapshot_count": 4,
+    "total_prior_snapshot_count": 4,
+    "skipped_prior_snapshot_count": 0,
+    "skip_reasons": {
+      "missing_scope_fingerprint": 0,
+      "scope_mismatch": 0
+    },
+    "trend_status": "comparison_available",
+    "latest_prior_snapshot": {
+      "snapshot_id": "20260317T231851Z",
+      "generated_at": "2026-03-17T23:32:27.455917+00:00",
+      "path": "/Users/briancl/.codex/worktrees/a4a6/build-meta-analysis/work/20260317T231851Z/token-allocation-operator-report/token-allocation-report-summary.json",
+      "queue_semantics_version": "action_ready_floor_v1"
+    },
+    "delta_vs_latest": {
+      "live_tokens": 6145965,
+      "proxy_share_pct": -0.19,
+      "unlinked_share_pct": -0.61,
+      "blocked_hotspot_count": 1,
+      "remediate_now_count": 0,
+      "provisional_candidate_count": -1
+    },
+    "analysis_scope_fingerprint": "{\"include_migration\":false,\"include_remote\":false,\"repos\":[\"bma\",\"fleet\"],\"since\":\"2026-03-15\"}",
+    "queue_metrics_comparable": true,
+    "current_queue_semantics_version": "action_ready_floor_v1",
+    "latest_prior_queue_semantics_version": "action_ready_floor_v1"
+  },
+  "hotspots": [
+    {
+      "hotspot_id": "prompt_family:native_code_review",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "native_code_review"
+      },
+      "live_tokens": 342287789,
+      "share_pct": 63.52,
+      "session_count": 9,
+      "classification": "suspect",
+      "user_facing_outcome": "agentic_root_cause_analysis_required",
+      "readiness": "brief_ready",
+      "operator_status": "exploratory_brief_ready",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "exploratory_only",
+      "classification_confidence": "high",
+      "classification_confidence_score": 0.81,
+      "classification_confidence_basis": [
+        "deep-dive packet confidence available",
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 3/12",
+        "grounded evidence bundle assembled",
+        "benchmark conflict keeps this hotspot tentative"
+      ],
+      "actionability_status": "exploratory_only",
+      "actionability_summary": "Grounded brief is ready for exploratory analysis, but remediation stays blocked until the brief is consumed with cited evidence and the hotspot is later reclassified.",
+      "evidence_confidence": "high",
+      "evidence_confidence_score": 0.81,
+      "main_uncertainty": "Review-started sessions are semantically mixed; later work includes non-review turns.",
+      "recommended_next_move": "Use the grounded brief for exploratory analysis only; do not treat it as remediation-ready yet.",
+      "queue_group": "collect_evidence",
+      "queue_reason": null,
+      "unblock_checklist": {
+        "owner": "llm_root_cause_analysis + benchmark_label_surface",
+        "missing_fields": [
+          "exact per-turn token attribution",
+          "adopted review finding receipts for Codex native review",
+          "labeled_session_floor (3/12)"
+        ],
+        "data_sources": [
+          "turn-level token attribution capture",
+          "downstream review-acceptance receipts",
+          "benchmark labels / adjudicated sample rows"
+        ],
+        "completion_condition": "Consume the grounded brief in exploratory mode, require cited evidence and verification steps, then wait for a later reclassification before queueing remediation."
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not operationalize remediation from this hotspot until the grounded brief is consumed with cited evidence, verification steps, and a later reclassification.",
+        "Do not treat benchmark-conflicted classification confidence as proof of actionability."
+      ],
+      "deep_dive_status": "completed",
+      "agentic_analysis_ready": true,
+      "action_ready": false,
+      "action_ready_reasons": [],
+      "blocked_hotspot": true,
+      "provisional_candidate": false,
+      "labeled_session_count": 3,
+      "deterministic_evidence_ready": true,
+      "impact_rank": 1,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:external_critique",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "external_critique"
+      },
+      "live_tokens": 131968775,
+      "share_pct": 24.49,
+      "session_count": 146,
+      "classification": "instrumentation_gap",
+      "user_facing_outcome": "insufficient_evidence",
+      "readiness": "blocked_missing_evidence",
+      "operator_status": "blocked_missing_evidence",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "blocked_by_missing_evidence",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.25,
+      "classification_confidence_basis": [
+        "deep-dive supplement still pending",
+        "measurement gate failed: linkage_coverage, unlinked_ratio, unowned_ratio",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_missing_evidence",
+      "actionability_summary": "Evidence collection only; missing measurement fields still block grounded analysis.",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.25,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Collect missing evidence needed for agentic analysis.",
+      "queue_group": "collect_evidence",
+      "queue_reason": null,
+      "unblock_checklist": {
+        "owner": "bma_measurement_collector_layer + benchmark_label_surface",
+        "missing_fields": [
+          "linkage_or_ownership_evidence",
+          "grounded_hotspot_evidence_packet",
+          "adoption_or_acceptance_tracing",
+          "labeled_session_floor (0/12)",
+          "linkage_coverage (36.30% < 60% min)",
+          "unlinked_ratio (63.70% > 40% max)",
+          "unowned_ratio (63.70% > 25% max)"
+        ],
+        "data_sources": [
+          "session-history joins + work/outcome ownership evidence",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration",
+          "linked work metrics / downstream acceptance receipts",
+          "benchmark labels / adjudicated sample rows"
+        ],
+        "completion_condition": "fill missing fields and regenerate the LLM-ready hotspot brief"
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not optimize this hotspot until missing linkage, ownership, or evidence fields are filled and the LLM-ready brief is regenerated."
+      ],
+      "deep_dive_status": "pending",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [],
+      "blocked_hotspot": true,
+      "provisional_candidate": false,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 2,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:other",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "other"
+      },
+      "live_tokens": 22240966,
+      "share_pct": 4.13,
+      "session_count": 24,
+      "classification": "optimize",
+      "user_facing_outcome": "agentic_root_cause_analysis_required",
+      "readiness": "brief_pending_deep_dive_supplement",
+      "operator_status": "brief_pending_deep_dive_supplement",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "blocked_by_missing_evidence",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.4,
+      "classification_confidence_basis": [
+        "deep-dive supplement still pending",
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 0/12",
+        "grounded evidence bundle assembled"
+      ],
+      "actionability_status": "blocked_pending_grounded_brief",
+      "actionability_summary": "Grounded deep-dive supplement is still missing; finish the brief surface before asking for remediation guidance.",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.4,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Dispatch an LLM with the grounded hotspot brief before proposing remediation.",
+      "queue_group": "collect_evidence",
+      "queue_reason": null,
+      "unblock_checklist": {
+        "owner": "benchmark_label_surface",
+        "missing_fields": [
+          "labeled_session_floor (0/12)",
+          "grounded_hotspot_evidence_packet"
+        ],
+        "data_sources": [
+          "benchmark labels / adjudicated sample rows",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration"
+        ],
+        "completion_condition": "Finish the grounded deep-dive supplement and regenerate the brief before asking for remediation guidance."
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not operationalize this hotspot before the grounded deep-dive supplement exists."
+      ],
+      "deep_dive_status": "pending",
+      "agentic_analysis_ready": true,
+      "action_ready": false,
+      "action_ready_reasons": [],
+      "blocked_hotspot": true,
+      "provisional_candidate": false,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 3,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:fleet_advisor_run",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "fleet_advisor_run"
+      },
+      "live_tokens": 13677120,
+      "share_pct": 2.54,
+      "session_count": 9,
+      "classification": "instrumentation_gap",
+      "user_facing_outcome": "insufficient_evidence",
+      "readiness": "blocked_missing_evidence",
+      "operator_status": "blocked_missing_evidence",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "blocked_by_missing_evidence",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.25,
+      "classification_confidence_basis": [
+        "measurement gate failed: linkage_coverage, unlinked_ratio, labeled_sample_size",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_missing_evidence",
+      "actionability_summary": "Evidence collection only; missing measurement fields still block grounded analysis.",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.25,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Collect missing evidence needed for agentic analysis.",
+      "queue_group": "collect_evidence",
+      "queue_reason": null,
+      "unblock_checklist": {
+        "owner": "bma_measurement_collector_layer + benchmark_label_surface",
+        "missing_fields": [
+          "linkage_or_ownership_evidence",
+          "grounded_hotspot_evidence_packet",
+          "adoption_or_acceptance_tracing",
+          "labeled_session_floor (0/12)",
+          "linkage_coverage (0.00% < 60% min)",
+          "unlinked_ratio (100.00% > 40% max)"
+        ],
+        "data_sources": [
+          "session-history joins + work/outcome ownership evidence",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration",
+          "linked work metrics / downstream acceptance receipts",
+          "benchmark labels / adjudicated sample rows"
+        ],
+        "completion_condition": "fill missing fields and regenerate the LLM-ready hotspot brief"
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not optimize this hotspot until missing linkage, ownership, or evidence fields are filled and the LLM-ready brief is regenerated."
+      ],
+      "deep_dive_status": "not_required",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [],
+      "blocked_hotspot": true,
+      "provisional_candidate": false,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 4,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:local_code_review",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "local_code_review"
+      },
+      "live_tokens": 12850031,
+      "share_pct": 2.38,
+      "session_count": 63,
+      "classification": "optimize",
+      "user_facing_outcome": "insufficient_evidence",
+      "readiness": "classification_only",
+      "operator_status": "classification_only",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "blocked_by_missing_evidence",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.25,
+      "classification_confidence_basis": [
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_missing_evidence",
+      "actionability_summary": "Evidence collection only; missing measurement fields still block grounded analysis.",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.25,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Collect more evidence or labels before asking an LLM for remediation guidance.",
+      "queue_group": "collect_evidence",
+      "queue_reason": null,
+      "unblock_checklist": {
+        "owner": "bma_measurement_collector_layer + benchmark_label_surface",
+        "missing_fields": [
+          "labeled_or_task_specific_evidence",
+          "grounded_hotspot_evidence_packet",
+          "adoption_or_acceptance_tracing",
+          "labeled_session_floor (0/12)"
+        ],
+        "data_sources": [
+          "benchmark labels or task-specific retained evidence",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration",
+          "linked work metrics / downstream acceptance receipts",
+          "benchmark labels / adjudicated sample rows"
+        ],
+        "completion_condition": "fill missing fields and regenerate the LLM-ready hotspot brief"
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not optimize this hotspot until missing linkage, ownership, or evidence fields are filled and the LLM-ready brief is regenerated."
+      ],
+      "deep_dive_status": "not_required",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [],
+      "blocked_hotspot": true,
+      "provisional_candidate": false,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 5,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:optimizer_extraction",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "optimizer_extraction"
+      },
+      "live_tokens": 3268609,
+      "share_pct": 0.61,
+      "session_count": 5,
+      "classification": "optimize",
+      "user_facing_outcome": "candidate_remediation",
+      "readiness": "candidate_pending_evidence_floor",
+      "operator_status": "provisional_candidate",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "tentative_candidate_hypothesis",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.35,
+      "classification_confidence_basis": [
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_by_action_ready_floor",
+      "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.35,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue.",
+      "queue_group": "collect_evidence",
+      "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "unblock_checklist": {
+        "owner": "benchmark_label_surface",
+        "missing_fields": [
+          "labeled_session_floor (0/12)",
+          "grounded_hotspot_evidence_packet"
+        ],
+        "data_sources": [
+          "benchmark labels / adjudicated sample rows",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration"
+        ],
+        "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+      ],
+      "deep_dive_status": "not_required",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [
+        "confidence_below_floor",
+        "labeled_sample_size",
+        "missing_deterministic_supplement"
+      ],
+      "blocked_hotspot": false,
+      "provisional_candidate": true,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 6,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:optimizer_decomposition",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "optimizer_decomposition"
+      },
+      "live_tokens": 3055821,
+      "share_pct": 0.57,
+      "session_count": 5,
+      "classification": "optimize",
+      "user_facing_outcome": "candidate_remediation",
+      "readiness": "candidate_pending_evidence_floor",
+      "operator_status": "provisional_candidate",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "tentative_candidate_hypothesis",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.35,
+      "classification_confidence_basis": [
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_by_action_ready_floor",
+      "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.35,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue.",
+      "queue_group": "collect_evidence",
+      "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "unblock_checklist": {
+        "owner": "benchmark_label_surface",
+        "missing_fields": [
+          "labeled_session_floor (0/12)",
+          "grounded_hotspot_evidence_packet"
+        ],
+        "data_sources": [
+          "benchmark labels / adjudicated sample rows",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration"
+        ],
+        "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+      ],
+      "deep_dive_status": "not_required",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [
+        "confidence_below_floor",
+        "labeled_sample_size",
+        "missing_deterministic_supplement"
+      ],
+      "blocked_hotspot": false,
+      "provisional_candidate": true,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 7,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:optimizer_consolidation",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "optimizer_consolidation"
+      },
+      "live_tokens": 2942183,
+      "share_pct": 0.55,
+      "session_count": 5,
+      "classification": "optimize",
+      "user_facing_outcome": "candidate_remediation",
+      "readiness": "candidate_pending_evidence_floor",
+      "operator_status": "provisional_candidate",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "tentative_candidate_hypothesis",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.35,
+      "classification_confidence_basis": [
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_by_action_ready_floor",
+      "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.35,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue.",
+      "queue_group": "collect_evidence",
+      "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "unblock_checklist": {
+        "owner": "benchmark_label_surface",
+        "missing_fields": [
+          "labeled_session_floor (0/12)",
+          "grounded_hotspot_evidence_packet"
+        ],
+        "data_sources": [
+          "benchmark labels / adjudicated sample rows",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration"
+        ],
+        "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+      ],
+      "deep_dive_status": "not_required",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [
+        "confidence_below_floor",
+        "labeled_sample_size",
+        "missing_deterministic_supplement"
+      ],
+      "blocked_hotspot": false,
+      "provisional_candidate": true,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 8,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:fleet_optimizer_run",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "fleet_optimizer_run"
+      },
+      "live_tokens": 2420649,
+      "share_pct": 0.45,
+      "session_count": 3,
+      "classification": "optimize",
+      "user_facing_outcome": "candidate_remediation",
+      "readiness": "candidate_pending_evidence_floor",
+      "operator_status": "provisional_candidate",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "tentative_candidate_hypothesis",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.35,
+      "classification_confidence_basis": [
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_by_action_ready_floor",
+      "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.35,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue.",
+      "queue_group": "collect_evidence",
+      "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "unblock_checklist": {
+        "owner": "benchmark_label_surface",
+        "missing_fields": [
+          "labeled_session_floor (0/12)",
+          "grounded_hotspot_evidence_packet"
+        ],
+        "data_sources": [
+          "benchmark labels / adjudicated sample rows",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration"
+        ],
+        "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+      ],
+      "deep_dive_status": "not_required",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [
+        "confidence_below_floor",
+        "labeled_sample_size",
+        "missing_deterministic_supplement"
+      ],
+      "blocked_hotspot": false,
+      "provisional_candidate": true,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 9,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:optimizer_standardization",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "optimizer_standardization"
+      },
+      "live_tokens": 2087195,
+      "share_pct": 0.39,
+      "session_count": 4,
+      "classification": "optimize",
+      "user_facing_outcome": "candidate_remediation",
+      "readiness": "candidate_pending_evidence_floor",
+      "operator_status": "provisional_candidate",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "tentative_candidate_hypothesis",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.35,
+      "classification_confidence_basis": [
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_by_action_ready_floor",
+      "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.35,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue.",
+      "queue_group": "collect_evidence",
+      "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "unblock_checklist": {
+        "owner": "benchmark_label_surface",
+        "missing_fields": [
+          "labeled_session_floor (0/12)",
+          "grounded_hotspot_evidence_packet"
+        ],
+        "data_sources": [
+          "benchmark labels / adjudicated sample rows",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration"
+        ],
+        "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+      ],
+      "deep_dive_status": "not_required",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [
+        "confidence_below_floor",
+        "labeled_sample_size",
+        "missing_deterministic_supplement"
+      ],
+      "blocked_hotspot": false,
+      "provisional_candidate": true,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 10,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:fleet_auditor_run",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "fleet_auditor_run"
+      },
+      "live_tokens": 1165083,
+      "share_pct": 0.22,
+      "session_count": 18,
+      "classification": "optimize",
+      "user_facing_outcome": "insufficient_evidence",
+      "readiness": "classification_only",
+      "operator_status": "classification_only",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "blocked_by_missing_evidence",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.25,
+      "classification_confidence_basis": [
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_missing_evidence",
+      "actionability_summary": "Evidence collection only; missing measurement fields still block grounded analysis.",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.25,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Collect more evidence or labels before asking an LLM for remediation guidance.",
+      "queue_group": "collect_evidence",
+      "queue_reason": null,
+      "unblock_checklist": {
+        "owner": "bma_measurement_collector_layer + benchmark_label_surface",
+        "missing_fields": [
+          "labeled_or_task_specific_evidence",
+          "grounded_hotspot_evidence_packet",
+          "adoption_or_acceptance_tracing",
+          "labeled_session_floor (0/12)"
+        ],
+        "data_sources": [
+          "benchmark labels or task-specific retained evidence",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration",
+          "linked work metrics / downstream acceptance receipts",
+          "benchmark labels / adjudicated sample rows"
+        ],
+        "completion_condition": "fill missing fields and regenerate the LLM-ready hotspot brief"
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not optimize this hotspot until missing linkage, ownership, or evidence fields are filled and the LLM-ready brief is regenerated."
+      ],
+      "deep_dive_status": "not_required",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [],
+      "blocked_hotspot": true,
+      "provisional_candidate": false,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 11,
+      "action_ready_rank": null
+    },
+    {
+      "hotspot_id": "prompt_family:speckit_plan",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "speckit_plan"
+      },
+      "live_tokens": 569260,
+      "share_pct": 0.11,
+      "session_count": 2,
+      "classification": "optimize",
+      "user_facing_outcome": "candidate_remediation",
+      "readiness": "candidate_pending_evidence_floor",
+      "operator_status": "provisional_candidate",
+      "rank_interpretation": "tentative_spend_anchor_only",
+      "recommendation_precision": "tentative_candidate_hypothesis",
+      "classification_confidence": "low",
+      "classification_confidence_score": 0.35,
+      "classification_confidence_basis": [
+        "measurement gate failed: labeled_sample_size",
+        "labeled sessions 0/12"
+      ],
+      "actionability_status": "blocked_by_action_ready_floor",
+      "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "evidence_confidence": "low",
+      "evidence_confidence_score": 0.35,
+      "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+      "recommended_next_move": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue.",
+      "queue_group": "collect_evidence",
+      "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+      "unblock_checklist": {
+        "owner": "benchmark_label_surface",
+        "missing_fields": [
+          "labeled_session_floor (0/12)",
+          "grounded_hotspot_evidence_packet"
+        ],
+        "data_sources": [
+          "benchmark labels / adjudicated sample rows",
+          "hotspot-evidence-packets.json / problem-areas.json regeneration"
+        ],
+        "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+      },
+      "operator_guardrails": [
+        "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+        "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+      ],
+      "deep_dive_status": "not_required",
+      "agentic_analysis_ready": false,
+      "action_ready": false,
+      "action_ready_reasons": [
+        "confidence_below_floor",
+        "labeled_sample_size",
+        "missing_deterministic_supplement"
+      ],
+      "blocked_hotspot": false,
+      "provisional_candidate": true,
+      "labeled_session_count": 0,
+      "deterministic_evidence_ready": false,
+      "impact_rank": 12,
+      "action_ready_rank": null
+    }
+  ],
+  "recommendation_queue": {
+    "remediate_now": [],
+    "collect_evidence": [
+      {
+        "id": "prompt_family:native_code_review",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "native_code_review"
+        },
+        "live_tokens": 342287789,
+        "share_pct": 63.52,
+        "classification": "suspect",
+        "user_facing_outcome": "agentic_root_cause_analysis_required",
+        "operator_status": "exploratory_brief_ready",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "exploratory_only",
+        "classification_confidence": "high",
+        "evidence_confidence": "high",
+        "actionability_status": "exploratory_only",
+        "actionability_summary": "Grounded brief is ready for exploratory analysis, but remediation stays blocked until the brief is consumed with cited evidence and the hotspot is later reclassified.",
+        "action_ready": false,
+        "queue_reason": null,
+        "impact_rank": 1,
+        "action_ready_rank": null,
+        "blocked_hotspot": true,
+        "provisional_candidate": false,
+        "main_uncertainty": "Review-started sessions are semantically mixed; later work includes non-review turns.",
+        "unblock_checklist": {
+          "owner": "llm_root_cause_analysis + benchmark_label_surface",
+          "missing_fields": [
+            "exact per-turn token attribution",
+            "adopted review finding receipts for Codex native review",
+            "labeled_session_floor (3/12)"
+          ],
+          "data_sources": [
+            "turn-level token attribution capture",
+            "downstream review-acceptance receipts",
+            "benchmark labels / adjudicated sample rows"
+          ],
+          "completion_condition": "Consume the grounded brief in exploratory mode, require cited evidence and verification steps, then wait for a later reclassification before queueing remediation."
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not operationalize remediation from this hotspot until the grounded brief is consumed with cited evidence, verification steps, and a later reclassification.",
+          "Do not treat benchmark-conflicted classification confidence as proof of actionability."
+        ],
+        "next_step": "Use the grounded brief for exploratory analysis only; do not treat it as remediation-ready yet."
+      },
+      {
+        "id": "prompt_family:external_critique",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "external_critique"
+        },
+        "live_tokens": 131968775,
+        "share_pct": 24.49,
+        "classification": "instrumentation_gap",
+        "user_facing_outcome": "insufficient_evidence",
+        "operator_status": "blocked_missing_evidence",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "blocked_by_missing_evidence",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_missing_evidence",
+        "actionability_summary": "Evidence collection only; missing measurement fields still block grounded analysis.",
+        "action_ready": false,
+        "queue_reason": null,
+        "impact_rank": 2,
+        "action_ready_rank": null,
+        "blocked_hotspot": true,
+        "provisional_candidate": false,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "bma_measurement_collector_layer + benchmark_label_surface",
+          "missing_fields": [
+            "linkage_or_ownership_evidence",
+            "grounded_hotspot_evidence_packet",
+            "adoption_or_acceptance_tracing",
+            "labeled_session_floor (0/12)",
+            "linkage_coverage (36.30% < 60% min)",
+            "unlinked_ratio (63.70% > 40% max)",
+            "unowned_ratio (63.70% > 25% max)"
+          ],
+          "data_sources": [
+            "session-history joins + work/outcome ownership evidence",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration",
+            "linked work metrics / downstream acceptance receipts",
+            "benchmark labels / adjudicated sample rows"
+          ],
+          "completion_condition": "fill missing fields and regenerate the LLM-ready hotspot brief"
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not optimize this hotspot until missing linkage, ownership, or evidence fields are filled and the LLM-ready brief is regenerated."
+        ],
+        "next_step": "Collect missing evidence needed for agentic analysis."
+      },
+      {
+        "id": "prompt_family:other",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "other"
+        },
+        "live_tokens": 22240966,
+        "share_pct": 4.13,
+        "classification": "optimize",
+        "user_facing_outcome": "agentic_root_cause_analysis_required",
+        "operator_status": "brief_pending_deep_dive_supplement",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "blocked_by_missing_evidence",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_pending_grounded_brief",
+        "actionability_summary": "Grounded deep-dive supplement is still missing; finish the brief surface before asking for remediation guidance.",
+        "action_ready": false,
+        "queue_reason": null,
+        "impact_rank": 3,
+        "action_ready_rank": null,
+        "blocked_hotspot": true,
+        "provisional_candidate": false,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "benchmark_label_surface",
+          "missing_fields": [
+            "labeled_session_floor (0/12)",
+            "grounded_hotspot_evidence_packet"
+          ],
+          "data_sources": [
+            "benchmark labels / adjudicated sample rows",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration"
+          ],
+          "completion_condition": "Finish the grounded deep-dive supplement and regenerate the brief before asking for remediation guidance."
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not operationalize this hotspot before the grounded deep-dive supplement exists."
+        ],
+        "next_step": "Dispatch an LLM with the grounded hotspot brief before proposing remediation."
+      },
+      {
+        "id": "prompt_family:fleet_advisor_run",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "fleet_advisor_run"
+        },
+        "live_tokens": 13677120,
+        "share_pct": 2.54,
+        "classification": "instrumentation_gap",
+        "user_facing_outcome": "insufficient_evidence",
+        "operator_status": "blocked_missing_evidence",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "blocked_by_missing_evidence",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_missing_evidence",
+        "actionability_summary": "Evidence collection only; missing measurement fields still block grounded analysis.",
+        "action_ready": false,
+        "queue_reason": null,
+        "impact_rank": 4,
+        "action_ready_rank": null,
+        "blocked_hotspot": true,
+        "provisional_candidate": false,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "bma_measurement_collector_layer + benchmark_label_surface",
+          "missing_fields": [
+            "linkage_or_ownership_evidence",
+            "grounded_hotspot_evidence_packet",
+            "adoption_or_acceptance_tracing",
+            "labeled_session_floor (0/12)",
+            "linkage_coverage (0.00% < 60% min)",
+            "unlinked_ratio (100.00% > 40% max)"
+          ],
+          "data_sources": [
+            "session-history joins + work/outcome ownership evidence",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration",
+            "linked work metrics / downstream acceptance receipts",
+            "benchmark labels / adjudicated sample rows"
+          ],
+          "completion_condition": "fill missing fields and regenerate the LLM-ready hotspot brief"
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not optimize this hotspot until missing linkage, ownership, or evidence fields are filled and the LLM-ready brief is regenerated."
+        ],
+        "next_step": "Collect missing evidence needed for agentic analysis."
+      },
+      {
+        "id": "prompt_family:local_code_review",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "local_code_review"
+        },
+        "live_tokens": 12850031,
+        "share_pct": 2.38,
+        "classification": "optimize",
+        "user_facing_outcome": "insufficient_evidence",
+        "operator_status": "classification_only",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "blocked_by_missing_evidence",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_missing_evidence",
+        "actionability_summary": "Evidence collection only; missing measurement fields still block grounded analysis.",
+        "action_ready": false,
+        "queue_reason": null,
+        "impact_rank": 5,
+        "action_ready_rank": null,
+        "blocked_hotspot": true,
+        "provisional_candidate": false,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "bma_measurement_collector_layer + benchmark_label_surface",
+          "missing_fields": [
+            "labeled_or_task_specific_evidence",
+            "grounded_hotspot_evidence_packet",
+            "adoption_or_acceptance_tracing",
+            "labeled_session_floor (0/12)"
+          ],
+          "data_sources": [
+            "benchmark labels or task-specific retained evidence",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration",
+            "linked work metrics / downstream acceptance receipts",
+            "benchmark labels / adjudicated sample rows"
+          ],
+          "completion_condition": "fill missing fields and regenerate the LLM-ready hotspot brief"
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not optimize this hotspot until missing linkage, ownership, or evidence fields are filled and the LLM-ready brief is regenerated."
+        ],
+        "next_step": "Collect more evidence or labels before asking an LLM for remediation guidance."
+      },
+      {
+        "id": "prompt_family:fleet_auditor_run",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "fleet_auditor_run"
+        },
+        "live_tokens": 1165083,
+        "share_pct": 0.22,
+        "classification": "optimize",
+        "user_facing_outcome": "insufficient_evidence",
+        "operator_status": "classification_only",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "blocked_by_missing_evidence",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_missing_evidence",
+        "actionability_summary": "Evidence collection only; missing measurement fields still block grounded analysis.",
+        "action_ready": false,
+        "queue_reason": null,
+        "impact_rank": 11,
+        "action_ready_rank": null,
+        "blocked_hotspot": true,
+        "provisional_candidate": false,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "bma_measurement_collector_layer + benchmark_label_surface",
+          "missing_fields": [
+            "labeled_or_task_specific_evidence",
+            "grounded_hotspot_evidence_packet",
+            "adoption_or_acceptance_tracing",
+            "labeled_session_floor (0/12)"
+          ],
+          "data_sources": [
+            "benchmark labels or task-specific retained evidence",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration",
+            "linked work metrics / downstream acceptance receipts",
+            "benchmark labels / adjudicated sample rows"
+          ],
+          "completion_condition": "fill missing fields and regenerate the LLM-ready hotspot brief"
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not optimize this hotspot until missing linkage, ownership, or evidence fields are filled and the LLM-ready brief is regenerated."
+        ],
+        "next_step": "Collect more evidence or labels before asking an LLM for remediation guidance."
+      },
+      {
+        "id": "prompt_family:optimizer_extraction",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "optimizer_extraction"
+        },
+        "live_tokens": 3268609,
+        "share_pct": 0.61,
+        "classification": "optimize",
+        "user_facing_outcome": "candidate_remediation",
+        "operator_status": "provisional_candidate",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "tentative_candidate_hypothesis",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_by_action_ready_floor",
+        "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "action_ready": false,
+        "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "impact_rank": 6,
+        "action_ready_rank": null,
+        "blocked_hotspot": false,
+        "provisional_candidate": true,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "benchmark_label_surface",
+          "missing_fields": [
+            "labeled_session_floor (0/12)",
+            "grounded_hotspot_evidence_packet"
+          ],
+          "data_sources": [
+            "benchmark labels / adjudicated sample rows",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration"
+          ],
+          "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+        ],
+        "next_step": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue."
+      },
+      {
+        "id": "prompt_family:optimizer_decomposition",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "optimizer_decomposition"
+        },
+        "live_tokens": 3055821,
+        "share_pct": 0.57,
+        "classification": "optimize",
+        "user_facing_outcome": "candidate_remediation",
+        "operator_status": "provisional_candidate",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "tentative_candidate_hypothesis",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_by_action_ready_floor",
+        "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "action_ready": false,
+        "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "impact_rank": 7,
+        "action_ready_rank": null,
+        "blocked_hotspot": false,
+        "provisional_candidate": true,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "benchmark_label_surface",
+          "missing_fields": [
+            "labeled_session_floor (0/12)",
+            "grounded_hotspot_evidence_packet"
+          ],
+          "data_sources": [
+            "benchmark labels / adjudicated sample rows",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration"
+          ],
+          "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+        ],
+        "next_step": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue."
+      },
+      {
+        "id": "prompt_family:optimizer_consolidation",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "optimizer_consolidation"
+        },
+        "live_tokens": 2942183,
+        "share_pct": 0.55,
+        "classification": "optimize",
+        "user_facing_outcome": "candidate_remediation",
+        "operator_status": "provisional_candidate",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "tentative_candidate_hypothesis",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_by_action_ready_floor",
+        "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "action_ready": false,
+        "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "impact_rank": 8,
+        "action_ready_rank": null,
+        "blocked_hotspot": false,
+        "provisional_candidate": true,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "benchmark_label_surface",
+          "missing_fields": [
+            "labeled_session_floor (0/12)",
+            "grounded_hotspot_evidence_packet"
+          ],
+          "data_sources": [
+            "benchmark labels / adjudicated sample rows",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration"
+          ],
+          "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+        ],
+        "next_step": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue."
+      },
+      {
+        "id": "prompt_family:fleet_optimizer_run",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "fleet_optimizer_run"
+        },
+        "live_tokens": 2420649,
+        "share_pct": 0.45,
+        "classification": "optimize",
+        "user_facing_outcome": "candidate_remediation",
+        "operator_status": "provisional_candidate",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "tentative_candidate_hypothesis",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_by_action_ready_floor",
+        "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "action_ready": false,
+        "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "impact_rank": 9,
+        "action_ready_rank": null,
+        "blocked_hotspot": false,
+        "provisional_candidate": true,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "benchmark_label_surface",
+          "missing_fields": [
+            "labeled_session_floor (0/12)",
+            "grounded_hotspot_evidence_packet"
+          ],
+          "data_sources": [
+            "benchmark labels / adjudicated sample rows",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration"
+          ],
+          "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+        ],
+        "next_step": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue."
+      },
+      {
+        "id": "prompt_family:optimizer_standardization",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "optimizer_standardization"
+        },
+        "live_tokens": 2087195,
+        "share_pct": 0.39,
+        "classification": "optimize",
+        "user_facing_outcome": "candidate_remediation",
+        "operator_status": "provisional_candidate",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "tentative_candidate_hypothesis",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_by_action_ready_floor",
+        "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "action_ready": false,
+        "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "impact_rank": 10,
+        "action_ready_rank": null,
+        "blocked_hotspot": false,
+        "provisional_candidate": true,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "benchmark_label_surface",
+          "missing_fields": [
+            "labeled_session_floor (0/12)",
+            "grounded_hotspot_evidence_packet"
+          ],
+          "data_sources": [
+            "benchmark labels / adjudicated sample rows",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration"
+          ],
+          "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+        ],
+        "next_step": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue."
+      },
+      {
+        "id": "prompt_family:speckit_plan",
+        "kind": "hotspot",
+        "scope": {
+          "dimension": "prompt_family",
+          "key": "speckit_plan"
+        },
+        "live_tokens": 569260,
+        "share_pct": 0.11,
+        "classification": "optimize",
+        "user_facing_outcome": "candidate_remediation",
+        "operator_status": "provisional_candidate",
+        "rank_interpretation": "tentative_spend_anchor_only",
+        "recommendation_precision": "tentative_candidate_hypothesis",
+        "classification_confidence": "low",
+        "evidence_confidence": "low",
+        "actionability_status": "blocked_by_action_ready_floor",
+        "actionability_summary": "Not safe to operationalize yet: confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "action_ready": false,
+        "queue_reason": "confidence below 0.60, fewer than 12 labeled sessions, missing deterministic evidence supplement",
+        "impact_rank": 12,
+        "action_ready_rank": null,
+        "blocked_hotspot": false,
+        "provisional_candidate": true,
+        "main_uncertainty": "No deterministic evidence supplement has been assembled yet for this hotspot.",
+        "unblock_checklist": {
+          "owner": "benchmark_label_surface",
+          "missing_fields": [
+            "labeled_session_floor (0/12)",
+            "grounded_hotspot_evidence_packet"
+          ],
+          "data_sources": [
+            "benchmark labels / adjudicated sample rows",
+            "hotspot-evidence-packets.json / problem-areas.json regeneration"
+          ],
+          "completion_condition": "Promote only after deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all satisfied."
+        },
+        "operator_guardrails": [
+          "Do not treat impact rank or hotspot share as stable portfolio truth while decision readiness remains partially_calibrated.",
+          "Do not operationalize this candidate until deterministic supplement, >= 12 labeled sessions, and classification confidence >= 0.60 are all present."
+        ],
+        "next_step": "Keep this as a provisional candidate only; collect deterministic evidence and labels before promoting it into the action-ready queue."
+      }
+    ],
+    "protect": [],
+    "defer": [
+      {
+        "id": "component:build-meta-analysis",
+        "kind": "cross_cutting_hotspot",
+        "scope": {
+          "dimension": "component",
+          "key": "build-meta-analysis"
+        },
+        "live_tokens": 504100697,
+        "share_pct": null,
+        "classification": "suspect",
+        "user_facing_outcome": "defer",
+        "evidence_confidence": "low",
+        "main_uncertainty": "Cross-cutting surface needs narrower prompt-family evidence before remediation.",
+        "next_step": "Use this as portfolio context, not as the first remediation target."
+      },
+      {
+        "id": "workflow_family:review",
+        "kind": "cross_cutting_hotspot",
+        "scope": {
+          "dimension": "workflow_family",
+          "key": "review"
+        },
+        "live_tokens": 355055195,
+        "share_pct": null,
+        "classification": "suspect",
+        "user_facing_outcome": "defer",
+        "evidence_confidence": "low",
+        "main_uncertainty": "Cross-cutting surface needs narrower prompt-family evidence before remediation.",
+        "next_step": "Use this as portfolio context, not as the first remediation target."
+      },
+      {
+        "id": "model:claude-opus-4.6",
+        "kind": "cross_cutting_hotspot",
+        "scope": {
+          "dimension": "model",
+          "key": "claude-opus-4.6"
+        },
+        "live_tokens": 20303518,
+        "share_pct": null,
+        "classification": "suspect",
+        "user_facing_outcome": "defer",
+        "evidence_confidence": "low",
+        "main_uncertainty": "Cross-cutting surface needs narrower prompt-family evidence before remediation.",
+        "next_step": "Use this as portfolio context, not as the first remediation target."
+      }
+    ]
+  },
+  "model_fit_findings": [
+    {
+      "model": "gpt-5.4",
+      "live_tokens": 500474029,
+      "classification": "instrumentation_gap",
+      "recommendation": "improve instrumentation",
+      "action": "re-evaluate",
+      "act_now_eligible": false,
+      "benchmark_label_score": 70.67,
+      "ensemble_value_score": 39.79,
+      "measurement_gate_pass": false,
+      "tokens_per_material_output": 228422.65,
+      "tokens_per_distinct_review_finding": 769960.04,
+      "rationale": "gpt-5.4 is still measurement-blocked (unowned_ratio, labeled_sample_size)."
+    },
+    {
+      "model": "claude-opus-4.6",
+      "live_tokens": 20303518,
+      "classification": "suspect",
+      "recommendation": "optimize context",
+      "action": "re-evaluate",
+      "act_now_eligible": false,
+      "benchmark_label_score": null,
+      "ensemble_value_score": 5.45,
+      "measurement_gate_pass": false,
+      "tokens_per_material_output": 111557.79,
+      "tokens_per_distinct_review_finding": null,
+      "rationale": "claude-opus-4.6 is still measurement-blocked (labeled_sample_size)."
+    },
+    {
+      "model": "claude-sonnet-4.5",
+      "live_tokens": 12479638,
+      "classification": "optimize",
+      "recommendation": "optimize context",
+      "action": "re-evaluate",
+      "act_now_eligible": false,
+      "benchmark_label_score": null,
+      "ensemble_value_score": 14.02,
+      "measurement_gate_pass": false,
+      "tokens_per_material_output": 127343.24,
+      "tokens_per_distinct_review_finding": null,
+      "rationale": "claude-sonnet-4.5 is still measurement-blocked (labeled_sample_size)."
+    },
+    {
+      "model": "gemini-3-pro-preview",
+      "live_tokens": 2298276,
+      "classification": "instrumentation_gap",
+      "recommendation": "improve instrumentation",
+      "action": "re-evaluate",
+      "act_now_eligible": false,
+      "benchmark_label_score": null,
+      "ensemble_value_score": 24.39,
+      "measurement_gate_pass": false,
+      "tokens_per_material_output": 4818.19,
+      "tokens_per_distinct_review_finding": null,
+      "rationale": "gemini-3-pro-preview is still measurement-blocked (linkage_coverage, unlinked_ratio, unowned_ratio)."
+    },
+    {
+      "model": "claude-haiku-4.5",
+      "live_tokens": 1362625,
+      "classification": "optimize",
+      "recommendation": "keep as-is",
+      "action": "re-evaluate",
+      "act_now_eligible": false,
+      "benchmark_label_score": null,
+      "ensemble_value_score": 19.52,
+      "measurement_gate_pass": false,
+      "tokens_per_material_output": 5798.4,
+      "tokens_per_distinct_review_finding": null,
+      "rationale": "claude-haiku-4.5 is still measurement-blocked (labeled_sample_size)."
+    },
+    {
+      "model": "gpt-5.3-codex",
+      "live_tokens": 1336707,
+      "classification": "instrumentation_gap",
+      "recommendation": "improve instrumentation",
+      "action": "re-evaluate",
+      "act_now_eligible": false,
+      "benchmark_label_score": null,
+      "ensemble_value_score": 16.26,
+      "measurement_gate_pass": false,
+      "tokens_per_material_output": 3583.66,
+      "tokens_per_distinct_review_finding": null,
+      "rationale": "gpt-5.3-codex is still measurement-blocked (linkage_coverage, unlinked_ratio, unowned_ratio)."
+    }
+  ],
+  "component_calibration": [
+    {
+      "component": "build-meta-analysis",
+      "classification": "suspect",
+      "tentative_recommendation": "reduce fan-out",
+      "recommendation_mode": "tentative_heuristic",
+      "measurement_gate_pass": false,
+      "observed_amplifiers": [
+        "fan-out signal avg_panel_width=3.00 across 53 sessions",
+        "context-load signal avg_context_ratio=1.95",
+        "attempted lower-bound rows=2",
+        "proxy rows=9"
+      ],
+      "calibration_note": "Observed amplifier mix only; causal spend attribution across fan-out, context-load, and retry behavior is not isolated in this surface."
+    },
+    {
+      "component": "repo-optimizer",
+      "classification": "optimize",
+      "tentative_recommendation": "optimize context",
+      "recommendation_mode": "tentative_heuristic",
+      "measurement_gate_pass": false,
+      "observed_amplifiers": [
+        "context-load signal avg_context_ratio=1.90",
+        "proxy rows=1"
+      ],
+      "calibration_note": "Observed amplifier mix only; causal spend attribution across fan-out, context-load, and retry behavior is not isolated in this surface."
+    },
+    {
+      "component": "repo-upgrade-advisor",
+      "classification": "instrumentation_gap",
+      "tentative_recommendation": "improve instrumentation",
+      "recommendation_mode": "tentative_heuristic",
+      "measurement_gate_pass": false,
+      "observed_amplifiers": [
+        "context-load signal avg_context_ratio=1.94",
+        "proxy rows=1"
+      ],
+      "calibration_note": "Observed amplifier mix only; causal spend attribution across fan-out, context-load, and retry behavior is not isolated in this surface."
+    },
+    {
+      "component": "unowned_critique",
+      "classification": "instrumentation_gap",
+      "tentative_recommendation": "improve instrumentation",
+      "recommendation_mode": "tentative_heuristic",
+      "measurement_gate_pass": false,
+      "observed_amplifiers": [
+        "context-load signal avg_context_ratio=1.41"
+      ],
+      "calibration_note": "Observed amplifier mix only; causal spend attribution across fan-out, context-load, and retry behavior is not isolated in this surface."
+    }
+  ],
+  "historical_snapshot_fields": {
+    "snapshot_id": "20260317T235442Z",
+    "live_tokens": 538886353,
+    "cached_tokens": 510358479,
+    "context_load_tokens": 1049244832,
+    "analysis_rows": 303,
+    "proxy_share_pct": 3.96,
+    "unlinked_share_pct": 33.99,
+    "attempted_rows": 2,
+    "decision_readiness": "partially_calibrated",
+    "top_hotspot_id": "prompt_family:native_code_review",
+    "top_hotspot_share_pct": 63.52,
+    "blocked_hotspot_count": 6,
+    "remediate_now_count": 0,
+    "provisional_candidate_count": 6,
+    "protect_count": 0,
+    "defer_count": 3,
+    "analysis_scope_fingerprint": "{\"include_migration\":false,\"include_remote\":false,\"repos\":[\"bma\",\"fleet\"],\"since\":\"2026-03-15\"}",
+    "queue_semantics_version": "action_ready_floor_v1"
+  },
+  "warning_signals": [
+    {
+      "signal_id": "token_allocation_step3_semantic_overreach",
+      "surface": "token_efficiency_step3",
+      "observed_problem": "Deterministic Step 3 logic was returning semantic next actions for an ambiguous hotspot instead of packaging evidence for an LLM to reason over.",
+      "triggering_evidence": {
+        "hotspot_id": "prompt_family:native_code_review",
+        "live_tokens": 342287789,
+        "benchmark_disagreement": "benchmark_conflict",
+        "known_ambiguities": [
+          "Review-started sessions are semantically mixed; later work includes non-review turns.",
+          "Gross file-overlap is materially inflated by bootstrap/reference surfaces relative to task-only overlap.",
+          "Accepted-review and prevented-bad-change value is under-observed in the retained evidence."
+        ]
+      },
+      "audit_signals": [
+        "threshold_heavy_interpretation",
+        "meta_recommendation_to_improve_the_system",
+        "outputs_still_require_human_or_llm_interpretation_before_action",
+        "llm_capability_available_but_not_used_for_root_cause_reasoning"
+      ],
+      "why_misalallocated": "The remaining question is ambiguous causal diagnosis with value-risk tradeoffs, which is better handled by an LLM using a grounded evidence brief than by adding more threshold logic.",
+      "thinner_boundary": "Keep deterministic evidence collection, provenance checks, and packaging; move root-cause analysis and reduction-strategy generation into an agentic brief.",
+      "fleet_role_hint": {
+        "auditor": "detect spend hotspots and over-determined semantic layers",
+        "advisor": "decide whether to dispatch an agentic brief, protect, or defer for missing evidence",
+        "optimizer": "thin deterministic scaffolding rather than adding more semantic heuristics"
+      }
+    }
+  ],
+  "workflow_metrics": [
+    {
+      "workflow_family": "review",
+      "classification": "suspect",
+      "recommendation": "optimize context",
+      "decision_readiness": "partially_calibrated",
+      "summary": {
+        "session_count": 71,
+        "live_tokens": 355055195,
+        "cached_tokens": 337673945,
+        "context_load_tokens": 692729140
+      },
+      "measurement_validity": {
+        "gate_pass": false,
+        "failed_reasons": [
+          "labeled_sample_size"
+        ],
+        "instrumentation_gap_reasons": [],
+        "linkage_coverage_pct": 100.0,
+        "unlinked_pct": 0.0,
+        "unowned_pct": 0.0,
+        "labeled_session_count": 3,
+        "benchmark_reliability_pct": 100.0,
+        "benchmark_reliability_status": "pass"
+      },
+      "recommendation_basis": {
+        "rule": "hotspot_policy.optimize_context_rule",
+        "trigger": {
+          "avg_context_efficiency_ratio": 1.95,
+          "avg_cached_share": 0.487
+        }
+      },
+      "benchmark_coverage": {
+        "sample_rows": 14,
+        "labeled_sample_rows": 3,
+        "adjudicated_sample_rows": 3,
+        "labeled_workflow_sessions": 3,
+        "benchmark_reliability_status": "pass"
+      },
+      "actionability_metrics": {
+        "accepted_review_finding_count": 0,
+        "tokens_per_accepted_review_finding": null,
+        "material_output_count": 26,
+        "tokens_per_material_output": 13655969.04
+      },
+      "operational_surfaces": {
+        "prompt_families": [
+          {
+            "prompt_family": "native_code_review",
+            "session_count": 9,
+            "live_tokens": 342287789
+          },
+          {
+            "prompt_family": "local_code_review",
+            "session_count": 62,
+            "live_tokens": 12767406
+          }
+        ],
+        "models": [
+          {
+            "model": "gpt-5.4",
+            "session_count": 70,
+            "live_tokens": 354010325
+          },
+          {
+            "model": "claude-sonnet-4.5",
+            "session_count": 1,
+            "live_tokens": 1044870
+          }
+        ],
+        "sources": [
+          {
+            "source": "codex",
+            "session_count": 9,
+            "live_tokens": 342287789
+          },
+          {
+            "source": "copilot-cli",
+            "session_count": 62,
+            "live_tokens": 12767406
+          }
+        ],
+        "components": [
+          {
+            "component": "build-meta-analysis",
+            "session_count": 71,
+            "live_tokens": 355055195
+          }
+        ]
+      },
+      "top_sessions": [
+        {
+          "session_uid": "live:codex:019cf418-9c49-7da0-8e9f-1f41d0f408f0:gpt-5.4",
+          "session_id": "019cf418-9c49-7da0-8e9f-1f41d0f408f0",
+          "source": "codex",
+          "model": "gpt-5.4",
+          "component": "build-meta-analysis",
+          "prompt_family": "native_code_review",
+          "live_tokens": 108743299
+        },
+        {
+          "session_uid": "live:codex:019cfd48-9a2c-7df2-93be-4f1db83dca7f:gpt-5.4",
+          "session_id": "019cfd48-9a2c-7df2-93be-4f1db83dca7f",
+          "source": "codex",
+          "model": "gpt-5.4",
+          "component": "build-meta-analysis",
+          "prompt_family": "native_code_review",
+          "live_tokens": 48765682
+        },
+        {
+          "session_uid": "live:codex:019cf290-eaa5-7711-b7d1-eb01f3336576:gpt-5.4",
+          "session_id": "019cf290-eaa5-7711-b7d1-eb01f3336576",
+          "source": "codex",
+          "model": "gpt-5.4",
+          "component": "build-meta-analysis",
+          "prompt_family": "native_code_review",
+          "live_tokens": 41425848
+        },
+        {
+          "session_uid": "live:codex:019cfba4-cc95-7e32-bb96-255cab8944d1:gpt-5.4",
+          "session_id": "019cfba4-cc95-7e32-bb96-255cab8944d1",
+          "source": "codex",
+          "model": "gpt-5.4",
+          "component": "build-meta-analysis",
+          "prompt_family": "native_code_review",
+          "live_tokens": 39953682
+        },
+        {
+          "session_uid": "live:codex:019cfc35-5d7f-73b2-a755-2488a8a0f026:gpt-5.4",
+          "session_id": "019cfc35-5d7f-73b2-a755-2488a8a0f026",
+          "source": "codex",
+          "model": "gpt-5.4",
+          "component": "build-meta-analysis",
+          "prompt_family": "native_code_review",
+          "live_tokens": 38307631
+        }
+      ]
+    },
+    {
+      "workflow_family": "advisor",
+      "classification": "instrumentation_gap",
+      "recommendation": "improve instrumentation",
+      "decision_readiness": "partially_calibrated",
+      "summary": {
+        "session_count": 10,
+        "live_tokens": 13677120,
+        "cached_tokens": 12895700,
+        "context_load_tokens": 26572820
+      },
+      "measurement_validity": {
+        "gate_pass": false,
+        "failed_reasons": [
+          "linkage_coverage",
+          "unlinked_ratio",
+          "labeled_sample_size"
+        ],
+        "instrumentation_gap_reasons": [
+          "linkage_coverage",
+          "unlinked_ratio"
+        ],
+        "linkage_coverage_pct": 0.0,
+        "unlinked_pct": 100.0,
+        "unowned_pct": 0.0,
+        "labeled_session_count": 0,
+        "benchmark_reliability_pct": 100.0,
+        "benchmark_reliability_status": "pass"
+      },
+      "recommendation_basis": {
+        "rule": "measurement_validity.instrumentation_gap_rule",
+        "trigger": [
+          "linkage_coverage",
+          "unlinked_ratio"
+        ]
+      },
+      "benchmark_coverage": {
+        "sample_rows": 10,
+        "labeled_sample_rows": 0,
+        "adjudicated_sample_rows": 0,
+        "labeled_workflow_sessions": 0,
+        "benchmark_reliability_status": "pass"
+      },
+      "actionability_metrics": {
+        "downstream_action_count": 0,
+        "tokens_per_downstream_action": null,
+        "instrumentation_gap_ratio": 1.0
+      },
+      "operational_surfaces": {
+        "prompt_families": [
+          {
+            "prompt_family": "fleet_advisor_run",
+            "session_count": 9,
+            "live_tokens": 13677120
+          },
+          {
+            "prompt_family": "other",
+            "session_count": 1,
+            "live_tokens": 0
+          }
+        ],
+        "models": [
+          {
+            "model": "claude-opus-4.6",
+            "session_count": 9,
+            "live_tokens": 13677120
+          },
+          {
+            "model": "copilot/gpt-5.4",
+            "session_count": 1,
+            "live_tokens": 0
+          }
+        ],
+        "sources": [
+          {
+            "source": "copilot-cli",
+            "session_count": 9,
+            "live_tokens": 13677120
+          },
+          {
+            "source": "vscode-insiders",
+            "session_count": 1,
+            "live_tokens": 0
+          }
+        ],
+        "components": [
+          {
+            "component": "repo-upgrade-advisor",
+            "session_count": 10,
+            "live_tokens": 13677120
+          }
+        ]
+      },
+      "top_sessions": [
+        {
+          "session_uid": "live:copilot-cli:e7b07515-cfb5-4775-a30e-10ce2f997c03:claude-opus-4.6",
+          "session_id": "e7b07515-cfb5-4775-a30e-10ce2f997c03",
+          "source": "copilot-cli",
+          "model": "claude-opus-4.6",
+          "component": "repo-upgrade-advisor",
+          "prompt_family": "fleet_advisor_run",
+          "live_tokens": 2293994
+        },
+        {
+          "session_uid": "live:copilot-cli:f13ad173-1ee9-4146-84e0-3ded1533837a:claude-opus-4.6",
+          "session_id": "f13ad173-1ee9-4146-84e0-3ded1533837a",
+          "source": "copilot-cli",
+          "model": "claude-opus-4.6",
+          "component": "repo-upgrade-advisor",
+          "prompt_family": "fleet_advisor_run",
+          "live_tokens": 2096595
+        },
+        {
+          "session_uid": "live:copilot-cli:44f34162-282d-4a19-950a-361be4cec0db:claude-opus-4.6",
+          "session_id": "44f34162-282d-4a19-950a-361be4cec0db",
+          "source": "copilot-cli",
+          "model": "claude-opus-4.6",
+          "component": "repo-upgrade-advisor",
+          "prompt_family": "fleet_advisor_run",
+          "live_tokens": 1861745
+        },
+        {
+          "session_uid": "live:copilot-cli:665d71c9-a9fb-40e9-afd1-045bdef6eb7f:claude-opus-4.6",
+          "session_id": "665d71c9-a9fb-40e9-afd1-045bdef6eb7f",
+          "source": "copilot-cli",
+          "model": "claude-opus-4.6",
+          "component": "repo-upgrade-advisor",
+          "prompt_family": "fleet_advisor_run",
+          "live_tokens": 1645174
+        },
+        {
+          "session_uid": "live:copilot-cli:bb00163c-5a6b-44b2-ac13-73814ada2688:claude-opus-4.6",
+          "session_id": "bb00163c-5a6b-44b2-ac13-73814ada2688",
+          "source": "copilot-cli",
+          "model": "claude-opus-4.6",
+          "component": "repo-upgrade-advisor",
+          "prompt_family": "fleet_advisor_run",
+          "live_tokens": 1418094
+        }
+      ]
+    },
+    {
+      "workflow_family": "optimizer",
+      "classification": "optimize",
+      "recommendation": "optimize context",
+      "decision_readiness": "partially_calibrated",
+      "summary": {
+        "session_count": 32,
+        "live_tokens": 16268226,
+        "cached_tokens": 14637046,
+        "context_load_tokens": 30905272
+      },
+      "measurement_validity": {
+        "gate_pass": false,
+        "failed_reasons": [
+          "labeled_sample_size"
+        ],
+        "instrumentation_gap_reasons": [],
+        "linkage_coverage_pct": 100.0,
+        "unlinked_pct": 0.0,
+        "unowned_pct": 0.0,
+        "labeled_session_count": 0,
+        "benchmark_reliability_pct": 100.0,
+        "benchmark_reliability_status": "pass"
+      },
+      "recommendation_basis": {
+        "rule": "hotspot_policy.optimize_context_rule",
+        "trigger": {
+          "avg_context_efficiency_ratio": 1.9,
+          "avg_cached_share": 0.473
+        }
+      },
+      "benchmark_coverage": {
+        "sample_rows": 19,
+        "labeled_sample_rows": 0,
+        "adjudicated_sample_rows": 0,
+        "labeled_workflow_sessions": 0,
+        "benchmark_reliability_status": "pass"
+      },
+      "actionability_metrics": {
+        "applied_change_count": 0,
+        "tokens_per_delta_point": null,
+        "material_output_count": 7,
+        "tokens_per_material_output": 2324032.29
+      },
+      "operational_surfaces": {
+        "prompt_families": [
+          {
+            "prompt_family": "optimizer_extraction",
+            "session_count": 5,
+            "live_tokens": 3268609
+          },
+          {
+            "prompt_family": "optimizer_decomposition",
+            "session_count": 5,
+            "live_tokens": 3055821
+          },
+          {
+            "prompt_family": "optimizer_consolidation",
+            "session_count": 5,
+            "live_tokens": 2942183
+          },
+          {
+            "prompt_family": "fleet_optimizer_run",
+            "session_count": 3,
+            "live_tokens": 2420649
+          },
+          {
+            "prompt_family": "other",
+            "session_count": 9,
+            "live_tokens": 2411144
+          }
+        ],
+        "models": [
+          {
+            "model": "claude-sonnet-4.5",
+            "session_count": 19,
+            "live_tokens": 11353808
+          },
+          {
+            "model": "claude-opus-4.6",
+            "session_count": 11,
+            "live_tokens": 4831793
+          },
+          {
+            "model": "claude-opus-4.5",
+            "session_count": 1,
+            "live_tokens": 82625
+          },
+          {
+            "model": "copilot/gpt-5.4",
+            "session_count": 1,
+            "live_tokens": 0
+          }
+        ],
+        "sources": [
+          {
+            "source": "copilot-cli",
+            "session_count": 31,
+            "live_tokens": 16268226
+          },
+          {
+            "source": "vscode-insiders",
+            "session_count": 1,
+            "live_tokens": 0
+          }
+        ],
+        "components": [
+          {
+            "component": "repo-optimizer",
+            "session_count": 32,
+            "live_tokens": 16268226
+          }
+        ]
+      },
+      "top_sessions": [
+        {
+          "session_uid": "live:copilot-cli:01aaa019-1c03-42d3-8898-81542270562f:claude-opus-4.6",
+          "session_id": "01aaa019-1c03-42d3-8898-81542270562f",
+          "source": "copilot-cli",
+          "model": "claude-opus-4.6",
+          "component": "repo-optimizer",
+          "prompt_family": "fleet_optimizer_run",
+          "live_tokens": 1149820
+        },
+        {
+          "session_uid": "live:copilot-cli:26c2b72e-9f92-4cd3-9be2-854450387aef:claude-sonnet-4.5",
+          "session_id": "26c2b72e-9f92-4cd3-9be2-854450387aef",
+          "source": "copilot-cli",
+          "model": "claude-sonnet-4.5",
+          "component": "repo-optimizer",
+          "prompt_family": "optimizer_decomposition",
+          "live_tokens": 997811
+        },
+        {
+          "session_uid": "live:copilot-cli:a81b3fe7-da8c-4c06-8c04-c090096b7361:claude-sonnet-4.5",
+          "session_id": "a81b3fe7-da8c-4c06-8c04-c090096b7361",
+          "source": "copilot-cli",
+          "model": "claude-sonnet-4.5",
+          "component": "repo-optimizer",
+          "prompt_family": "optimizer_extraction",
+          "live_tokens": 908694
+        },
+        {
+          "session_uid": "live:copilot-cli:60c5f243-6f21-4364-b576-89e238202fdf:claude-sonnet-4.5",
+          "session_id": "60c5f243-6f21-4364-b576-89e238202fdf",
+          "source": "copilot-cli",
+          "model": "claude-sonnet-4.5",
+          "component": "repo-optimizer",
+          "prompt_family": "optimizer_consolidation",
+          "live_tokens": 798280
+        },
+        {
+          "session_uid": "live:copilot-cli:6d73a0d3-f9c6-4d09-8d08-62dbb133d591:claude-sonnet-4.5",
+          "session_id": "6d73a0d3-f9c6-4d09-8d08-62dbb133d591",
+          "source": "copilot-cli",
+          "model": "claude-sonnet-4.5",
+          "component": "repo-optimizer",
+          "prompt_family": "optimizer_extraction",
+          "live_tokens": 743476
+        }
+      ]
+    },
+    {
+      "workflow_family": "critique",
+      "classification": "instrumentation_gap",
+      "recommendation": "improve instrumentation",
+      "decision_readiness": "partially_calibrated",
+      "summary": {
+        "session_count": 146,
+        "live_tokens": 131968775,
+        "cached_tokens": 124665396,
+        "context_load_tokens": 256634171
+      },
+      "measurement_validity": {
+        "gate_pass": false,
+        "failed_reasons": [
+          "linkage_coverage",
+          "unlinked_ratio",
+          "unowned_ratio",
+          "labeled_sample_size"
+        ],
+        "instrumentation_gap_reasons": [
+          "linkage_coverage",
+          "unlinked_ratio",
+          "unowned_ratio"
+        ],
+        "linkage_coverage_pct": 36.3,
+        "unlinked_pct": 63.7,
+        "unowned_pct": 63.7,
+        "labeled_session_count": 0,
+        "benchmark_reliability_pct": 100.0,
+        "benchmark_reliability_status": "pass"
+      },
+      "recommendation_basis": {
+        "rule": "measurement_validity.instrumentation_gap_rule",
+        "trigger": [
+          "linkage_coverage",
+          "unlinked_ratio",
+          "unowned_ratio"
+        ]
+      },
+      "benchmark_coverage": {
+        "sample_rows": 46,
+        "labeled_sample_rows": 0,
+        "adjudicated_sample_rows": 0,
+        "labeled_workflow_sessions": 0,
+        "benchmark_reliability_status": "pass"
+      },
+      "actionability_metrics": {
+        "distinct_finding_count": 153,
+        "incremental_panel_yield": 1.44,
+        "accepted_critique_finding_count": 0
+      },
+      "operational_surfaces": {
+        "prompt_families": [
+          {
+            "prompt_family": "external_critique",
+            "session_count": 146,
+            "live_tokens": 131968775
+          }
+        ],
+        "models": [
+          {
+            "model": "gpt-5.4",
+            "session_count": 70,
+            "live_tokens": 128662729
+          },
+          {
+            "model": "gemini-3-pro-preview",
+            "session_count": 36,
+            "live_tokens": 1830495
+          },
+          {
+            "model": "gpt-5.3-codex",
+            "session_count": 36,
+            "live_tokens": 1336707
+          },
+          {
+            "model": "claude-sonnet-4.5",
+            "session_count": 2,
+            "live_tokens": 80960
+          },
+          {
+            "model": "claude-haiku-4.5",
+            "session_count": 1,
+            "live_tokens": 57884
+          }
+        ],
+        "sources": [
+          {
+            "source": "codex",
+            "session_count": 2,
+            "live_tokens": 126258294
+          },
+          {
+            "source": "copilot-cli",
+            "session_count": 144,
+            "live_tokens": 5710481
+          }
+        ],
+        "components": [
+          {
+            "component": "build-meta-analysis",
+            "session_count": 53,
+            "live_tokens": 128293548
+          },
+          {
+            "component": "unowned_critique",
+            "session_count": 93,
+            "live_tokens": 3675227
+          }
+        ]
+      },
+      "top_sessions": [
+        {
+          "session_uid": "live:codex:019cf4b7-bb18-71c2-a741-54cce77810d8:gpt-5.4",
+          "session_id": "019cf4b7-bb18-71c2-a741-54cce77810d8",
+          "source": "codex",
+          "model": "gpt-5.4",
+          "component": "build-meta-analysis",
+          "prompt_family": "external_critique",
+          "live_tokens": 72593792
+        },
+        {
+          "session_uid": "live:codex:019cfd1d-7e20-74f1-9dcf-ed27c676b2a7:gpt-5.4",
+          "session_id": "019cfd1d-7e20-74f1-9dcf-ed27c676b2a7",
+          "source": "codex",
+          "model": "gpt-5.4",
+          "component": "build-meta-analysis",
+          "prompt_family": "external_critique",
+          "live_tokens": 53664502
+        },
+        {
+          "session_uid": "live:copilot-cli:f1d8c290-73cc-4e81-b242-5521558d7f4d:gemini-3-pro-preview",
+          "session_id": "f1d8c290-73cc-4e81-b242-5521558d7f4d",
+          "source": "copilot-cli",
+          "model": "gemini-3-pro-preview",
+          "component": "build-meta-analysis",
+          "prompt_family": "external_critique",
+          "live_tokens": 263791
+        },
+        {
+          "session_uid": "live:copilot-cli:c59ab85a-64ab-4971-9303-db14065abf1f:gpt-5.4",
+          "session_id": "c59ab85a-64ab-4971-9303-db14065abf1f",
+          "source": "copilot-cli",
+          "model": "gpt-5.4",
+          "component": "unowned_critique",
+          "prompt_family": "external_critique",
+          "live_tokens": 215437
+        },
+        {
+          "session_uid": "live:copilot-cli:aba76d0f-d03c-4ca2-8963-a44e45e1ec01:gpt-5.4",
+          "session_id": "aba76d0f-d03c-4ca2-8963-a44e45e1ec01",
+          "source": "copilot-cli",
+          "model": "gpt-5.4",
+          "component": "unowned_critique",
+          "prompt_family": "external_critique",
+          "live_tokens": 170320
+        }
+      ]
+    }
+  ]
+}

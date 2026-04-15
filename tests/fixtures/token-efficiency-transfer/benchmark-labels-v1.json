@@ -1,0 +1,328 @@
+{
+  "labels": {
+    "019ce337-d196-7391-a45e-9ea83f371217": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": true,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019ce03a-28c6-7092-9403-716fb1d579a2": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": true,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019ceebb-e1e5-7e70-8dab-353278b7162b": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": true,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019cedd5-8bfc-7343-af2a-9a2066ff6aef": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": true,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019cf290-eaa5-7711-b7d1-eb01f3336576": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": true,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019ced6f-961c-7780-a7ea-f02276257d15": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": true,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019cf3d4-e680-7f70-bf39-32af4ce6a064": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "continuity",
+        "duplicative": false,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "continuity",
+          "duplicative": false,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "continuity",
+          "duplicative": false,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019cee55-0a6b-7de2-bb35-4211314dada2": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": true,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019ceda6-7ea3-7892-b6ae-c42d0f8fa8dd": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": true,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019cee2b-3e4c-7522-879e-a8ee6e4be670": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": true,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": true,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "019cf418-9c49-7da0-8e9f-1f41d0f408f0": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "continuity",
+        "duplicative": false,
+        "cheaper_possible": true,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "continuity",
+          "duplicative": false,
+          "cheaper_possible": true,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "continuity",
+          "duplicative": false,
+          "cheaper_possible": true,
+          "durable": true
+        }
+      ]
+    },
+    "6e181f15-84e4-4c0a-9749-6ccd79245f43": {
+      "operator": {
+        "created_real_change": true,
+        "value_mode": "preventive",
+        "duplicative": false,
+        "cheaper_possible": false,
+        "durable": true
+      },
+      "judges": [
+        {
+          "judge": "c1",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": false,
+          "cheaper_possible": false,
+          "durable": true
+        },
+        {
+          "judge": "c2",
+          "created_real_change": true,
+          "value_mode": "preventive",
+          "duplicative": false,
+          "cheaper_possible": false,
+          "durable": true
+        }
+      ]
+    }
+  }
+}

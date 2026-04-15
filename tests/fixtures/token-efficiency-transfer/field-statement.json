@@ -1,0 +1,180 @@
+{
+  "statement_version": "1.0.0",
+  "source_fixture_files": [
+    "tests/fixtures/token-efficiency-transfer/benchmark-labels-v1.json",
+    "tests/fixtures/token-efficiency-transfer/token-allocation-report-summary-baseline-2026-03-17.json",
+    "tests/fixtures/token-efficiency-transfer/token-allocation-report-summary-production-2026-03-17.json"
+  ],
+  "owner_surface_generated_files": [
+    "SCORECARD.json",
+    "SCORECARD_RECEIPTS.json",
+    "CONTEXT_SCORE_MANIFEST.json",
+    "OPERATION_EVAL.json"
+  ],
+  "comparison_procedure": [
+    "Verify the retained B15-2 fixture trio exists unchanged on the owner surface.",
+    "Run current repo-auditor once in standard mode on a clean minimal git fixture repo to generate the native owner outputs.",
+    "Check whether the kept token-efficiency fields exist explicitly in those generated outputs without adding a new adapter, shared-core contract, or second-repo dependency.",
+    "If the kept fields are absent or only approximable through reinterpretation of repo-auditor maturity outputs, fail closed and classify the blocker."
+  ],
+  "kept_fields": [
+    {
+      "field": "decision_readiness",
+      "source_paths": [
+        "report_metadata.decision_readiness",
+        "topline_metrics.decision_readiness"
+      ],
+      "owner_surface_files": [],
+      "owner_surface_paths": [],
+      "closest_owner_surface_files": [
+        "SCORECARD.json",
+        "SCORECARD_RECEIPTS.json"
+      ],
+      "closest_owner_surface_paths": [
+        "dimensions.D4_measurement",
+        "dimensions.D4_measurement.fields"
+      ],
+      "status": "not_representable",
+      "reason": "Current repo-auditor surfaces score repository measurement maturity in aggregate; they do not expose a token-allocation readiness gate or hotspot-level decision-readiness status."
+    },
+    {
+      "field": "proxy_rows",
+      "source_paths": [
+        "topline_metrics.proxy_rows"
+      ],
+      "owner_surface_files": [],
+      "owner_surface_paths": [],
+      "closest_owner_surface_files": [
+        "SCORECARD_RECEIPTS.json"
+      ],
+      "closest_owner_surface_paths": [
+        "count_reconciliation.*"
+      ],
+      "status": "not_representable",
+      "reason": "Current repo-auditor receipts expose file-count reconciliation, not token-allocation proxy-row counts."
+    },
+    {
+      "field": "proxy_share_pct",
+      "source_paths": [
+        "topline_metrics.proxy_share_pct"
+      ],
+      "owner_surface_files": [],
+      "owner_surface_paths": [],
+      "closest_owner_surface_files": [
+        "SCORECARD_RECEIPTS.json"
+      ],
+      "closest_owner_surface_paths": [
+        "count_reconciliation.*"
+      ],
+      "status": "not_representable",
+      "reason": "Repo-auditor has no native output for share-of-total rows backed only by proxy accounting."
+    },
+    {
+      "field": "unlinked_rows",
+      "source_paths": [
+        "topline_metrics.unlinked_rows"
+      ],
+      "owner_surface_files": [],
+      "owner_surface_paths": [],
+      "closest_owner_surface_files": [
+        "CONTEXT_SCORE_MANIFEST.json",
+        "SCORECARD.json"
+      ],
+      "closest_owner_surface_paths": [
+        "portable_authority.risks",
+        "tier1_checks.failures",
+        "tier2_warnings.warnings"
+      ],
+      "status": "not_representable",
+      "reason": "Current repo-auditor surfaces can report generic audit risks and warnings, but not unlinked token-allocation row counts."
+    },
+    {
+      "field": "unlinked_share_pct",
+      "source_paths": [
+        "topline_metrics.unlinked_share_pct"
+      ],
+      "owner_surface_files": [],
+      "owner_surface_paths": [],
+      "closest_owner_surface_files": [
+        "CONTEXT_SCORE_MANIFEST.json",
+        "SCORECARD.json"
+      ],
+      "closest_owner_surface_paths": [
+        "portable_authority.risks",
+        "tier1_checks.failures",
+        "tier2_warnings.warnings"
+      ],
+      "status": "not_representable",
+      "reason": "Current repo-auditor surfaces do not quantify unlinked share percentages for token-allocation evidence."
+    },
+    {
+      "field": "classification_confidence",
+      "source_paths": [
+        "report_metadata.confidence_surfaces.classification_confidence",
+        "hotspots[].classification_confidence",
+        "hotspots[].classification_confidence_score"
+      ],
+      "owner_surface_files": [],
+      "owner_surface_paths": [],
+      "closest_owner_surface_files": [
+        "SCORECARD.json"
+      ],
+      "closest_owner_surface_paths": [
+        "dimensions.*.score",
+        "meta.maturity_score"
+      ],
+      "status": "not_representable",
+      "reason": "Repo-auditor produces aggregate maturity scores, not hotspot-level classification confidence that stays separate from actionability."
+    },
+    {
+      "field": "actionability_status",
+      "source_paths": [
+        "report_metadata.confidence_surfaces.actionability_status",
+        "hotspots[].actionability_status",
+        "hotspots[].actionability_summary"
+      ],
+      "owner_surface_files": [],
+      "owner_surface_paths": [],
+      "closest_owner_surface_files": [
+        "SCORECARD.json",
+        "OPERATION_EVAL.json"
+      ],
+      "closest_owner_surface_paths": [
+        "tier1_checks.failures",
+        "tier2_warnings.warnings",
+        "verdict"
+      ],
+      "status": "not_representable",
+      "reason": "Repo-auditor emits audit pass/fail and warning signals, not hotspot-level actionability status or promotion gates."
+    }
+  ],
+  "signal_groups": [
+    {
+      "group": "instrumentation_gap_and_validity_signals",
+      "owner_surface_files": [
+        "CONTEXT_SCORE_MANIFEST.json",
+        "SCORECARD_RECEIPTS.json",
+        "SCORECARD.json",
+        "OPERATION_EVAL.json"
+      ],
+      "owner_surface_paths": [
+        "portable_authority.ready",
+        "portable_authority.risks",
+        "count_reconciliation.status",
+        "receipt_integrity.status",
+        "tier1_checks.failures",
+        "tier2_warnings.warnings",
+        "issues",
+        "verdict"
+      ],
+      "status": "partial_non_equivalent",
+      "reason": "Current repo-auditor surfaces do expose coarse audit validity and instrumentation-style warnings, but those signals are repo-audit control checks rather than token-efficiency hotspot instrumentation gaps."
+    }
+  ],
+  "expected_blocker_class": "semantic_incompatibility",
+  "non_claims": [
+    "This statement does not authorize a shared-core change.",
+    "This statement does not claim downstream transfer already works.",
+    "This statement does not select a second owner repo."
+  ]
+}
