@@ -8,6 +8,9 @@ Standalone **repo health auditor** — produces machine-readable scorecards (SCO
 # Audit a target repository
 make audit TARGET=~/repos/some-target-repo
 
+# Replay the additive token-efficiency pilot
+make token-efficiency-measure
+
 # Review staged changes
 make review
 ```
@@ -18,6 +21,7 @@ make review
 2. **Dispatches 6 domain subagents** — governance, surfaces, skills, measurement, improvement, theater
 3. **Synthesizes** findings into SCORECARD.json (5 dimensions, 0-100 composite)
 4. **Produces** AUDIT_REPORT.md (human-readable) + per-domain findings
+5. **Optionally replays** a frozen token-efficiency corpus into additive pilot artifacts
 
 ## Outputs
 
@@ -27,6 +31,10 @@ make review
 | `AUDIT_REPORT.md` | Human-readable | Developer |
 | `DS-34-plus-results.json` | Machine-readable | Signature-level diagnostics |
 | `*_findings.json` | Per-domain details | Internal |
+| `TOKEN_MEASUREMENT_SUMMARY.json` | Machine-readable | additive measurement-mode pilot |
+| `HOTSPOT_EVIDENCE_PACKETS.json` | Machine-readable | additive measurement-mode pilot |
+| `AGENTIC_ROOT_CAUSE_BRIEFS.json` | Machine-readable | bounded advisor handoff pilot |
+| `WORKFLOW_INVESTIGATIONS.json` | Machine-readable | additive measurement-mode pilot support |
 
 ## Invocation Modes
 

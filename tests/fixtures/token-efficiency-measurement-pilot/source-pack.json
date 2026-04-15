@@ -1,0 +1,33 @@
+{
+  "source_pack_version": "1.0.0",
+  "fixture_name": "token-efficiency-measurement-pilot",
+  "generated_at": "2026-04-15T15:40:00Z",
+  "sources": {
+    "benchmark_labels": "../token-efficiency-transfer/benchmark-labels-v1.json",
+    "summary_production": "../token-efficiency-transfer/token-allocation-report-summary-production-2026-03-17.json",
+    "hotspot_evidence_packets": "hotspot-evidence-packets.json",
+    "agentic_root_cause_briefs": "agentic-root-cause-briefs.json",
+    "workflow_investigations": "workflow-investigations.json"
+  },
+  "required_topline_fields": [
+    "decision_readiness",
+    "proxy_rows",
+    "proxy_share_pct",
+    "unlinked_rows",
+    "unlinked_share_pct"
+  ],
+  "required_hotspot_fields": [
+    "classification_confidence",
+    "actionability_status"
+  ],
+  "replay_hotspots": [
+    "prompt_family:native_code_review",
+    "prompt_family:external_critique",
+    "prompt_family:other"
+  ],
+  "strict_attribution_checks": {
+    "require_benchmark_labels": true,
+    "require_session_join_confidence": true,
+    "require_workflow_measurement_validity": true
+  }
+}

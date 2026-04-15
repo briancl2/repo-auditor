@@ -8,6 +8,18 @@
 | OUTPUT_DIR | Yes | Path to output directory (will be created; absolute recommended) |
 | MODE | No | `standard` (default) or `deep` |
 
+## Additive Pilot
+
+The repo also exposes an additive token-efficiency replay path:
+
+```bash
+make token-efficiency-measure SOURCE_PACK=<path> OUTPUT_DIR=<dir>
+```
+
+This pilot does not modify `SCORECARD.json` semantics. It replays a retained
+token-efficiency source pack into additive artifacts and fails closed when
+labels, hotspot fields, or exact attribution receipts are missing.
+
 ## Outputs (all written to OUTPUT_DIR/)
 
 | Artifact | Format | Description |
@@ -19,6 +31,10 @@
 | stall-risk.txt | Plain text | 6-signal stall risk assessment |
 | dna.txt | Plain text | 10-feature repo DNA fingerprint |
 | drift.txt | Plain text | Capability drift analysis |
+| TOKEN_MEASUREMENT_SUMMARY.json | JSON | Additive token-efficiency replay summary |
+| HOTSPOT_EVIDENCE_PACKETS.json | JSON | Additive hotspot evidence packets |
+| AGENTIC_ROOT_CAUSE_BRIEFS.json | JSON | Additive bounded advisory handoff briefs |
+| WORKFLOW_INVESTIGATIONS.json | JSON | Additive workflow evidence support |
 
 ## Error Codes
 

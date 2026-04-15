@@ -1,0 +1,127 @@
+{
+  "generated_at": "2026-04-07T20:51:10Z",
+  "decision_readiness": "provisional",
+  "analysis_scope": {
+    "included_rows": 2381,
+    "excluded_rows": 40,
+    "excluded_reasons": {
+      "migration": 40
+    },
+    "migration_included": false
+  },
+  "label_reliability": {
+    "labeled_sessions": 0,
+    "adjudicated_sessions": 0,
+    "simple_agreement_pct": null,
+    "reliability_status": "not_yet_tracked",
+    "coverage_by_workflow": {}
+  },
+  "workflows": [
+    {
+      "workflow_family": "review",
+      "classification": "optimize",
+      "recommendation": "optimize context",
+      "decision_readiness": "provisional",
+      "summary": {
+        "session_count": 776,
+        "live_tokens": 695408544,
+        "cached_tokens": 634669593,
+        "context_load_tokens": 1330078137
+      },
+      "measurement_validity": {
+        "gate_pass": false,
+        "failed_reasons": [
+          "labeled_sample_size",
+          "benchmark_reliability"
+        ],
+        "instrumentation_gap_reasons": [],
+        "linkage_coverage_pct": 100.0,
+        "unlinked_pct": 0.0,
+        "unowned_pct": 0.0,
+        "labeled_session_count": 0,
+        "benchmark_reliability_pct": null,
+        "benchmark_reliability_status": "not_yet_tracked"
+      },
+      "recommendation_basis": {
+        "rule": "hotspot_policy.optimize_context_rule"
+      },
+      "benchmark_coverage": {
+        "sample_rows": 9,
+        "labeled_sample_rows": 0,
+        "adjudicated_sample_rows": 0
+      },
+      "actionability_metrics": {
+        "accepted_review_finding_count": 22,
+        "material_output_count": 115
+      },
+      "operational_surfaces": {
+        "prompt_families": [
+          {
+            "prompt_family": "native_code_review",
+            "session_count": 16,
+            "live_tokens": 565967985
+          }
+        ]
+      },
+      "top_sessions": [
+        {
+          "session_id": "019d274b-9369-7310-b9a1-2a4a8d12ad2a",
+          "join_confidence": "direct"
+        }
+      ]
+    },
+    {
+      "workflow_family": "critique",
+      "classification": "optimize",
+      "recommendation": "reduce fan-out",
+      "decision_readiness": "provisional",
+      "summary": {
+        "session_count": 125,
+        "live_tokens": 472795783,
+        "cached_tokens": 301200112,
+        "context_load_tokens": 773995895
+      },
+      "measurement_validity": {
+        "gate_pass": false,
+        "failed_reasons": [
+          "labeled_sample_size",
+          "benchmark_reliability"
+        ],
+        "instrumentation_gap_reasons": [],
+        "linkage_coverage_pct": 100.0,
+        "unlinked_pct": 0.0,
+        "unowned_pct": 0.0,
+        "labeled_session_count": 0,
+        "benchmark_reliability_pct": null,
+        "benchmark_reliability_status": "not_yet_tracked"
+      },
+      "recommendation_basis": {
+        "rule": "hotspot_policy.reduce_fanout_rule"
+      },
+      "benchmark_coverage": {
+        "sample_rows": 4,
+        "labeled_sample_rows": 0,
+        "adjudicated_sample_rows": 0
+      },
+      "actionability_metrics": {
+        "accepted_review_finding_count": 0,
+        "material_output_count": 37
+      },
+      "operational_surfaces": {
+        "prompt_families": [
+          {
+            "prompt_family": "external_critique",
+            "session_count": 125,
+            "live_tokens": 472795783
+          }
+        ]
+      },
+      "top_sessions": [
+        {
+          "session_id": "019d274b-9369-7310-b9a1-2a4a8d12ad2b",
+          "join_confidence": "direct"
+        }
+      ]
+    }
+  ]
+}

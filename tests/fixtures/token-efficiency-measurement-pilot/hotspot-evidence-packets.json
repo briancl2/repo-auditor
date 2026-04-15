@@ -1,0 +1,226 @@
+{
+  "generated_at": "2026-04-07T20:51:10Z",
+  "intended_audience": "repo-auditor measurement pilot",
+  "packets": [
+    {
+      "hotspot_id": "prompt_family:native_code_review",
+      "intended_audience": "repo-auditor measurement pilot",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "native_code_review"
+      },
+      "spend": {
+        "live_tokens": 565967985,
+        "share_pct": 9.29,
+        "session_count": 16
+      },
+      "current_state": {
+        "classification": "optimize",
+        "classification_recommendation": "optimize context",
+        "user_facing_outcome": "agentic_root_cause_analysis_required",
+        "internal_measurement_status": "overlap_signal_present",
+        "next_step": "Dispatch an LLM with the grounded hotspot brief before proposing remediation."
+      },
+      "benchmark_context": {
+        "decision_readiness": "provisional",
+        "benchmark_reliability": "not_yet_tracked"
+      },
+      "linkage_state": {
+        "gate_pass": false,
+        "failed_reasons": [
+          "labeled_sample_size",
+          "benchmark_reliability"
+        ],
+        "instrumentation_gap_reasons": [],
+        "linkage_coverage_pct": 100.0,
+        "unlinked_pct": 0.0,
+        "unowned_pct": 0.0,
+        "labeled_session_count": 0,
+        "benchmark_reliability_pct": null,
+        "benchmark_reliability_status": "not_yet_tracked"
+      },
+      "known_ambiguities": [
+        "Review-started sessions are semantically mixed; later work includes non-review turns.",
+        "Gross file-overlap is materially inflated by bootstrap/reference surfaces relative to task-only overlap."
+      ],
+      "retained_evidence": {
+        "artifact_refs": [
+          "allocation-hotspots.json",
+          "token-allocation-report-summary-production-2026-03-17.json"
+        ],
+        "session_refs": [
+          {
+            "session_uid": "live:codex:019d274b-9369-7310-b9a1-2a4a8d12ad2a:gpt-5.4",
+            "session_id": "019d274b-9369-7310-b9a1-2a4a8d12ad2a",
+            "live_tokens": 77205933,
+            "session_path": "/tmp/sessions/native-review.jsonl",
+            "join_confidence": "direct"
+          }
+        ],
+        "linked_work_dirs": [
+          {
+            "work_id": "20260325T224532Z",
+            "work_dir": "/tmp/work/20260325T224532Z",
+            "score": 95
+          }
+        ],
+        "evidence_receipts": {
+          "linked_session_count": 134,
+          "canonical_ownership_session_count": 171,
+          "review_receipt_count": 125,
+          "accepted_review_finding_receipt_count": 8,
+          "adoption_receipt_count": 8,
+          "downstream_action_receipt_count": 106,
+          "exact_turn_token_sessions": 51
+        }
+      },
+      "agentic_analysis_ready": true
+    },
+    {
+      "hotspot_id": "prompt_family:external_critique",
+      "intended_audience": "repo-auditor measurement pilot",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "external_critique"
+      },
+      "spend": {
+        "live_tokens": 472795783,
+        "share_pct": 7.76,
+        "session_count": 125
+      },
+      "current_state": {
+        "classification": "optimize",
+        "classification_recommendation": "reduce fan-out",
+        "user_facing_outcome": "agentic_root_cause_analysis_required",
+        "internal_measurement_status": "needs_deep_dive_supplement",
+        "next_step": "Dispatch an LLM with the grounded hotspot brief before proposing remediation."
+      },
+      "benchmark_context": {
+        "decision_readiness": "provisional",
+        "benchmark_reliability": "not_yet_tracked"
+      },
+      "linkage_state": {
+        "gate_pass": false,
+        "failed_reasons": [
+          "labeled_sample_size",
+          "benchmark_reliability"
+        ],
+        "instrumentation_gap_reasons": [],
+        "linkage_coverage_pct": 100.0,
+        "unlinked_pct": 0.0,
+        "unowned_pct": 0.0,
+        "labeled_session_count": 0,
+        "benchmark_reliability_pct": null,
+        "benchmark_reliability_status": "not_yet_tracked"
+      },
+      "known_ambiguities": [
+        "No deterministic evidence supplement has been assembled yet for this hotspot."
+      ],
+      "retained_evidence": {
+        "artifact_refs": [
+          "allocation-hotspots.json",
+          "token-allocation-report-summary-production-2026-03-17.json"
+        ],
+        "session_refs": [
+          {
+            "session_uid": "live:codex:019d274b-9369-7310-b9a1-2a4a8d12ad2b:gpt-5.4",
+            "session_id": "019d274b-9369-7310-b9a1-2a4a8d12ad2b",
+            "live_tokens": 64100218,
+            "session_path": "/tmp/sessions/external-critique.jsonl",
+            "join_confidence": "direct"
+          }
+        ],
+        "linked_work_dirs": [
+          {
+            "work_id": "20260326T010101Z",
+            "work_dir": "/tmp/work/20260326T010101Z",
+            "score": 93
+          }
+        ],
+        "evidence_receipts": {
+          "linked_session_count": 89,
+          "canonical_ownership_session_count": 105,
+          "review_receipt_count": 44,
+          "accepted_review_finding_receipt_count": 0,
+          "adoption_receipt_count": 0,
+          "downstream_action_receipt_count": 37,
+          "exact_turn_token_sessions": 20
+        }
+      },
+      "agentic_analysis_ready": true
+    },
+    {
+      "hotspot_id": "prompt_family:other",
+      "intended_audience": "repo-auditor measurement pilot",
+      "scope": {
+        "dimension": "prompt_family",
+        "key": "other"
+      },
+      "spend": {
+        "live_tokens": 429231885,
+        "share_pct": 7.04,
+        "session_count": 222
+      },
+      "current_state": {
+        "classification": "optimize",
+        "classification_recommendation": "optimize context",
+        "user_facing_outcome": "agentic_root_cause_analysis_required",
+        "internal_measurement_status": "needs_deep_dive_supplement",
+        "next_step": "Dispatch an LLM with the grounded hotspot brief before proposing remediation."
+      },
+      "benchmark_context": {
+        "decision_readiness": "provisional",
+        "benchmark_reliability": "not_yet_tracked"
+      },
+      "linkage_state": {
+        "gate_pass": false,
+        "failed_reasons": [
+          "labeled_sample_size",
+          "benchmark_reliability"
+        ],
+        "instrumentation_gap_reasons": [],
+        "linkage_coverage_pct": 78.36,
+        "unlinked_pct": 21.64,
+        "unowned_pct": 0.0,
+        "labeled_session_count": 0,
+        "benchmark_reliability_pct": null,
+        "benchmark_reliability_status": "not_yet_tracked"
+      },
+      "known_ambiguities": [
+        "No deterministic evidence supplement has been assembled yet for this hotspot."
+      ],
+      "retained_evidence": {
+        "artifact_refs": [
+          "allocation-hotspots.json",
+          "token-allocation-report-summary-production-2026-03-17.json"
+        ],
+        "session_refs": [
+          {
+            "session_uid": "live:codex:019d274b-9369-7310-b9a1-2a4a8d12ad2c:gpt-5.4",
+            "session_id": "019d274b-9369-7310-b9a1-2a4a8d12ad2c",
+            "live_tokens": 53200000,
+            "session_path": "/tmp/sessions/other.jsonl",
+            "join_confidence": "derived"
+          }
+        ],
+        "linked_work_dirs": [
+          {
+            "work_id": "20260326T020202Z",
+            "work_dir": "/tmp/work/20260326T020202Z",
+            "score": 90
+          }
+        ],
+        "evidence_receipts": {
+          "linked_session_count": 134,
+          "canonical_ownership_session_count": 171,
+          "review_receipt_count": 125,
+          "accepted_review_finding_receipt_count": 8,
+          "adoption_receipt_count": 8,
+          "downstream_action_receipt_count": 106,
+          "exact_turn_token_sessions": 51
+        }
+      },
+      "agentic_analysis_ready": true
+    }
+  ]
+}

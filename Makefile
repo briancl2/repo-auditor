@@ -1,7 +1,8 @@
-.PHONY: review audit audit-deep audit-quick test validate help install-hooks check work work-close health
+.PHONY: review audit audit-deep audit-quick token-efficiency-measure test validate help install-hooks check work work-close health
 
 TARGET ?= .
 OUTPUT_DIR ?= audit_output
+SOURCE_PACK ?= tests/fixtures/token-efficiency-measurement-pilot/source-pack.json
 
 help:
 	@echo "repo-auditor — Machine-readable repository health scorer"
@@ -10,6 +11,7 @@ help:
 	@echo "  make audit TARGET=<path>       Standard audit (deterministic)"
 	@echo "  make audit-deep TARGET=<path>  Deep audit with LLM domain agents"
 	@echo "  make audit-quick TARGET=<path> Quick pre-scan only"
+	@echo "  make token-efficiency-measure  Replay frozen token-efficiency corpus"
 	@echo "  make check                     Pre-commit gate (shellcheck + inventory)"
 	@echo "  make test                      Run all tests"
 	@echo "  make validate                  Validate schemas"
@@ -36,6 +38,11 @@ audit-quick:
 	@echo "=== repo-auditor: Quick Pre-Scan ==="
 	@mkdir -p $(OUTPUT_DIR)
 	@bash .agents/skills/pre-scanning/scripts/pre-scan-target.sh "$(TARGET)" "$(OUTPUT_DIR)"
+
+token-efficiency-measure:
+	@echo "=== repo-auditor: Token-Efficiency Measurement Pilot ==="
+	@mkdir -p $(OUTPUT_DIR)
+	@python3 scripts/token-efficiency-measure.py --source-pack "$(SOURCE_PACK)" --output-dir "$(OUTPUT_DIR)"
 
 test:
 	@echo "=== Running auditor test suite ==="

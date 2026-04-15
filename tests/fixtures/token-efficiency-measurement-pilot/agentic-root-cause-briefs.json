@@ -1,0 +1,186 @@
+{
+  "generated_at": "2026-04-07T20:51:10Z",
+  "intended_audience": "repo-upgrade-advisor",
+  "schema_version": "1.0.0",
+  "brief_record_schema": "agentic_root_cause_brief_v1",
+  "consumer_response_schema": "bounded_advisory_decision_v1",
+  "scoring_contract": {
+    "verdict_scope": "bounded_only",
+    "remediation_authority": "not_granted"
+  },
+  "briefs": [
+    {
+      "schema_version": "1.0.0",
+      "hotspot_id": "prompt_family:native_code_review",
+      "brief_type": "root_cause_hypothesis_check",
+      "intended_audience": "repo-upgrade-advisor",
+      "user_facing_outcome": "agentic_root_cause_analysis_required",
+      "intended_question": "Should native code review spend be protected, re-bucketed, or kept as a bounded remediation candidate?",
+      "grounded_evidence_bundle": {
+        "summary_ref": "TOKEN_MEASUREMENT_SUMMARY.json#hotspots[prompt_family:native_code_review]",
+        "packet_ref": "HOTSPOT_EVIDENCE_PACKETS.json#packets[prompt_family:native_code_review]"
+      },
+      "evidence_coverage": {
+        "exact_attribution": "sufficient",
+        "benchmark_labels": "present",
+        "known_gaps": []
+      },
+      "specific_unknowns": [
+        "How much of the review-started traffic is bootstrap/reference-only context load versus task-essential review work?"
+      ],
+      "explicit_asks": [
+        "Return one bounded verdict only.",
+        "Do not invent advisory tier or fix-summary semantics."
+      ],
+      "acceptable_output_format": "bounded verdict with one-sentence rationale",
+      "consumer_response_contract": {
+        "allowed_verdicts": [
+          "protect",
+          "re-bucket",
+          "candidate_remediation",
+          "insufficient_evidence"
+        ],
+        "required_fields": [
+          "verdict",
+          "rationale"
+        ],
+        "forbidden_fields": [
+          "tier",
+          "evidence_refs",
+          "class",
+          "surfaces",
+          "fix_summary"
+        ]
+      },
+      "decision_constraints": [
+        "Remain truthful about unresolved evidence coverage.",
+        "Do not authorize shared-core promotion from this brief alone."
+      ],
+      "decision_threshold_guidance": {
+        "protect": "Use when the spend appears necessary or classification is already fit-for-purpose.",
+        "re-bucket": "Use when the cost looks real but better attributed to another measurement bucket.",
+        "candidate_remediation": "Use only when the brief exposes a bounded owner-side change hypothesis.",
+        "insufficient_evidence": "Use when the brief still depends on missing deterministic support."
+      },
+      "validation_plan": [
+        "Keep the verdict bounded to the brief contract.",
+        "Refuse fields outside the allowed response shape."
+      ],
+      "provisional_status": "provisional",
+      "next_step": "Pass the brief into the bounded advisor consumer."
+    },
+    {
+      "schema_version": "1.0.0",
+      "hotspot_id": "prompt_family:external_critique",
+      "brief_type": "root_cause_hypothesis_check",
+      "intended_audience": "repo-upgrade-advisor",
+      "user_facing_outcome": "agentic_root_cause_analysis_required",
+      "intended_question": "Does the retained critique spend support protection, re-bucketing, or a bounded remediation candidate?",
+      "grounded_evidence_bundle": {
+        "summary_ref": "TOKEN_MEASUREMENT_SUMMARY.json#hotspots[prompt_family:external_critique]",
+        "packet_ref": "HOTSPOT_EVIDENCE_PACKETS.json#packets[prompt_family:external_critique]"
+      },
+      "evidence_coverage": {
+        "exact_attribution": "sufficient",
+        "benchmark_labels": "present",
+        "known_gaps": [
+          "No deterministic supplement has been assembled yet."
+        ]
+      },
+      "specific_unknowns": [
+        "Whether critique fan-out is redundant versus still required for quality safety."
+      ],
+      "explicit_asks": [
+        "Return one bounded verdict only.",
+        "Do not claim remediation readiness unless the evidence bundle supports it."
+      ],
+      "acceptable_output_format": "bounded verdict with one-sentence rationale",
+      "consumer_response_contract": {
+        "allowed_verdicts": [
+          "protect",
+          "re-bucket",
+          "candidate_remediation",
+          "insufficient_evidence"
+        ],
+        "required_fields": [
+          "verdict",
+          "rationale"
+        ],
+        "forbidden_fields": [
+          "tier",
+          "evidence_refs",
+          "class",
+          "surfaces",
+          "fix_summary"
+        ]
+      },
+      "decision_constraints": [
+        "Fail closed if the evidence bundle still leaves the action surface unresolved."
+      ],
+      "decision_threshold_guidance": {
+        "insufficient_evidence": "Preferred when the evidence stays exploratory-only."
+      },
+      "validation_plan": [
+        "Do not convert critique traffic directly into OPPORTUNITIES semantics."
+      ],
+      "provisional_status": "provisional",
+      "next_step": "Keep the verdict bounded to the brief."
+    },
+    {
+      "schema_version": "1.0.0",
+      "hotspot_id": "prompt_family:other",
+      "brief_type": "root_cause_hypothesis_check",
+      "intended_audience": "repo-upgrade-advisor",
+      "user_facing_outcome": "agentic_root_cause_analysis_required",
+      "intended_question": "Is the heterogeneous 'other' bucket a re-bucketing candidate or still too ambiguous?",
+      "grounded_evidence_bundle": {
+        "summary_ref": "TOKEN_MEASUREMENT_SUMMARY.json#hotspots[prompt_family:other]",
+        "packet_ref": "HOTSPOT_EVIDENCE_PACKETS.json#packets[prompt_family:other]"
+      },
+      "evidence_coverage": {
+        "exact_attribution": "sufficient",
+        "benchmark_labels": "present",
+        "known_gaps": [
+          "The bucket is intentionally heterogeneous."
+        ]
+      },
+      "specific_unknowns": [
+        "Whether the mixed bucket can be split without overstating precision."
+      ],
+      "explicit_asks": [
+        "Return one bounded verdict only."
+      ],
+      "acceptable_output_format": "bounded verdict with one-sentence rationale",
+      "consumer_response_contract": {
+        "allowed_verdicts": [
+          "protect",
+          "re-bucket",
+          "candidate_remediation",
+          "insufficient_evidence"
+        ],
+        "required_fields": [
+          "verdict",
+          "rationale"
+        ],
+        "forbidden_fields": [
+          "tier",
+          "evidence_refs",
+          "class",
+          "surfaces",
+          "fix_summary"
+        ]
+      },
+      "decision_constraints": [
+        "Do not overclaim precision for the heterogeneous bucket."
+      ],
+      "decision_threshold_guidance": {
+        "re-bucket": "Use when the evidence supports a more truthful measurement bucket without promising a remediation."
+      },
+      "validation_plan": [
+        "Keep mixed-traffic uncertainty explicit."
+      ],
+      "provisional_status": "provisional",
+      "next_step": "Keep the verdict bounded to the brief."
+    }
+  ]
+}
