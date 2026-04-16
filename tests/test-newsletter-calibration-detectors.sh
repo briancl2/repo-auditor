@@ -10,8 +10,14 @@ WF_HEALTHY="$REPO_ROOT/tests/fixtures/workflow-contract-healthy"
 WF_DRIFT="$REPO_ROOT/tests/fixtures/workflow-contract-drift"
 LLM_HEALTHY="$REPO_ROOT/tests/fixtures/llm-validation-healthy"
 LLM_GAP="$REPO_ROOT/tests/fixtures/llm-validation-gap"
+WF_HEALTHY_SKILL="$WF_HEALTHY/.github/skills/content-curation/SKILL.md"
+WF_DRIFT_SKILL="$WF_DRIFT/.github/skills/content-curation/SKILL.md"
 
 echo "=== Newsletter Calibration Detector Fixtures ==="
+
+test -f "$WF_HEALTHY_SKILL"
+test -f "$WF_DRIFT_SKILL"
+echo "  ✓ DS-45 skill surface fixtures present"
 
 healthy_wf_json=$(bash "$DS45" "$WF_HEALTHY")
 printf '%s' "$healthy_wf_json" | python3 -c '
@@ -31,7 +37,8 @@ data = json.load(sys.stdin)
 assert data["ds_id"] == "DS-45"
 assert data["fired"] is True
 assert data["helper_signal_count"] >= 2
-assert data["missing_surface_signal_count"] >= 2
+assert data["missing_surface_signal_count"] >= 1
+assert "edit_in_place" in data["missing_surface_signals"]
 '
 echo "  ✓ DS-45 drift fixture"
 
