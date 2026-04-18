@@ -50,3 +50,15 @@
 - **Severity:** HIGH
 - **Source:** Stage 16 newsletter calibration review where benchmark/CI coverage validated scoring tools but not the failing LLM workflow lane
 - **Script:** `scripts/detect-llm-validation-gap.sh`
+
+### DS-47: Summary-Source Parity Gap
+- **Detects:** Report or evidence surfaces that use retained summary metrics as behavior evidence for `total events`, `tool calls`, or `tool distribution` without the required same-surface provenance/parser/raw-event parity stack
+- **Signal:** A retained summary is treated as a behavior source by itself
+- **Phase range:** Phase 3+ (requires retained report/evidence surfaces)
+- **Patterns:** markdown files that reference `session-log-summary.md` or retained-summary language together with in-scope field terms, but do not also carry summary-provenance, direct-parser, and raw-event parity references on the same surface
+- **Check:** Scan markdown surfaces. For each in-scope summary-source file, require all three parity layers on the same surface. Fire when any in-scope file is missing one or more parity layers. Track `duration` / error-event-only surfaces as `out_of_scope`.
+- **Fire condition:** `gap_count > 0`
+- **Prevention tier:** T1 (deterministic source-parity audit)
+- **Severity:** HIGH
+- **Source:** BMA `D-004` row-authority landing on 2026-04-18, which bounded the reusable row to same-bundle summary-provenance, direct-parser, and raw-event parity on the three checked fields only
+- **Script:** `scripts/detect-summary-source-parity-gap.sh`

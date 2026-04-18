@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "receipt_version": "1.0.0",
+    "audit_context_id": "standard",
+    "context_manifest": "CONTEXT_SCORE_MANIFEST.json",
+    "compare_oracle_version": "1.0.0",
+    "timestamp": "2026-04-18T15:06:08Z"
+  },
+  "count_reconciliation": {
+    "status": "mismatch",
+    "authoritative_total_files": 812,
+    "pre_scan_total_files": 812,
+    "maturity_total_files": 817,
+    "dna_total_files": 819,
+    "note": "Count surfaces disagree and require reconciliation before this scorecard can act as a portable widening receipt."
+  },
+  "dimensions": {
+    "D3_skill_maturity": {
+      "score": 10,
+      "fields": {
+        "skill_count": {
+          "raw": 4,
+          "points": 1,
+          "bands": ">=20 => 5, >=10 => 4, >=5 => 3, >=1 => 1"
+        },
+        "density": {
+          "raw": 4,
+          "inputs": {
+            "skill_count": 4,
+            "total_files": 819
+          },
+          "points": 1,
+          "bands": ">=50 => 5, >=20 => 4, >=10 => 3, >=1 => 1"
+        },
+        "velocity": {
+          "raw": 1.00,
+          "points": 5,
+          "bands": ">=1.0 => 5, >=0.5 => 3, >=0.1 => 1"
+        },
+        "organicity": {
+          "raw": 0.50,
+          "points": 3,
+          "bands": ">=0.8 => 5, >=0.5 => 3, >=0.1 => 1"
+        }
+      }
+    },
+    "D4_measurement": {
+      "score": 17,
+      "fields": {
+        "scoring_tools": {
+          "raw": 20,
+          "points": 5,
+          "bands": ">=20 => 5, >=10 => 4, >=5 => 3, >=1 => 1"
+        },
+        "scoring_layers": {
+          "raw": 5,
+          "points": 5,
+          "bands": "direct value capped at 5"
+        },
+        "audit_depth": {
+          "raw": 3,
+          "points": 3,
+          "bands": "direct value capped at 5"
+        },
+        "abstraction": {
+          "raw": 4,
+          "points": 4,
+          "bands": "direct value capped at 5"
+        }
+      }
+    },
+    "D5_self_improvement": {
+      "score": 16,
+      "fields": {
+        "stall_risk": {
+          "raw": 12,
+          "points": 7,
+          "formula": "floor((100 - stall_risk) * 8 / 100)"
+        },
+        "trajectory": {
+          "raw": 80,
+          "points": 4,
+          "formula": "floor(trajectory * 6 / 100)"
+        },
+        "plan_infra": {
+          "raw": 2,
+          "points": 3,
+          "formula": "floor(plan_infra * 3 / 2)"
+        },
+        "spec_bonus": {
+          "raw": 2,
+          "inputs": {
+            "spec_md_count": 4
+          },
+          "points": 2,
+          "bands": ">=5 spec.md => 3, >=3 => 2, >=1 => 1"
+        }
+      }
+    }
+  },
+  "receipt_integrity": {
+    "status": "warning",
+    "required_terms_present": [
+      "D3.skill_count",
+      "D3.density",
+      "D3.velocity",
+      "D3.organicity",
+      "D4.scoring_tools",
+      "D4.scoring_layers",
+      "D4.audit_depth",
+      "D4.abstraction",
+      "D5.stall_risk",
+      "D5.trajectory",
+      "D5.plan_infra",
+      "D5.spec_bonus"
+    ],
+    "missing_terms": []
+  }
+}

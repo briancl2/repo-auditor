@@ -40,10 +40,10 @@ maturity phase classification.
 |---|---|---|
 | 1 | reviewing-code-locally | Pre-commit code review via Copilot CLI |
 | 2 | pre-scanning | Deterministic pre-scan — file inventory, AI surfaces |
-| 3 | detection-signatures | Detection signature runner (DS-34 through DS-43) |
+| 3 | detection-signatures | Detection signature runner (DS-34 through DS-47) |
 | 4 | scoring | 5-dimension scoring pipeline + stall risk + maturity |
 
-## Scripts (37)
+## Scripts (38)
 
 ### Core Pipeline
 
@@ -82,6 +82,7 @@ maturity phase classification.
 | `scripts/detect-closeout-control-drift.sh` | DS-44 | Stage 15 closeout-control drift detection |
 | `scripts/detect-workflow-contract-drift.sh` | DS-45 | Helper vs agent/prompt/skill workflow-contract drift |
 | `scripts/detect-llm-validation-gap.sh` | DS-46 | Validation coverage misses live LLM workflow path |
+| `scripts/detect-summary-source-parity-gap.sh` | DS-47 | Summary-source parity gap on `total events` / `tool calls` / `tool distribution` |
 | `scripts/detect-new-signatures.sh` | -- | Unified runner for DS-34+ |
 
 ### Helpers

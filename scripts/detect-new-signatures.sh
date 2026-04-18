@@ -31,6 +31,7 @@ scripts=(
     "detect-closeout-control-drift.sh"
     "detect-workflow-contract-drift.sh"
     "detect-llm-validation-gap.sh"
+    "detect-summary-source-parity-gap.sh"
 )
 
 idx=0

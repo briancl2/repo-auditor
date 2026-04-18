@@ -1,0 +1,20 @@
+================================================================
+Stall Risk Score: repo-auditor
+================================================================
+
+  SCORE: 12 / 100   🟢 LOW
+
+--- Signal Breakdown ---
+
+  S1 Refactor Ratio:        0/25  (ratio=0.00 , 0/10 commits)
+  S2 Add/Delete Ratio:      0/20  (adr=5.56 , +9997/-1798 lines)
+  S3 Skill Velocity:        2/20  (rate=4.00  skills/mo, 4 skills, 1.0 months)
+  S4 Commit Freq Decay:     0/15  (slope=2.0  , weeks: 1→1→0→7)
+  S5 Plan Infrastructure:   8/10  (infra=2/10)
+  S6 Surface Diversity:     2/10  (types=4/5)
+
+--- Thresholds ---
+  0-20  🟢 Low       21-40 🟡 Watch
+  41-60 🟠 Warning   61-80 🔴 High
+  81-100 🚨 Critical
+================================================================
