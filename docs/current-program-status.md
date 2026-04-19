@@ -20,18 +20,20 @@ pre-publication.
 ## Upstream Dependency
 
 `repo-auditor` follows the BMA-owned shared completion ladder. The canonical
-next-step logic, blocker ordering, and repo-family synchronization live in BMA,
-not in this repo.
+next-step logic and repo-family synchronization live in BMA, not in this repo.
+Only the bounded pre-Gate-1 manifest is actually admitted now; the blocker
+ordering behind it stays provisional until BMA records the blocker-order
+decision artifact.
 
 ## Current Blocker
 
 The live blocker is not local repo health. The blocker is the unresolved shared
-publication path:
+publication path, and the only admitted next move is the bounded pre-Gate-1
+manifest that will decide whether critique representativeness remains first or
+the line reroutes elsewhere.
 
-- critique representativeness is still provisional
-- publication has not been admitted
-- the parked BMA-only row-authority candidate `D-004` and its old downstream
-  starter `DS-47` remain not active
+Publication has not been admitted, and the parked BMA-only row-authority
+candidate `D-004` and its old downstream starter `DS-47` remain not active.
 
 ## Next Admitted Move
 
