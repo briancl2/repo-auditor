@@ -21,27 +21,28 @@ pre-publication.
 
 `repo-auditor` follows the BMA-owned shared completion ladder. The canonical
 next-step logic and repo-family synchronization live in BMA, not in this repo.
-Only the bounded pre-Gate-1 manifest is actually admitted now; the blocker
-ordering behind it stays provisional until BMA records the blocker-order
-decision artifact.
+The bounded pre-Gate-1 manifest is the current candidate continuation, not an
+admitted follow-on yet; the blocker ordering behind it stays provisional until
+BMA records the blocker-order decision artifact.
 
 ## Current Blocker
 
 The live blocker is not local repo health. The blocker is the unresolved shared
-publication path, and the only admitted next move is the bounded pre-Gate-1
-manifest that will decide whether critique representativeness remains first or
-the line reroutes elsewhere.
+publication path, and the current candidate continuation is the bounded
+pre-Gate-1 manifest that would decide whether critique representativeness
+remains first or the line reroutes elsewhere.
 
 Publication has not been admitted, and the parked BMA-only row-authority
 candidate `D-004` and its old downstream starter `DS-47` remain not active.
 
-## Next Admitted Move
+## Next Candidate Move
 
 No new detector-family widening is admitted from this pointer batch.
 
-The next admitted move is to support the bounded pre-Gate-1 manifest and any
-later shared publication-path work that BMA explicitly admits. Until then, this
-repo holds its current measurement and signature surfaces steady and avoids new
+The next candidate shared move is to support the bounded pre-Gate-1 manifest,
+pending explicit operator authorization, and then any later shared
+publication-path work that BMA explicitly admits. Until then, this repo holds
+its current measurement and signature surfaces steady and avoids new
 storytelling about publication or row-authority readiness.
 
 ## Validation Expectations
