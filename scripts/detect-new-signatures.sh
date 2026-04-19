@@ -32,6 +32,14 @@ scripts=(
     "detect-workflow-contract-drift.sh"
     "detect-llm-validation-gap.sh"
     "detect-summary-source-parity-gap.sh"
+    "detect-as-instruction-root-drift.sh"
+    "detect-as-docs-vs-observed-host-drift.sh"
+    "detect-as-missing-runtime-heartbeat.sh"
+    "detect-as-validator-live-path-gap.sh"
+    "detect-as-memory-authority-confusion.sh"
+    "detect-as-prompt-only-optimization-surface.sh"
+    "detect-as-unused-platform-surface.sh"
+    "detect-external-critique-health.sh"
 )
 
 idx=0

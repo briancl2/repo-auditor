@@ -22,6 +22,7 @@ make review
 3. **Synthesizes** findings into SCORECARD.json (5 dimensions, 0-100 composite)
 4. **Produces** AUDIT_REPORT.md (human-readable) + per-domain findings
 5. **Optionally replays** a frozen token-efficiency corpus into additive pilot artifacts
+6. **Runs** the DS-34+ bundle plus the AS-* owner-surface health family
 
 ## Outputs
 
@@ -29,7 +30,7 @@ make review
 |---|---|---|
 | `SCORECARD.json` | Machine-readable | repo-upgrade-advisor, repo-optimizer, continuous loop |
 | `AUDIT_REPORT.md` | Human-readable | Developer |
-| `DS-34-plus-results.json` | Machine-readable | Signature-level diagnostics |
+| `DS-34-plus-results.json` | Machine-readable | DS-34+ and AS-* signature-level diagnostics |
 | `*_findings.json` | Per-domain details | Internal |
 | `TOKEN_MEASUREMENT_SUMMARY.json` | Machine-readable | additive measurement-mode pilot |
 | `HOTSPOT_EVIDENCE_PACKETS.json` | Machine-readable | additive measurement-mode pilot |

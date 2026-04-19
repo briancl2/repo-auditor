@@ -24,6 +24,10 @@ def run_ds_suite(script_dir: str, repo_path: str, output_dir: str) -> dict:
         return {"error": str(e), "repo": os.path.basename(repo_path), "fired_count": 0, "results": []}
 
 
+def ds_only_results(report: dict) -> list[dict]:
+    return [r for r in report.get("results", []) if str(r.get("ds_id", "")).startswith("DS-")]
+
+
 def main():
     targets_dir = sys.argv[1]
     output_dir = sys.argv[2] if len(sys.argv) > 2 else "/tmp/ds34-42-backtest"
@@ -72,9 +76,9 @@ def main():
         print(f"\n--- {target} ---")
         report = run_ds_suite(script_dir, target_path, target_out)
         all_results[target] = report
-        fired = report.get("fired_count", 0)
+        fired = sum(1 for r in ds_only_results(report) if r.get("fired"))
         print(f"  Fired: {fired}/9")
-        for r in report.get("results", []):
+        for r in ds_only_results(report):
             status = "FIRE" if r.get("fired") else "    "
             ds_id = r.get("ds_id", "?")
             name = r.get("name", "?")
@@ -98,7 +102,7 @@ def main():
         for target in targets:
             if target not in all_results:
                 continue
-            results = all_results[target].get("results", [])
+            results = ds_only_results(all_results[target])
             fired = False
             for r in results:
                 if r.get("ds_id") == ds_id and r.get("fired"):
@@ -117,7 +121,7 @@ def main():
     for target in targets:
         if target not in all_results:
             continue
-        row += f"{all_results[target].get('fired_count', 0):<6}"
+        row += f"{sum(1 for r in ds_only_results(all_results[target]) if r.get('fired')):<6}"
     print(row)
 
     # === Detection Rate ===
@@ -143,7 +147,7 @@ def main():
         if target not in oos_repos or target not in all_results:
             continue
         report = all_results[target]
-        fires = report.get("fired_count", 0)
+        fires = sum(1 for r in ds_only_results(report) if r.get("fired"))
         oos_fires_total += fires
         oos_total_ds += 9
         print(f"  {target}: {fires}/9 fired")
@@ -167,7 +171,7 @@ def main():
         "ds_fire_matrix": ds_fire_totals,
         "ds_with_fires": ds_with_fires,
         "new_detection_rate_pct": ds_with_fires * 100 // total_ds,
-        "per_target_fires": {t: r.get("fired_count", 0) for t, r in all_results.items()},
+        "per_target_fires": {t: sum(1 for r in ds_only_results(report) if r.get("fired")) for t, report in all_results.items()},
     }
 
     summary_path = os.path.join(output_dir, "backtest-summary.json")

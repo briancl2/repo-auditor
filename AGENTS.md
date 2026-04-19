@@ -40,10 +40,10 @@ maturity phase classification.
 |---|---|---|
 | 1 | reviewing-code-locally | Pre-commit code review via Copilot CLI |
 | 2 | pre-scanning | Deterministic pre-scan — file inventory, AI surfaces |
-| 3 | detection-signatures | Detection signature runner (DS-34 through DS-47) |
+| 3 | detection-signatures | Detection signature runner (DS-34 through DS-47 + AS-*) |
 | 4 | scoring | 5-dimension scoring pipeline + stall risk + maturity |
 
-## Scripts (38)
+## Scripts (49 total = 45 shell + 4 Python helpers)
 
 ### Core Pipeline
 
@@ -83,13 +83,22 @@ maturity phase classification.
 | `scripts/detect-workflow-contract-drift.sh` | DS-45 | Helper vs agent/prompt/skill workflow-contract drift |
 | `scripts/detect-llm-validation-gap.sh` | DS-46 | Validation coverage misses live LLM workflow path |
 | `scripts/detect-summary-source-parity-gap.sh` | DS-47 | Summary-source parity gap on `total events` / `tool calls` / `tool distribution` |
-| `scripts/detect-new-signatures.sh` | -- | Unified runner for DS-34+ |
+| `scripts/detect-new-signatures.sh` | -- | Unified runner for DS-34+ and AS-* |
+| `scripts/detect-as-instruction-root-drift.sh` | AS-01 | Instruction-root drift detection |
+| `scripts/detect-as-docs-vs-observed-host-drift.sh` | AS-02 | Docs-vs-observed host drift detection |
+| `scripts/detect-as-missing-runtime-heartbeat.sh` | AS-03 | Missing runtime heartbeat detection |
+| `scripts/detect-as-validator-live-path-gap.sh` | AS-04 | Validator live-path gap detection |
+| `scripts/detect-as-memory-authority-confusion.sh` | AS-05 | Memory authority confusion detection |
+| `scripts/detect-as-prompt-only-optimization-surface.sh` | AS-06 | Prompt-only optimization surface detection |
+| `scripts/detect-as-unused-platform-surface.sh` | AS-07 | Unused platform surface detection |
+| `scripts/detect-external-critique-health.sh` | AS-08 | External critique health detection |
 
 ### Helpers
 
 | Script | Purpose |
 |---|---|
 | `scripts/assemble_ds_results.py` | Assemble DS-34+ results |
+| `scripts/as_signature_scan.py` | Shared AS-* signature evaluator |
 | `scripts/backtest_ds34_42.py` | Backtest DS-34 through DS-42 against targets |
 | `scripts/ds_json_helper.py` | Safe JSON output for detection scripts |
 
@@ -151,7 +160,7 @@ make help                          # Show all available targets
 | SCORECARD.json | JSON | 5-dimension scores, composite, T1/T2 checks |
 | AUDIT_REPORT.md | Markdown | Human-readable report with findings |
 | PRE_SCAN.md | Markdown | File inventory and AI surface analysis |
-| DS-34-plus-results.json | JSON | Extended signature bundle for DS-34 and later |
+| DS-34-plus-results.json | JSON | Extended signature bundle for DS-34+ and AS-* |
 
 ## Token Budget
 

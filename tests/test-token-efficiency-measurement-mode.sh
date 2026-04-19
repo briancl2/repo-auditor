@@ -88,6 +88,12 @@ measured_first = measurement["hotspots"][0]
 assert measured_first["classification_confidence"] == source_first["classification_confidence"]
 assert measured_first["actionability_status"] == source_first["actionability_status"]
 assert packets["packets"][0]["instrumentation_gap"] is False
+assert measurement["comparison_window"]["trend_status"] == summary["history_context"]["trend_status"]
+assert measurement["comparison_window"]["delta_vs_latest"] == summary["history_context"]["delta_vs_latest"]
+assert measurement["hotspot_ranking"][0]["hotspot_id"] == source_top3[0]
+assert measurement["hotspot_ranking"][0]["impact_rank"] == source_first["impact_rank"]
+assert measurement["attribution_summary"]["exact_attribution_policy"] == "fail_closed"
+assert measurement["attribution_summary"]["join_confidence_counts"]["direct"] >= 1
 PY
 
 MISSING_LABELS_DIR="$TMPDIR/missing-labels"

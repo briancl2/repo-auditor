@@ -35,6 +35,20 @@ def main():
 
     fired = sum(1 for r in results if r.get("fired"))
     total = len(results)
+    family_totals = {}
+    fired_signatures = []
+    for result in results:
+        family = str(result.get("family") or result.get("ds_id", "unknown"))[:2]
+        bucket = family_totals.setdefault(
+            family,
+            {"total": 0, "fired": 0, "signatures": []},
+        )
+        bucket["total"] += 1
+        signature_id = result.get("ds_id", "unknown")
+        bucket["signatures"].append(signature_id)
+        if result.get("fired"):
+            bucket["fired"] += 1
+            fired_signatures.append(signature_id)
     report = {
         "repo": repo_name,
         "repo_path": repo_path,
@@ -42,6 +56,11 @@ def main():
         "fired_count": fired,
         "detection_rate_pct": round(fired * 100 / total, 1) if total else 0.0,
         "results": results,
+        "capability_metadata": {
+            "family_totals": family_totals,
+            "fired_signatures": fired_signatures,
+            "signature_order": [r.get("ds_id", "unknown") for r in results],
+        },
     }
 
     print(json.dumps(report, indent=2))

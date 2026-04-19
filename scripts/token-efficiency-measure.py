@@ -12,6 +12,7 @@ import argparse
 import copy
 import json
 from datetime import datetime, timezone
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -84,9 +85,18 @@ def build_measurement_summary(
     source_pack: dict[str, Any],
     summary: dict[str, Any],
     hotspots: list[dict[str, Any]],
+    packets: list[dict[str, Any]],
     gaps: list[dict[str, Any]],
 ) -> dict[str, Any]:
     topline = summary.get("topline_metrics", {})
+    history_context = summary.get("history_context", {})
+    report_metadata = summary.get("report_metadata", {})
+    attribution_counts = Counter()
+    for packet in packets:
+        for session_ref in packet.get("retained_evidence", {}).get("session_refs", []):
+            join_confidence = session_ref.get("join_confidence")
+            if join_confidence:
+                attribution_counts[str(join_confidence)] += 1
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "schema_version": "1.0.0",
@@ -103,12 +113,28 @@ def build_measurement_summary(
         "unlinked_rows": topline.get("unlinked_rows"),
         "unlinked_share_pct": topline.get("unlinked_share_pct"),
         "benchmark_reliability": topline.get("benchmark_reliability"),
+        "comparison_window": {
+            "trend_status": history_context.get("trend_status"),
+            "prior_snapshot_count": history_context.get("prior_snapshot_count"),
+            "total_prior_snapshot_count": history_context.get("total_prior_snapshot_count"),
+            "skipped_prior_snapshot_count": history_context.get("skipped_prior_snapshot_count"),
+            "skip_reasons": history_context.get("skip_reasons"),
+            "latest_prior_snapshot": history_context.get("latest_prior_snapshot"),
+            "delta_vs_latest": history_context.get("delta_vs_latest"),
+            "analysis_scope_fingerprint": history_context.get("analysis_scope_fingerprint"),
+            "queue_metrics_comparable": history_context.get("queue_metrics_comparable"),
+            "current_queue_semantics_version": history_context.get("current_queue_semantics_version"),
+            "latest_prior_queue_semantics_version": history_context.get("latest_prior_queue_semantics_version"),
+        },
+        "ranking_views": report_metadata.get("ranking_views", {}),
         "hotspots": [
             {
                 "hotspot_id": hotspot.get("hotspot_id"),
                 "impact_rank": hotspot.get("impact_rank"),
+                "action_ready_rank": hotspot.get("action_ready_rank"),
                 "classification_confidence": hotspot.get("classification_confidence"),
                 "classification_confidence_score": hotspot.get("classification_confidence_score"),
+                "rank_interpretation": hotspot.get("rank_interpretation"),
                 "actionability_status": hotspot.get("actionability_status"),
                 "actionability_summary": hotspot.get("actionability_summary"),
                 "blocked_hotspot": hotspot.get("blocked_hotspot"),
@@ -118,6 +144,29 @@ def build_measurement_summary(
             }
             for hotspot in hotspots
         ],
+        "hotspot_ranking": [
+            {
+                "hotspot_id": hotspot.get("hotspot_id"),
+                "impact_rank": hotspot.get("impact_rank"),
+                "action_ready_rank": hotspot.get("action_ready_rank"),
+                "rank_interpretation": hotspot.get("rank_interpretation"),
+                "classification_confidence": hotspot.get("classification_confidence"),
+                "classification_confidence_score": hotspot.get("classification_confidence_score"),
+                "measurement_status": hotspot.get("measurement_status"),
+                "instrumentation_gap": hotspot.get("instrumentation_gap"),
+            }
+            for hotspot in sorted(
+                hotspots,
+                key=lambda row: (
+                    row.get("impact_rank") if row.get("impact_rank") is not None else 10**9,
+                    row.get("hotspot_id") or "",
+                ),
+            )
+        ],
+        "attribution_summary": {
+            "exact_attribution_policy": "fail_closed",
+            "join_confidence_counts": dict(sorted(attribution_counts.items())),
+        },
         "instrumentation_gaps": gaps,
         "exact_attribution_policy": "fail_closed",
         "non_claims": [
@@ -535,6 +584,7 @@ def main() -> int:
         source_pack,
         summary,
         summary_hotspots,
+        enriched_packets,
         gaps,
     )
 
