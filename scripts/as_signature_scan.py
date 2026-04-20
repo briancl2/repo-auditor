@@ -344,6 +344,7 @@ def unused_platform_surface(texts: dict[str, str]) -> dict[str, Any]:
 
 
 def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
     responder_truth_files = rels_matching(
         texts,
         lambda path, text: re.search(r"\b(responder truth|responder-truth|truth.*output|output.*truth)\b", text) is not None,
@@ -356,6 +357,15 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
         texts,
         lambda path, text: re.search(r"\b(helper-only|helper only|helper-only misclassification)\b", text) is not None,
     )
+    bounded_calibration_files = rels_matching(
+        texts,
+        lambda path, text: path != detector_path
+        and re.search(
+            r"\b(external_critique_health|bounded_current_anchor|bounded_calibrated|downstream_admission\b.{0,24}\bbounded)\b",
+            text,
+        )
+        is not None,
+    )
     validation_files = rels_matching(
         texts,
         lambda path, text: (
@@ -366,12 +376,21 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
         and re.search(r"\b(test|validate|assert|receipt)\b", text) is not None,
     )
 
-    observed_classes = sum(bool(bucket) for bucket in (responder_truth_files, receipt_output_files, helper_only_files))
+    observed_classes = sum(
+        bool(bucket)
+        for bucket in (
+            responder_truth_files,
+            receipt_output_files,
+            helper_only_files,
+            bounded_calibration_files,
+        )
+    )
     fired = observed_classes >= 2 and len(validation_files) >= 1
     details = [
         f"responder_truth=>{','.join(responder_truth_files[:4]) or 'none'}",
         f"receipt_output=>{','.join(receipt_output_files[:4]) or 'none'}",
         f"helper_only=>{','.join(helper_only_files[:4]) or 'none'}",
+        f"bounded_calibration=>{','.join(bounded_calibration_files[:4]) or 'none'}",
         f"validation=>{','.join(validation_files[:4]) or 'none'}",
     ]
     return {
@@ -380,10 +399,11 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
             "responder_truth_file_count": len(responder_truth_files),
             "receipt_output_file_count": len(receipt_output_files),
             "helper_only_file_count": len(helper_only_files),
+            "bounded_calibration_file_count": len(bounded_calibration_files),
             "validation_file_count": len(validation_files),
         },
         "evidence": evidence_join(details),
-        "reason": "critique-health vocabulary appears without a validated mismatch surface" if fired else "critique-health mismatch is absent or explicitly grounded",
+        "reason": "repo exposes two or more critique-health evidence classes with validation support" if fired else "critique-health mismatch is absent or explicitly grounded",
     }
 
 
