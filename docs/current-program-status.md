@@ -2,8 +2,8 @@
 
 > Date: 2026-04-20
 > Repo role: owner-side measurement and signature pointer for the repo-star completion program
-> Canonical cross-repo authority (local sibling-repo path): [repo-star-gate1-critique-representativeness-and-freshness-2026-04-19.md](../../build-meta-analysis/research/reports/repo-star-gate1-critique-representativeness-and-freshness-2026-04-19.md)
-> Local-path note: these links assume the shared `~/repos` workspace layout, and the linked report keeps its original 2026-04-19 batch-open date.
+> Canonical cross-repo authority (local sibling-repo path): [repo-star-gate2-success-recovery-and-sync-2026-04-20.md](../../build-meta-analysis/research/reports/repo-star-gate2-success-recovery-and-sync-2026-04-20.md)
+> Local-path note: these links assume the shared `~/repos` workspace layout, and the linked report keeps its original 2026-04-20 recovery date.
 
 ## Current Local State
 
@@ -19,30 +19,29 @@ pre-publication.
 
 ## Upstream Dependency
 
-`repo-auditor` follows the BMA-owned shared publication path. The Gate 1
-execution attempt has now run on the widened current surface and refreshed the
-current-code measurement truth, but it did not establish a decision-usable
-shared advance. The shared publication path is therefore stopped fail-closed on
-current evidence rather than promoted to Gate 2.
+`repo-auditor` follows the BMA-owned shared publication path. The 2026-04-20
+recovery program directly resolved the old seam, admitted Gate 2, and ran it
+to completion. The resulting shared state is now:
+
+- Gate 2 passed
+- publication remains local-only and pre-publication
+- the next exact shared batch is `Gate 3: publish-or-stop`
 
 ## Current Blocker
 
-The live blocker is not local repo health. The shared publication path has no
-admitted next advance because the Gate 1 attempt did not prove omitted-family
-independence or a live-valid retained Gate 1 criteria set on the current
-fingerprint.
+The live blocker is not local repo health or missing measurement surfaces. The
+remaining shared unresolved question is the later Gate 3 publication decision.
 
 Publication has not been admitted, and the parked BMA-only row-authority
 candidate `D-004` and its old downstream starter `DS-47` remain not active.
 
 ## Next Candidate Move
 
-No new detector-family widening is admitted from this pointer update.
+No new detector-family widening is required by the Gate 2 result.
 
 The next candidate shared move is to hold the current measurement and signature
-surfaces steady under the BMA fail-closed stop contract. This repo should not
-tell a publication, Gate 2, or row-authority-readiness story from local state
-alone.
+surfaces steady while BMA runs `Gate 3: publish-or-stop`. This repo should not
+tell a publication or row-authority-readiness story from local state alone.
 
 ## Validation Expectations
 
