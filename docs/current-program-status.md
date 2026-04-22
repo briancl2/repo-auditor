@@ -2,7 +2,8 @@
 
 > Date: 2026-04-22
 > Repo role: owner-surface measurement and signature host for the shared external-critique path
-> Canonical landed cross-repo authority (local sibling-repo path): [shared-external-critique-owner-surface-critique-refresh-2026-04-20.md](../../build-meta-analysis/research/reports/shared-external-critique-owner-surface-critique-refresh-2026-04-20.md)
+> Current live cross-repo authority (local sibling-repo path): [HANDOFF-SESSION-v483.md](../../build-meta-analysis/docs/handoffs/HANDOFF-SESSION-v483.md)
+> Canonical landed owner-surface anchor (local sibling-repo path): [shared-external-critique-owner-surface-critique-refresh-2026-04-20.md](../../build-meta-analysis/research/reports/shared-external-critique-owner-surface-critique-refresh-2026-04-20.md)
 > Local-path note: these links assume the shared `~/repos` workspace layout.
 
 ## Current Local State
@@ -18,14 +19,14 @@ that were already landed for the bounded proving-ground state:
   critique-health vocabulary
 
 This remains a real owner-surface measurement surface, but no new measurement
-delivery is active here in the current truth-restore pass.
+delivery is active here after the completed truth-restore sync.
 
 ## Shared Batch Truth
 
 The truthful current shared state is anchored by the shared refresh report
 [`shared-external-critique-owner-surface-critique-refresh-2026-04-20.md`](../../build-meta-analysis/research/reports/shared-external-critique-owner-surface-critique-refresh-2026-04-20.md)
-and the active BMA truth-restore batch at
-[`work/20260422T173345Z/WORK.md`](../../build-meta-analysis/work/20260422T173345Z/WORK.md).
+and the completed BMA continuity handoff
+[`HANDOFF-SESSION-v483.md`](../../build-meta-analysis/docs/handoffs/HANDOFF-SESSION-v483.md).
 
 What those artifacts say right now is:
 
@@ -34,9 +35,9 @@ What those artifacts say right now is:
 - helper-only critique evidence remains blocked
 - bounded non-helper critique evidence remains bounded and non-remediating
 - broader reuse beyond the newsletter proving ground remains unadmitted
-- the current build-meta-analysis (BMA) follow-on is ecosystem truth
-  restoration of canonical
-  handoff/report/proof-pack/roadmap surfaces plus sibling status pointers, not
+- the latest build-meta-analysis (BMA) authority says the truth-restore batch
+  is complete, no new live shared batch is currently selected on this line, and
+  the remaining hardening follow-ons stay deferred-only rather than reopening
   another same-family calibration or measurement tranche
 
 In plain language: helper-only cases still stay blocked, bounded non-helper
@@ -52,11 +53,11 @@ broader reuse, remediation, or publication claim.
 
 ## Next Candidate Move
 
-Hold the current measurement and detection surfaces steady while
-build-meta-analysis (BMA) completes
-the ecosystem truth-restore pass. Reopen this repo only for a later owner-surface
-batch on fresher heads or for a new broader-reuse question with fresh evidence.
-Do not narrate this repo as the active next batch on unchanged evidence.
+Hold the current measurement and detection surfaces steady after the completed
+BMA truth-restore sync. Reopen this repo only for a later owner-surface batch
+on fresher heads or for a new broader-reuse question with fresh evidence. Do
+not narrate this repo as the active next batch on unchanged evidence or as the
+default live continuation from the current shared state.
 
 ## Validation Expectations
 
