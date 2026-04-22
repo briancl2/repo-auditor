@@ -5,7 +5,7 @@
 # contaminated runs. Catches: missing target, dirty git state, concurrent
 # operations (lockfile), missing required tools.
 #
-# Usage: bash scripts/operation-guard.sh <target_repo> [--lockdir <dir>]
+# Usage: bash scripts/operation-guard.sh <target_repo> [--lockdir <dir>] [--allow-dirty-closeout-post-audit]
 #
 # Exit codes:
 #   0 — all checks passed, safe to proceed
@@ -17,6 +17,7 @@ set -euo pipefail
 
 TARGET="${1:?Usage: operation-guard.sh <target_repo> [--lockdir <dir>]}"
 LOCKDIR=""
+ALLOW_DIRTY_CLOSEOUT=0
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Parse --lockdir flag
@@ -24,6 +25,7 @@ shift
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --lockdir) LOCKDIR="$2"; shift 2 ;;
+        --allow-dirty-closeout-post-audit) ALLOW_DIRTY_CLOSEOUT=1; shift ;;
         *) shift ;;
     esac
 done
@@ -64,6 +66,8 @@ if [ -d "$TARGET/.git" ] || git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1
     DIRTY_COUNT=$(git -C "$TARGET" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
     if [ "$DIRTY_COUNT" -eq 0 ]; then
         check "Target git state" "PASS" "clean"
+    elif [ "$ALLOW_DIRTY_CLOSEOUT" -eq 1 ]; then
+        check "Target git state" "PASS" "$DIRTY_COUNT uncommitted files allowed for closeout-post-audit"
     else
         check "Target git state" "FAIL" "$DIRTY_COUNT uncommitted files"
     fi

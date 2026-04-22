@@ -41,11 +41,42 @@
 
 set -euo pipefail
 
+resolve_realpath_for_scope() {
+    python3 - "$1" <<'PYEOF'
+import os
+import sys
+
+print(os.path.realpath(sys.argv[1]))
+PYEOF
+}
+
+dirty_closeout_scope_is_valid() {
+    python3 - "$1" "$2" "$3" <<'PYEOF'
+import os
+import re
+import sys
+
+repo_root = os.path.realpath(sys.argv[1]).rstrip("/")
+output_dir = os.path.realpath(sys.argv[2]).rstrip("/")
+current_working_dir = os.path.realpath(sys.argv[3]).rstrip("/")
+tmp_root = os.path.realpath(os.environ.get("TMPDIR", "/tmp")).rstrip("/")
+
+canonical_pattern = re.compile(rf"^{re.escape(repo_root)}/work/[0-9]{{8}}T[0-9]{{6}}Z/post-audit$")
+staging_pattern = re.compile(rf"^{re.escape(tmp_root)}/[0-9]{{8}}T[0-9]{{6}}Z\.post-audit\.run\.[^/]+$")
+
+allowed = repo_root == current_working_dir and (
+    canonical_pattern.fullmatch(output_dir) or staging_pattern.fullmatch(output_dir)
+)
+raise SystemExit(0 if allowed else 1)
+PYEOF
+}
+
 # ── Argument parsing ──────────────────────────────────────────────────
 AUDIT_MODE="standard"
 AUDIT_CONTEXT_ID="${AUDIT_CONTEXT_ID:-standard}"
 REQUIRE_PORTABLE_CONTEXT=0
 COMPARE_ORACLE_VERSION="${COMPARE_ORACLE_VERSION:-1.0.0}"
+ALLOW_DIRTY_CLOSEOUT=0
 # Optional env fallback for automation wrappers that do not pass the CLI flag.
 REPRESENTATIVENESS_AUTHORITY="${REPRESENTATIVENESS_AUTHORITY_REPO:-}"
 POSITIONAL=()
@@ -62,6 +93,10 @@ while [ "$#" -gt 0 ]; do
             ;;
         --require-portable-context)
             REQUIRE_PORTABLE_CONTEXT=1
+            shift
+            ;;
+        --allow-dirty-closeout-post-audit)
+            ALLOW_DIRTY_CLOSEOUT=1
             shift
             ;;
         --representativeness-authority)
@@ -85,13 +120,30 @@ if [ ! -d "$REPO" ]; then
     exit 1
 fi
 
+if [ "$ALLOW_DIRTY_CLOSEOUT" -eq 1 ]; then
+    if [ "${REPO_AUDITOR_CLOSEOUT_CALLER:-}" != "1" ]; then
+        echo "ERROR: --allow-dirty-closeout-post-audit is reserved for work-close callers." >&2
+        exit 1
+    fi
+    REPO_REALPATH="$(resolve_realpath_for_scope "$REPO")"
+    OUTPUT_REALPATH="$(resolve_realpath_for_scope "$OUTPUT_DIR")"
+    if ! dirty_closeout_scope_is_valid "$REPO_REALPATH" "$OUTPUT_REALPATH" "$(pwd -P)"; then
+        echo "ERROR: --allow-dirty-closeout-post-audit requires a self-audit from the target repo root with output under work/<session>/post-audit or the matching closeout staging temp dir" >&2
+        exit 1
+    fi
+fi
+
 # ── C4: Pre-operation guard rails (Stage 11.2) ───────────────────────
 # ── C4: Shared lockdir (H3 fix: single definition, passed to guard) ──
 LOCKDIR="/tmp/repo-auditor-locks"
 
 GUARD_SCRIPT="$SCRIPT_DIR/operation-guard.sh"
 if [ -x "$GUARD_SCRIPT" ]; then
-    if ! bash "$GUARD_SCRIPT" "$REPO" --lockdir "$LOCKDIR" 2>&1; then
+    GUARD_ARGS=("$REPO" "--lockdir" "$LOCKDIR")
+    if [ "$ALLOW_DIRTY_CLOSEOUT" -eq 1 ]; then
+        GUARD_ARGS+=("--allow-dirty-closeout-post-audit")
+    fi
+    if ! bash "$GUARD_SCRIPT" "${GUARD_ARGS[@]}" 2>&1; then
         echo "ERROR: Operation guard FAILED. Aborting audit." >&2
         exit 1
     fi

@@ -55,6 +55,37 @@ fi
 
 echo "=== Work Close: $WORK_DIR ==="
 
+POST_AUDIT_DIR=""
+POST_AUDIT_TMP_DIR=""
+POST_AUDIT_BACKUP_DIR=""
+
+restore_post_audit_dir_on_abort() {
+    if [ -z "$POST_AUDIT_DIR" ]; then
+        return
+    fi
+    if [ -n "$POST_AUDIT_TMP_DIR" ] && [ -d "$POST_AUDIT_TMP_DIR" ]; then
+        rm -rf "$POST_AUDIT_TMP_DIR"
+    fi
+    if [ -n "$POST_AUDIT_BACKUP_DIR" ] && [ -d "$POST_AUDIT_BACKUP_DIR" ]; then
+        rm -rf "$POST_AUDIT_DIR"
+        mv "$POST_AUDIT_BACKUP_DIR" "$POST_AUDIT_DIR"
+    fi
+    POST_AUDIT_DIR=""
+    POST_AUDIT_TMP_DIR=""
+    POST_AUDIT_BACKUP_DIR=""
+}
+
+abort_post_audit_closeout() {
+    local exit_code="$1"
+    restore_post_audit_dir_on_abort
+    trap - EXIT INT TERM
+    exit "$exit_code"
+}
+
+trap 'restore_post_audit_dir_on_abort' EXIT
+trap 'abort_post_audit_closeout 130' INT
+trap 'abort_post_audit_closeout 143' TERM
+
 # ── Gate 3a: Pre-audit must exist ────────────────────────────────────
 if [ ! -f "$WORK_DIR/pre-audit/SCORECARD.json" ]; then
     echo "ERROR: No pre-audit baseline found at $WORK_DIR/pre-audit/SCORECARD.json" >&2
@@ -83,11 +114,55 @@ fi
 
 # ── Gate 3c: Post-audit ──────────────────────────────────────────────
 echo "  Running post-audit..."
-mkdir -p "$WORK_DIR/post-audit"
-if bash scripts/repo-auditor.sh . "$WORK_DIR/post-audit" > /dev/null 2>&1; then
+POST_AUDIT_DIR="$WORK_DIR/post-audit"
+POST_AUDIT_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/$(basename "$WORK_DIR").post-audit.run.XXXXXX")"
+POST_AUDIT_BACKUP_DIR=""
+if [ -d "$POST_AUDIT_DIR" ]; then
+    POST_AUDIT_BACKUP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/$(basename "$WORK_DIR").post-audit.backup.XXXXXX")"
+    rm -rf "$POST_AUDIT_BACKUP_DIR"
+    mv "$POST_AUDIT_DIR" "$POST_AUDIT_BACKUP_DIR"
+fi
+if REPO_AUDITOR_CLOSEOUT_CALLER=1 \
+    bash scripts/repo-auditor.sh . "$POST_AUDIT_TMP_DIR" --allow-dirty-closeout-post-audit > /dev/null 2>&1; then
+    rm -rf "$POST_AUDIT_DIR"
+    mv "$POST_AUDIT_TMP_DIR" "$POST_AUDIT_DIR"
+    [ -n "$POST_AUDIT_BACKUP_DIR" ] && rm -rf "$POST_AUDIT_BACKUP_DIR"
+    POST_AUDIT_DIR=""
+    POST_AUDIT_TMP_DIR=""
+    POST_AUDIT_BACKUP_DIR=""
     echo "  Post-audit complete."
 else
-    echo "  WARNING: Post-audit failed. DELTA will be unavailable."
+    POST_AUDIT_STATUS=$?
+    if [ -f "$POST_AUDIT_TMP_DIR/SCORECARD.json" ]; then
+        mv "$POST_AUDIT_TMP_DIR/SCORECARD.json" "$POST_AUDIT_TMP_DIR/SCORECARD.failure-fragment.json"
+    fi
+    cat > "$POST_AUDIT_TMP_DIR/AUDIT_FAILURE.json" <<EOF
+{
+  "status": "failure",
+  "composite": null,
+  "exit_code": $POST_AUDIT_STATUS,
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "note": "Post-audit exited nonzero before a trustworthy SCORECARD.json could be retained."
+}
+EOF
+    if [ -n "$POST_AUDIT_BACKUP_DIR" ] && [ -d "$POST_AUDIT_BACKUP_DIR" ]; then
+        rm -rf "$POST_AUDIT_TMP_DIR/previous-post-audit"
+        mv "$POST_AUDIT_BACKUP_DIR" "$POST_AUDIT_TMP_DIR/previous-post-audit"
+        if [ -f "$POST_AUDIT_TMP_DIR/previous-post-audit/SCORECARD.json" ]; then
+            mv "$POST_AUDIT_TMP_DIR/previous-post-audit/SCORECARD.json" \
+                "$POST_AUDIT_TMP_DIR/previous-post-audit/SCORECARD.previous.json"
+        fi
+    fi
+    rm -rf "$POST_AUDIT_DIR"
+    mv "$POST_AUDIT_TMP_DIR" "$POST_AUDIT_DIR"
+    if [ -d "$POST_AUDIT_DIR/previous-post-audit" ]; then
+        echo "  WARNING: Post-audit failed. Previous post-audit evidence preserved under previous-post-audit/."
+    else
+        echo "  WARNING: Post-audit failed. DELTA will be unavailable."
+    fi
+    POST_AUDIT_DIR=""
+    POST_AUDIT_TMP_DIR=""
+    POST_AUDIT_BACKUP_DIR=""
 fi
 
 # ── Compute delta ────────────────────────────────────────────────────
