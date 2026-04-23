@@ -58,9 +58,44 @@ echo "=== Work Close: $WORK_DIR ==="
 POST_AUDIT_DIR=""
 POST_AUDIT_TMP_DIR=""
 POST_AUDIT_BACKUP_DIR=""
+POST_AUDIT_SNAPSHOT_DIR=""
+SNAPSHOT_HELPER="$REPO_ROOT/scripts/prepare-clean-audit-snapshot.py"
+
+cleanup_post_audit_snapshot() {
+    if [ -n "$POST_AUDIT_SNAPSHOT_DIR" ] && [ -d "$POST_AUDIT_SNAPSHOT_DIR" ]; then
+        rm -rf "$POST_AUDIT_SNAPSHOT_DIR"
+    fi
+    POST_AUDIT_SNAPSHOT_DIR=""
+}
+
+prepare_post_audit_snapshot() {
+    local work_dir_rel="$1"
+    local snapshot_root="${TMPDIR:-/tmp}"
+
+    if [ ! -f "$SNAPSHOT_HELPER" ]; then
+        echo "ERROR: snapshot helper not found: $SNAPSHOT_HELPER" >&2
+        return 1
+    fi
+
+    POST_AUDIT_SNAPSHOT_DIR="$(mktemp -d "$snapshot_root/$(basename "$WORK_DIR").post-audit.snapshot.XXXXXX")"
+    rm -rf "$POST_AUDIT_SNAPSHOT_DIR"
+
+    python3 "$SNAPSHOT_HELPER" "$REPO_ROOT" "$POST_AUDIT_SNAPSHOT_DIR" \
+        --exclude-relpath "$work_dir_rel/post-audit" \
+        --exclude-relpath "$work_dir_rel/DELTA.md" \
+        --exclude-relpath "$work_dir_rel/compare-output.txt" \
+        --exclude-relpath "$work_dir_rel/measurement-summary.json" \
+        --exclude-relpath "$work_dir_rel/ser-summary.json" \
+        --exclude-relpath "$work_dir_rel/ser-effectivity.json" \
+        --exclude-relpath "$work_dir_rel/OPERATING_MODEL_SCORECARD.json" \
+        --exclude-relpath "$work_dir_rel/closeout-reconciliation.json" \
+        --exclude-relpath "$work_dir_rel/closeout-telemetry.json" \
+        > /dev/null
+}
 
 restore_post_audit_dir_on_abort() {
     if [ -z "$POST_AUDIT_DIR" ]; then
+        cleanup_post_audit_snapshot
         return
     fi
     if [ -n "$POST_AUDIT_TMP_DIR" ] && [ -d "$POST_AUDIT_TMP_DIR" ]; then
@@ -73,6 +108,7 @@ restore_post_audit_dir_on_abort() {
     POST_AUDIT_DIR=""
     POST_AUDIT_TMP_DIR=""
     POST_AUDIT_BACKUP_DIR=""
+    cleanup_post_audit_snapshot
 }
 
 abort_post_audit_closeout() {
@@ -122,17 +158,25 @@ if [ -d "$POST_AUDIT_DIR" ]; then
     rm -rf "$POST_AUDIT_BACKUP_DIR"
     mv "$POST_AUDIT_DIR" "$POST_AUDIT_BACKUP_DIR"
 fi
-if REPO_AUDITOR_CLOSEOUT_CALLER=1 \
-    bash scripts/repo-auditor.sh . "$POST_AUDIT_TMP_DIR" --allow-dirty-closeout-post-audit > /dev/null 2>&1; then
+WORK_DIR_REL=""
+case "$WORK_DIR" in
+    "$REPO_ROOT"/*)
+        WORK_DIR_REL="${WORK_DIR#"$REPO_ROOT"/}"
+        ;;
+esac
+if prepare_post_audit_snapshot "$WORK_DIR_REL" &&
+    bash scripts/repo-auditor.sh "$POST_AUDIT_SNAPSHOT_DIR" "$POST_AUDIT_TMP_DIR" > /dev/null 2>&1; then
     rm -rf "$POST_AUDIT_DIR"
     mv "$POST_AUDIT_TMP_DIR" "$POST_AUDIT_DIR"
     [ -n "$POST_AUDIT_BACKUP_DIR" ] && rm -rf "$POST_AUDIT_BACKUP_DIR"
     POST_AUDIT_DIR=""
     POST_AUDIT_TMP_DIR=""
     POST_AUDIT_BACKUP_DIR=""
+    cleanup_post_audit_snapshot
     echo "  Post-audit complete."
 else
     POST_AUDIT_STATUS=$?
+    cleanup_post_audit_snapshot
     if [ -f "$POST_AUDIT_TMP_DIR/SCORECARD.json" ]; then
         mv "$POST_AUDIT_TMP_DIR/SCORECARD.json" "$POST_AUDIT_TMP_DIR/SCORECARD.failure-fragment.json"
     fi
