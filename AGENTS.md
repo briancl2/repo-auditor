@@ -19,6 +19,8 @@ maturity phase classification.
 - `--no-verify` is NEVER permitted (L102)
 - AGENTS.md is the canonical instruction surface (L104)
 - Target repos are NEVER modified
+- Governed audit artifacts summarize command evidence instead of copying raw
+  command transcripts; raw stdout/stderr stays in receipt or log artifacts.
 
 ## Agents (9)
 
