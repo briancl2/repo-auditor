@@ -10,7 +10,7 @@
 #
 # Usage: bash scripts/score-operation.sh <audit_output_dir> [--json]
 #
-# Checks (8 total, 20 points max):
+# Checks (9 total, 22 points max):
 #   1. SCORECARD.json exists and valid (3pt)
 #   2. All 5 dimensions scored (not null/0) (3pt)
 #   3. AUDIT_REPORT.md exists and non-trivial (2pt)
@@ -19,6 +19,7 @@
 #   6. No fallback/timeout indicators (2pt)
 #   7. SCORECARD composite in valid range (2pt)
 #   8. Phase classification present and non-empty (3pt)
+#   9. Command-output ROI (avoid copying raw command dumps into governed audit artifacts) (2pt)
 #
 # Exit codes:
 #   0 — evaluation complete (score in stdout)
@@ -44,9 +45,12 @@ if [ ! -d "$AUDIT_DIR" ]; then
 fi
 
 SCORE=0
-MAX=20
+MAX=22
 ISSUES=""
 EVIDENCE=""
+COMMAND_OUTPUT_RC=0
+COMMAND_OUTPUT_VIOLATIONS_JSON="[]"
+COMMAND_OUTPUT_ROI_RECEIPT="{}"
 
 add_score() {
     local pts="$1"
@@ -58,6 +62,261 @@ add_score() {
 add_issue() {
     local label="$1"
     ISSUES="${ISSUES}  - $label\n"
+}
+
+detect_command_output_noise() {
+    python3 - "$AUDIT_DIR" <<'PY'
+import json
+import pathlib
+import re
+import sys
+
+root = pathlib.Path(sys.argv[1])
+raw_line = re.compile(
+    r"^\s*(?:PASS|FAIL|WARN|ERROR|INFO):\s+|"
+    r"^\s*(?:ok|not ok)\s+\d+\b|"
+    r"^\s*(?:[+>$])\s*(?:make|bash|python3|git|npm|node|pytest|copilot)\b|"
+    r"^\s*(?:npm ERR!|make(?:\[\d+\])?:|Traceback\b|File \".*\", line \d+)",
+    re.IGNORECASE,
+)
+
+
+def raw_count(lines):
+    return sum(1 for line in lines if raw_line.search(line))
+
+
+def longest_raw_run(lines):
+    longest = 0
+    current = 0
+    for line in lines:
+        if raw_line.search(line):
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 0
+    return longest
+
+
+def add_violation(violations, artifact, location, reason, lines):
+    violations.append(
+        {
+            "artifact": artifact,
+            "location": location,
+            "reason": reason,
+            "raw_line_count": raw_count(lines),
+            "longest_raw_run": longest_raw_run(lines),
+        }
+    )
+
+
+def inspect_lines(artifact, lines):
+    violations = []
+    total = raw_count(lines)
+    run = longest_raw_run(lines)
+    if run >= 12:
+        add_violation(
+            violations,
+            artifact,
+            None,
+            "governed artifact has consecutive raw-looking command output lines",
+            lines,
+        )
+    elif total >= 30:
+        add_violation(
+            violations,
+            artifact,
+            None,
+            "governed artifact has excessive raw-looking command output lines",
+            lines,
+        )
+
+    in_fence = False
+    fence_lines = []
+    for line in lines + ["```"]:
+        if line.startswith("```"):
+            if in_fence:
+                if longest_raw_run(fence_lines) >= 12 or raw_count(fence_lines) >= 20:
+                    add_violation(
+                        violations,
+                        artifact,
+                        "fenced block",
+                        "governed artifact copied a raw command transcript block",
+                        fence_lines,
+                    )
+                    break
+                fence_lines = []
+                in_fence = False
+            else:
+                in_fence = True
+                fence_lines = []
+            continue
+        if in_fence:
+            fence_lines.append(line)
+    return violations
+
+
+def iter_json_strings(value, prefix="$"):
+    if isinstance(value, str):
+        yield prefix, value
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from iter_json_strings(item, f"{prefix}[{index}]")
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            yield from iter_json_strings(item, f"{prefix}.{key}")
+
+
+violations = []
+for label, path in (
+    ("AUDIT_REPORT.md", root / "AUDIT_REPORT.md"),
+    ("pre-scan/PRE_SCAN.md", root / "pre-scan" / "PRE_SCAN.md"),
+    ("maturity.txt", root / "maturity.txt"),
+    ("stall-risk.txt", root / "stall-risk.txt"),
+    ("dna.txt", root / "dna.txt"),
+    ("drift.txt", root / "drift.txt"),
+):
+    if path.is_file():
+        violations.extend(
+            inspect_lines(label, path.read_text(encoding="utf-8", errors="replace").splitlines())
+        )
+
+for name in ("SCORECARD.json", "DEEP_FINDINGS.json", "DS-34-plus-results.json"):
+    path = root / name
+    if not path.is_file():
+        continue
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        continue
+    total_raw_lines = 0
+    for pointer, text in iter_json_strings(payload):
+        lines = text.splitlines()
+        total_raw_lines += raw_count(lines)
+        if longest_raw_run(lines) >= 12 or raw_count(lines) >= 20:
+            add_violation(
+                violations,
+                path.name,
+                pointer,
+                "governed machine artifact contains a raw-looking command transcript string",
+                lines,
+            )
+    if total_raw_lines >= 30:
+        violations.append(
+            {
+                "artifact": path.name,
+                "location": "all string values",
+                "reason": "governed machine artifact contains excessive raw-looking command lines across string values",
+                "raw_line_count": total_raw_lines,
+                "longest_raw_run": None,
+            }
+        )
+
+print(json.dumps(violations))
+raise SystemExit(1 if violations else 0)
+PY
+}
+
+build_command_output_roi_receipt() {
+    AUDIT_DIR="$AUDIT_DIR" \
+    COMMAND_OUTPUT_RC="$COMMAND_OUTPUT_RC" \
+    COMMAND_OUTPUT_VIOLATIONS_JSON="$COMMAND_OUTPUT_VIOLATIONS_JSON" \
+    python3 - <<'PY'
+import datetime as _dt
+import json
+import os
+import pathlib
+
+try:
+    violations = json.loads(os.environ.get("COMMAND_OUTPUT_VIOLATIONS_JSON") or "[]")
+except Exception:
+    violations = [
+        {
+            "artifact": "unknown",
+            "location": None,
+            "reason": "command-output ROI detector returned malformed violation output",
+            "raw_line_count": None,
+            "longest_raw_run": None,
+        }
+    ]
+
+failed = os.environ.get("COMMAND_OUTPUT_RC") != "0"
+root = pathlib.Path(os.environ["AUDIT_DIR"])
+
+
+def governed(path, artifact_class):
+    return {
+        "path": path,
+        "artifact_class": artifact_class,
+        "scanned": (root / path).is_file(),
+    }
+
+
+governed_artifacts = [
+    governed("AUDIT_REPORT.md", "human_report"),
+    governed("pre-scan/PRE_SCAN.md", "human_report"),
+    governed("maturity.txt", "other_governed"),
+    governed("stall-risk.txt", "other_governed"),
+    governed("dna.txt", "other_governed"),
+    governed("drift.txt", "other_governed"),
+    governed("SCORECARD.json", "machine_summary"),
+    governed("DEEP_FINDINGS.json", "machine_summary"),
+    governed("DS-34-plus-results.json", "machine_summary"),
+]
+if not any(row["scanned"] for row in governed_artifacts):
+    violations = [
+        {
+            "artifact": "governed_artifacts",
+            "location": None,
+            "reason": "no governed audit artifacts were present to scan",
+            "raw_line_count": None,
+            "longest_raw_run": None,
+        }
+    ]
+    verdict = "not-measured"
+    raw_transcript_detected = False
+else:
+    verdict = "fail" if failed else "pass"
+    raw_transcript_detected = failed
+
+payload = {
+    "generated_at": _dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "schema_version": "1.0.0",
+    "artifact": "COMMAND_OUTPUT_ROI_RECEIPT",
+    "receipt_id": "repo-auditor-command-output-roi",
+    "source_benchmark": {
+        "tactic_id": "command_output_roi",
+        "promotion_scope": "fleet-portable",
+        "evidence_ref": "build-meta-analysis:research/reports/provider-neutral-tier3-live-paired-benchmark-2026-04-26.md",
+    },
+    "owner_surface": {
+        "repo": "repo-auditor",
+        "runtime_surface": "scripts/score-operation.sh",
+        "mode": "standard/deep audit output evaluation",
+    },
+    "governed_artifacts": governed_artifacts,
+    "allowed_raw_receipt_artifacts": [
+        "SCORECARD_RECEIPTS.json",
+        "pre-scan-log.txt",
+        "*.jsonl",
+        "*RECEIPT*.md",
+    ],
+    "verdict": verdict,
+    "raw_transcript_detected": raw_transcript_detected,
+    "violations": violations,
+    "policy": {
+        "summary_required": True,
+        "raw_logs_allowed_in": ["receipt artifacts", "stdout/stderr logs", "raw jsonl transcripts"],
+        "direct_metric_claim": False,
+        "cache_claim": False,
+    },
+    "bounded_non_claims": [
+        "This receipt does not prove cache savings.",
+        "This receipt does not promote provider-scoped prompt/context tactics.",
+        "This receipt does not authorize target-repo mutation.",
+    ],
+}
+print(json.dumps(payload, separators=(",", ":")))
+PY
 }
 
 # ── Check 1: SCORECARD.json exists and valid JSON (3pt) ──────────────
@@ -213,6 +472,41 @@ if [ -f "$DEEP_FILE" ]; then
     fi
 fi
 
+# ── Check 9: Command-output ROI (2pt) ────────────────────────────────
+set +e
+COMMAND_OUTPUT_VIOLATIONS_JSON="$(detect_command_output_noise 2>/dev/null)"
+COMMAND_OUTPUT_RC=$?
+set -e
+COMMAND_OUTPUT_ROI_RECEIPT="$(build_command_output_roi_receipt)"
+COMMAND_OUTPUT_SCANNED_COUNT="$(
+    COMMAND_OUTPUT_ROI_RECEIPT="$COMMAND_OUTPUT_ROI_RECEIPT" python3 - <<'PY'
+import json
+import os
+
+payload = json.loads(os.environ.get("COMMAND_OUTPUT_ROI_RECEIPT") or "{}")
+print(sum(1 for row in payload.get("governed_artifacts", []) if row.get("scanned") is True))
+PY
+)"
+if [ "$COMMAND_OUTPUT_RC" -eq 0 ] && [ "$COMMAND_OUTPUT_SCANNED_COUNT" -gt 0 ]; then
+    add_score 2 "Command output summarized instead of copied as raw dumps"
+elif [ "$COMMAND_OUTPUT_SCANNED_COUNT" -eq 0 ]; then
+    add_issue "Command-output ROI not measured: no governed audit artifacts were present to scan"
+else
+    COMMAND_OUTPUT_SUMMARY="$(
+        COMMAND_OUTPUT_VIOLATIONS_JSON="$COMMAND_OUTPUT_VIOLATIONS_JSON" python3 - <<'PY'
+import json
+import os
+
+try:
+    rows = json.loads(os.environ.get("COMMAND_OUTPUT_VIOLATIONS_JSON") or "[]")
+except Exception:
+    rows = []
+print("; ".join(f"{row.get('artifact')}: {row.get('reason')}" for row in rows) or "raw command transcript detected")
+PY
+    )"
+    add_issue "Command-output ROI violation: summarize command evidence and retain raw logs separately ($COMMAND_OUTPUT_SUMMARY)"
+fi
+
 # ── Output ────────────────────────────────────────────────────────────
 if [ "$JSON_MODE" = "true" ]; then
     # Output JSON for machine consumption
@@ -222,17 +516,19 @@ lines = [l.strip() for l in sys.stdin if l.strip()]
 print(json.dumps(lines))
 " 2>/dev/null || echo '[]')
     VERDICT="PASS"
-    if [ "$SCORE" -lt 14 ]; then VERDICT="FAIL"; fi
-    if [ "$SCORE" -ge 14 ] && [ "$SCORE" -lt 18 ]; then VERDICT="WARN"; fi
+    if [ "$SCORE" -lt 16 ]; then VERDICT="FAIL"; fi
+    if [ "$SCORE" -ge 16 ] && [ "$SCORE" -lt 20 ]; then VERDICT="WARN"; fi
+    if [ "${COMMAND_OUTPUT_RC:-0}" -ne 0 ]; then VERDICT="FAIL"; fi
 
-    python3 -c "
-import json, sys
+    COMMAND_OUTPUT_ROI_RECEIPT="$COMMAND_OUTPUT_ROI_RECEIPT" python3 -c "
+import json, os, sys
 result = {
     'score': $SCORE,
     'max': $MAX,
     'verdict': '$VERDICT',
     'audit_dir': '$AUDIT_DIR',
     'issues': $ISSUES_JSON,
+    'command_output_roi_receipt': json.loads(os.environ.get('COMMAND_OUTPUT_ROI_RECEIPT') or '{}'),
     'timestamp': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 }
 json.dump(result, sys.stdout, indent=2)
@@ -250,11 +546,12 @@ else
     fi
     echo ""
     VERDICT="PASS"
-    if [ "$SCORE" -lt 14 ]; then VERDICT="FAIL"; fi
-    if [ "$SCORE" -ge 14 ] && [ "$SCORE" -lt 18 ]; then VERDICT="WARN"; fi
+    if [ "$SCORE" -lt 16 ]; then VERDICT="FAIL"; fi
+    if [ "$SCORE" -ge 16 ] && [ "$SCORE" -lt 20 ]; then VERDICT="WARN"; fi
+    if [ "${COMMAND_OUTPUT_RC:-0}" -ne 0 ]; then VERDICT="FAIL"; fi
     echo "OPERATION EVAL: $SCORE/$MAX ($VERDICT)"
     if [ "$VERDICT" = "FAIL" ]; then
-        echo "  NOTE: Score below 14/$MAX threshold. Audit output quality is degraded."
+        echo "  NOTE: Score below 16/$MAX threshold or command-output ROI failed. Audit output quality is degraded."
     fi
 fi
 
