@@ -4,7 +4,7 @@
 # Acceptance criterion (Stage 11.3): deep audit on BMA produces >=3 findings
 # that current bash audit misses, validated against known-defect fixture.
 #
-# Usage: bash tests/test-deep-audit.sh <bma_repo_path>
+# Usage: bash tests/test-deep-audit.sh [bma_repo_path]
 #
 # Exit codes:
 #   0 — PASS (>=3 known defects detected)
@@ -14,22 +14,79 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+OUTPUT_DIR=$(mktemp -d)
+
+trap 'rm -rf "$OUTPUT_DIR"' EXIT
+
+create_synthetic_bma_fixture() {
+    local target="$1"
+    mkdir -p \
+        "$target/.agents/skills/fleet-dispatch" \
+        "$target/.agents/skills/scorecard-comparison" \
+        "$target/.specify/memory" \
+        "$target/schemas" \
+        "$target/scripts"
+
+    cat > "$target/AGENTS.md" <<'EOF'
+# AGENTS.md
+
+This repo has 342 learnings recorded across L1-L329.
+
+## Skills
+
+| # | name | purpose |
+|---|------|---------|
+| 1 | session-end-review | Close work packages |
+EOF
+
+    cat > "$target/LEARNINGS.md" <<'EOF'
+# LEARNINGS.md
+
+344 total
+EOF
+
+    cat > "$target/.specify/memory/constitution.md" <<'EOF'
+# Constitution
+
+T1 enforcement must run with `make sync-counters`.
+EOF
+
+    cat > "$target/Makefile" <<'EOF'
+check:
+	@echo check
+EOF
+
+    printf '{}\n' > "$target/schemas/ds-finding.schema.json"
+    printf '{}\n' > "$target/schemas/principle-ledger.schema.json"
+    printf '#!/usr/bin/env python3\n' > "$target/scripts/backfill-principle-ledger.py"
+    printf '#!/usr/bin/env bash\n' > "$target/scripts/test-l1-apply-hygiene.sh"
+    printf '# Skill\n' > "$target/.agents/skills/fleet-dispatch/SKILL.md"
+    printf '# Skill\n' > "$target/.agents/skills/scorecard-comparison/SKILL.md"
+}
+
 DEFAULT_BMA_PATH=""
 if [ -d "$REPO_ROOT/../build-meta-analysis" ]; then
     DEFAULT_BMA_PATH="$(cd "$REPO_ROOT/../build-meta-analysis" && pwd)"
 fi
-BMA_PATH="${1:-$DEFAULT_BMA_PATH}"
+EXPLICIT_BMA_PATH=false
+if [ "$#" -gt 0 ]; then
+    BMA_PATH="$1"
+    EXPLICIT_BMA_PATH=true
+else
+    BMA_PATH="$DEFAULT_BMA_PATH"
+fi
 if [ -z "$BMA_PATH" ]; then
-    echo "Usage: test-deep-audit.sh <bma_repo_path>" >&2
-    exit 1
+    if $EXPLICIT_BMA_PATH; then
+        echo "FAIL: explicit BMA repo path was empty"
+        exit 1
+    fi
+    BMA_PATH="$OUTPUT_DIR/synthetic-bma-known-defects"
+    create_synthetic_bma_fixture "$BMA_PATH"
 fi
 
 DEEP_AUDIT="$REPO_ROOT/scripts/deep-audit.py"
 FIXTURE="$REPO_ROOT/tests/fixtures/bma-known-defects.json"
-OUTPUT_DIR=$(mktemp -d)
 MINIMUM_HITS=3
-
-trap 'rm -rf "$OUTPUT_DIR"' EXIT
 
 echo "=== Deep Audit Validation Test ==="
 echo "  Target: $BMA_PATH"
@@ -47,8 +104,11 @@ if [ ! -f "$FIXTURE" ]; then
     exit 1
 fi
 if [ ! -d "$BMA_PATH" ]; then
-    echo "FAIL: BMA repo not found at $BMA_PATH"
-    exit 1
+    if $EXPLICIT_BMA_PATH; then
+        echo "FAIL: BMA repo not found at $BMA_PATH"
+        exit 1
+    fi
+    create_synthetic_bma_fixture "$BMA_PATH"
 fi
 
 # Run deep audit

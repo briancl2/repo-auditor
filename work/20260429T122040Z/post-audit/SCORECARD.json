@@ -1,8 +1,8 @@
 {
   "dimensions": {
     "D1_governance": { "score": 16, "max": 20, "components": { "gov_count": 5, "dna_G": 3 } },
-    "D2_surface_health": { "score": 8, "max": 20, "components": { "surfaces": 32, "total_files": 249, "co_evo": 0.22, "drift_pct": 35 } },
-    "D3_skill_maturity": { "score": 12, "max": 20, "components": { "skill_count": 4, "density": 16, "velocity": 1.00, "organicity": 0.50 } },
+    "D2_surface_health": { "score": 8, "max": 20, "components": { "surfaces": 32, "total_files": 254, "co_evo": 0.22, "drift_pct": 35 } },
+    "D3_skill_maturity": { "score": 12, "max": 20, "components": { "skill_count": 4, "density": 15, "velocity": 1.00, "organicity": 0.50 } },
     "D4_measurement": { "score": 17, "max": 20, "components": { "scoring_tools": 25, "scoring_layers": 5, "audit_depth": 3, "abstraction": 4 } },
     "D5_self_improvement": { "score": 17, "max": 20, "components": { "stall_risk": 12, "trajectory": 80, "plan_infra": 2, "spec_bonus": 3, "spec_md_count": 5 } }
   },
@@ -32,6 +32,6 @@
     "context_manifest": "CONTEXT_SCORE_MANIFEST.json",
     "compare_oracle_version": "1.0.0",
     "auditor_version": "2.2",
-    "timestamp": "2026-04-29T12:29:56Z"
+    "timestamp": "2026-04-29T12:43:15Z"
   }
 }

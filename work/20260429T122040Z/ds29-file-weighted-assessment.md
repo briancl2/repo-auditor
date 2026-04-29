@@ -49,3 +49,12 @@ Live sanity proof:
   `AGENTS.md` doctrine note.
 - This package does not claim a fleet-wide threshold is final; `65` remains
   provisional and per-repo baselines may still be needed.
+
+## CI Follow-Up
+
+The first pushed run for this package failed in the existing CI `Test suite`
+job before reaching any DS-29-specific failure because `tests/test-deep-audit.sh`
+required a sibling BMA checkout that GitHub-hosted runners do not have. This
+package now keeps the test active in CI by synthesizing the retained BMA known-
+defect fixture when no implicit sibling checkout exists, while explicit bad or
+empty paths still fail.
