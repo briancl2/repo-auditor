@@ -5,7 +5,7 @@
 # Multi-signal: file path classification + diff stat size + per-repo baseline.
 # Threshold (PROVISIONAL): >65% flags. Per-repo baseline recommended.
 #
-# Usage: bash scripts/detect-ceremony-ratio.sh [repo_path] [--commits N] [--threshold N] [--json]
+# Usage: bash scripts/detect-ceremony-ratio.sh [repo_path] [--commits N] [--threshold N] [--mode commit|file|combined] [--json]
 # Exits 0 if healthy, 1 if ceremony ratio exceeds threshold, 2 if insufficient data.
 #
 # Stage 6 M3.2 (R-DS29, F3)
@@ -14,6 +14,7 @@ set -euo pipefail
 REPO="${1:-.}"
 COMMIT_COUNT=20
 THRESHOLD=65
+MODE=combined
 JSON_OUT=false
 
 shift 2>/dev/null || true
@@ -21,12 +22,25 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --commits) COMMIT_COUNT="$2"; shift 2 ;;
     --threshold) THRESHOLD="$2"; shift 2 ;;
+    --mode) MODE="$2"; shift 2 ;;
     --json) JSON_OUT=true; shift ;;
     *) shift ;;
   esac
 done
 
+case "$MODE" in
+  commit|file|combined) ;;
+  *)
+    echo "DS-29: invalid mode '$MODE' (expected commit, file, or combined)." >&2
+    exit 2
+    ;;
+esac
+
 cd "$REPO"
+
+TMP_CHANGED_FILES=$(mktemp)
+TMP_UNIQUE_FILES=$(mktemp)
+trap 'rm -f "$TMP_CHANGED_FILES" "$TMP_UNIQUE_FILES"' EXIT
 
 # Verify git repo
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -86,6 +100,41 @@ is_substantive_file() {
   esac
 }
 
+# Delivery files are direct product/code/test/config surfaces. This is kept
+# separate from commit-ratio classification so legacy DS-29 fields remain stable.
+is_delivery_file() {
+  local f="$1"
+  case "$f" in
+    scripts/*.sh|scripts/*.py) return 0 ;;
+    tests/*) return 0 ;;
+    schemas/*) return 0 ;;
+    config/*) return 0 ;;
+    Makefile|.github/*) return 0 ;;
+    *.py|*.js|*.ts|*.go|*.rs|*.sh) return 0 ;;
+    .agents/skills/*/scripts/*) return 0 ;;
+    templates/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# File-weighted ceremony covers retained process, evidence, roadmap, and
+# continuity artifacts. These can legitimately be changed, but DS-29 should
+# notice when they dominate a delivery package's file mix.
+is_file_weighted_ceremony_file() {
+  local f="$1"
+  case "$f" in
+    docs/handoffs/*|docs/roadmap/*) return 0 ;;
+    HANDOFF*) return 0 ;;
+    FLYWHEEL.md|STATUS.md|ROADMAP.md|AGENTS.md|LEARNINGS.md) return 0 ;;
+    work/*) return 0 ;;
+    research/*) return 0 ;;
+    specs/*) return 0 ;;
+    .specify/*) return 0 ;;
+    WARNING_LEDGER*|OPERATING_MODEL_SCORECARD*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # Classify each commit using multi-signal
 CEREMONY=0
 SUBSTANTIVE=0
@@ -102,6 +151,7 @@ while IFS= read -r sha; do
   while IFS= read -r file; do
     [ -z "$file" ] && continue
     file_count=$((file_count + 1))
+    printf '%s\n' "$file" >> "$TMP_CHANGED_FILES"
 
     if is_substantive_file "$file"; then
       has_substantive=true
@@ -110,11 +160,11 @@ while IFS= read -r sha; do
       # Unknown file — not clearly ceremony
       all_ceremony=false
     fi
-  done <<< "$(git diff-tree --no-commit-id --name-only -r "$sha" 2>/dev/null)"
+  done <<< "$(git diff-tree --root --no-commit-id --name-only -r "$sha" 2>/dev/null)"
 
   # Signal 2: Diff stat size (ceremony commits tend to be small)
-  insertions=$(git diff-tree --no-commit-id --numstat -r "$sha" 2>/dev/null | awk '{s+=$1} END {print s+0}')
-  deletions=$(git diff-tree --no-commit-id --numstat -r "$sha" 2>/dev/null | awk '{s+=$2} END {print s+0}')
+  insertions=$(git diff-tree --root --no-commit-id --numstat -r "$sha" 2>/dev/null | awk '{s+=$1} END {print s+0}')
+  deletions=$(git diff-tree --root --no-commit-id --numstat -r "$sha" 2>/dev/null | awk '{s+=$2} END {print s+0}')
   total_lines=$((insertions + deletions))
 
   # Classification logic:
@@ -136,6 +186,22 @@ while IFS= read -r sha; do
   fi
 done <<< "$(git log --format='%H' -"$COMMIT_COUNT" 2>/dev/null)"
 
+sort -u "$TMP_CHANGED_FILES" > "$TMP_UNIQUE_FILES"
+
+FILE_CEREMONY=0
+FILE_DELIVERY=0
+FILE_OTHER=0
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  if is_delivery_file "$file"; then
+    FILE_DELIVERY=$((FILE_DELIVERY + 1))
+  elif is_file_weighted_ceremony_file "$file"; then
+    FILE_CEREMONY=$((FILE_CEREMONY + 1))
+  else
+    FILE_OTHER=$((FILE_OTHER + 1))
+  fi
+done < "$TMP_UNIQUE_FILES"
+
 CLASSIFIED=$((CEREMONY + SUBSTANTIVE + MIXED))
 if [ "$CLASSIFIED" -eq 0 ]; then
   if $JSON_OUT; then
@@ -150,23 +216,73 @@ fi
 ceremony_total=$((CEREMONY + MIXED))
 ceremony_pct=$((ceremony_total * 100 / CLASSIFIED))
 
-fires=false
+commit_fires=false
 if [ "$ceremony_pct" -gt "$THRESHOLD" ]; then
-  fires=true
+  commit_fires=true
 fi
 
+FILE_CLASSIFIED=$((FILE_CEREMONY + FILE_DELIVERY))
+file_ceremony_pct=0
+file_fires=false
+if [ "$FILE_CLASSIFIED" -gt 0 ]; then
+  file_ceremony_pct=$((FILE_CEREMONY * 100 / FILE_CLASSIFIED))
+  if [ "$file_ceremony_pct" -gt "$THRESHOLD" ]; then
+    file_fires=true
+  fi
+fi
+
+fires=false
+case "$MODE" in
+  commit)
+    fires=$commit_fires
+    ;;
+  file)
+    fires=$file_fires
+    ;;
+  combined)
+    if $commit_fires || $file_fires; then
+      fires=true
+    fi
+    ;;
+esac
+
+fire_reason="none"
+case "$MODE" in
+  commit)
+    if $commit_fires; then
+      fire_reason="commit-ratio"
+    fi
+    ;;
+  file)
+    if $file_fires; then
+      fire_reason="file-ratio"
+    fi
+    ;;
+  combined)
+    if $commit_fires && $file_fires; then
+      fire_reason="commit-and-file"
+    elif $commit_fires; then
+      fire_reason="commit-ratio"
+    elif $file_fires; then
+      fire_reason="file-ratio"
+    fi
+    ;;
+esac
+
 if $JSON_OUT; then
-  echo "{\"ds\":\"DS-29\",\"signal\":\"ceremony-ratio\",\"fires\":$fires,\"ceremony\":$CEREMONY,\"substantive\":$SUBSTANTIVE,\"mixed\":$MIXED,\"classified\":$CLASSIFIED,\"ceremony_pct\":$ceremony_pct,\"threshold\":$THRESHOLD,\"commits_analyzed\":$COMMIT_COUNT}"
+  echo "{\"ds\":\"DS-29\",\"signal\":\"ceremony-ratio\",\"mode\":\"$MODE\",\"fires\":$fires,\"fire_reason\":\"$fire_reason\",\"commit_fires\":$commit_fires,\"file_fires\":$file_fires,\"ceremony\":$CEREMONY,\"substantive\":$SUBSTANTIVE,\"mixed\":$MIXED,\"classified\":$CLASSIFIED,\"ceremony_pct\":$ceremony_pct,\"threshold\":$THRESHOLD,\"commits_analyzed\":$COMMIT_COUNT,\"file_ceremony\":$FILE_CEREMONY,\"file_delivery\":$FILE_DELIVERY,\"file_other\":$FILE_OTHER,\"file_classified\":$FILE_CLASSIFIED,\"file_ceremony_pct\":$file_ceremony_pct,\"file_threshold\":$THRESHOLD}"
 else
   echo "DS-29: Ceremony Commit Ratio"
   echo "  Commits analyzed: $CLASSIFIED (of $COMMIT_COUNT requested)"
   echo "  Ceremony: $CEREMONY  Substantive: $SUBSTANTIVE  Mixed: $MIXED"
-  echo "  Ceremony ratio: ${ceremony_pct}% (threshold: ${THRESHOLD}%)"
+  echo "  Commit ceremony ratio: ${ceremony_pct}% (threshold: ${THRESHOLD}%)"
+  echo "  File ceremony ratio: ${file_ceremony_pct}% (ceremony: $FILE_CEREMONY, delivery: $FILE_DELIVERY, other: $FILE_OTHER)"
+  echo "  Mode: $MODE"
   if $fires; then
-    echo "  FIRES: Ceremony ratio ${ceremony_pct}% exceeds ${THRESHOLD}%"
+    echo "  FIRES: DS-29 fires by $fire_reason"
     exit 1
   else
-    echo "  OK: Ceremony ratio ${ceremony_pct}% within ${THRESHOLD}% threshold"
+    echo "  OK: DS-29 ratios within ${THRESHOLD}% threshold for mode $MODE"
     exit 0
   fi
 fi

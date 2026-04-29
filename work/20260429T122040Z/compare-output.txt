@@ -1,0 +1,23 @@
+================================================================
+Scorecard Comparison
+================================================================
+
+  Before: /Users/briancl/repos/repo-auditor/work/20260429T122040Z/pre-audit/SCORECARD.json
+  After:  /Users/briancl/repos/repo-auditor/work/20260429T122040Z/post-audit/SCORECARD.json
+
+  Phase:  2 — Capability Build → 2 — Capability Build
+
+  Dimension        Before  After   Delta
+  ─────────────────────────────────────────
+  D1 Governance:      16      16    =
+  D2 Surface:          6       8    +2
+  D3 Skill:           10      12    +2
+  D4 Measurement:     17      17    =
+  D5 Self-Improve:    16      17    +1
+  ─────────────────────────────────────────
+  COMPOSITE:          65      70    +5
+
+  T1 checks: 4/5 → 4/5
+
+  VERDICT: PASS (delta ≥ +2)
+================================================================

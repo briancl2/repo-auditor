@@ -194,14 +194,15 @@
 - **Source:** F15 (Stage 5 retro), SNR 6.3% baseline on BMA
 
 ### DS-29: Ceremony Commit Ratio
-- **Detects:** >65% of recent commits modify ONLY ceremony/tracking files
-- **Signal:** Process overhead dominates substantive work — ceremony inflation risk
+- **Detects:** >65% of recent commits or delivery-classified changed files are ceremony/tracking artifacts
+- **Signal:** Process overhead dominates substantive work — ceremony inflation risk, including mixed commits whose file payload is mostly retained ceremony/evidence
 - **Phase range:** Phase 3+ (requires git history)
 - **Check:** `bash scripts/detect-ceremony-ratio.sh <repo> --threshold 65`
-- **Multi-signal:** file path classification + diff stat size + per-repo baseline
+- **Modes:** `--mode commit` preserves the original commit-ratio signal; `--mode file` evaluates the file-weighted signal; default `--mode combined` fires when either signal crosses threshold.
+- **Multi-signal:** commit path classification + diff stat size + file-weighted delivery/ceremony ratio + per-repo baseline
 - **Anti-gaming:** Multi-signal classification (not prefix heuristic). Large ceremony (>200L) still counted.
 - **Threshold:** PROVISIONAL (65%). Per-repo baseline recommended.
-- **Source:** F3 (Stage 5 retro), 65% baseline on BMA, C1+C3 consensus on multi-signal
+- **Source:** F3 (Stage 5 retro), 65% baseline on BMA, C1+C3 consensus on multi-signal; BMA v530 selector found mixed-commit file dominance missed by commit ratio alone.
 
 ### DS-30: Grader Ceiling Lock
 - **Detects:** OPERATING_MODEL_SCORECARD variance <2 across 3+ consecutive scorecards
