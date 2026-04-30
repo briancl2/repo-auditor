@@ -427,7 +427,7 @@ if [ "$AUDIT_MODE" = "deep" ]; then
     mkdir -p "$PAYLOADS_DIR"
 
     AGENTS_DIR="$SCRIPT_DIR/../.agents"
-    DEEP_MODEL="${DEEP_MODEL:-claude-sonnet-4.5}"
+    DEEP_MODEL="${DEEP_MODEL:-claude-sonnet-4.6}"
     DEEP_TIMEOUT="${DEEP_TIMEOUT:-120}"
     _to="timeout"; command -v timeout >/dev/null 2>&1 || _to="gtimeout"
     _has_timeout=false; command -v "$_to" >/dev/null 2>&1 && _has_timeout=true
@@ -478,12 +478,12 @@ if [ "$AUDIT_MODE" = "deep" ]; then
         synth_prompt="Read .agents/audit-synthesis.agent.md for instructions. Combine all domain audit payloads in $OUTPUT_DIR/payloads/ into a unified deep audit summary. Write a JSON summary to stdout with total_findings and findings_by_severity."
         synth_ok=false
         if [ "$_has_timeout" = true ]; then
-            if (cd "$SCRIPT_DIR/.." && $_to "$DEEP_TIMEOUT" copilot --model claude-opus-4.6 \
+            if (cd "$SCRIPT_DIR/.." && $_to "$DEEP_TIMEOUT" copilot --model claude-opus-4.7 \
                 -p "$synth_prompt" --allow-all --no-ask-user < /dev/null > "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null); then
                 synth_ok=true
             fi
         else
-            if (cd "$SCRIPT_DIR/.." && copilot --model claude-opus-4.6 \
+            if (cd "$SCRIPT_DIR/.." && copilot --model claude-opus-4.7 \
                 -p "$synth_prompt" --allow-all --no-ask-user < /dev/null > "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null); then
                 synth_ok=true
             fi

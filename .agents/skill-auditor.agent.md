@@ -3,7 +3,7 @@ name: skill-auditor
 description: >
   D3 Skill Maturity domain auditor (deep mode only). Evaluates skill
   completeness, script quality, reference materials, and reusability.
-model: claude-sonnet-4.5
+model: claude-sonnet-4.6
 tools: [read, search, execute]
 stop_rules:
   max_files_scanned: 30

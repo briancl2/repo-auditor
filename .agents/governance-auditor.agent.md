@@ -3,7 +3,7 @@ name: governance-auditor
 description: >
   D1 Governance domain auditor (deep mode only). Evaluates AGENTS.md quality,
   Makefile targets, hook installation, README completeness, and .gitignore coverage.
-model: claude-sonnet-4.5
+model: claude-sonnet-4.6
 tools: [read, search, execute]
 stop_rules:
   max_files_scanned: 30

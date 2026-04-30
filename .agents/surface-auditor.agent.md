@@ -3,7 +3,7 @@ name: surface-auditor
 description: >
   D2 Surface Health domain auditor (deep mode only). Evaluates agent files,
   skill definitions, script quality, and documentation coverage.
-model: claude-sonnet-4.5
+model: claude-sonnet-4.6
 tools: [read, search, execute]
 stop_rules:
   max_files_scanned: 30

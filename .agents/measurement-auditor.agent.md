@@ -3,7 +3,7 @@ name: measurement-auditor
 description: >
   D4 Measurement domain auditor (deep mode only). Evaluates scoring
   infrastructure, test coverage, CI, and quality gates.
-model: claude-sonnet-4.5
+model: claude-sonnet-4.6
 tools: [read, search, execute]
 stop_rules:
   max_files_scanned: 30

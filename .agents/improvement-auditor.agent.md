@@ -4,7 +4,7 @@ description: >
   D5 Self-Improvement domain auditor (deep mode only). Evaluates
   learning capture, optimization loops, autonomous improvement, and
   stall risk indicators.
-model: claude-sonnet-4.5
+model: claude-sonnet-4.6
 tools: [read, search, execute]
 stop_rules:
   max_files_scanned: 30

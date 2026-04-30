@@ -4,7 +4,7 @@ description: >
   Synthesize findings from 6 domain auditors into a cohesive AUDIT_REPORT.md.
   Produces the human-readable report body with dimension summaries, cross-cutting
   themes, and prioritized recommendations.
-model: claude-opus-4.6
+model: claude-opus-4.7
 tools: [read, search, execute]
 stop_rules:
   timeout_seconds: 600

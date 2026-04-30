@@ -5,7 +5,7 @@ description: >
   deterministic pre-scan followed by optional LLM-powered
   domain audits (--mode deep). Orchestrates bash scripts for standard
   mode; 6 domain subagents + synthesis for deep mode.
-model: claude-opus-4.6
+model: claude-opus-4.7
 tools: [read, search, execute, agent]
 required_context:
   - AGENTS.md
