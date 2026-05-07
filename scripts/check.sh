@@ -49,14 +49,26 @@ fi
 
 # ── Trailer check ─────────────────────────────────────────────────────
 echo "── trailer ──"
+TRAILER_PATTERN='^(Spec-ID|Spec-Exempt):'
 LAST_MSG=$(git log -1 --format=%B 2>/dev/null || echo "")
-if echo "$LAST_MSG" | grep -qE '^(Spec-ID|Spec-Exempt):'; then
+if echo "$LAST_MSG" | grep -qE "$TRAILER_PATTERN"; then
     echo "  PASS: last commit has Spec-ID or Spec-Exempt trailer"
 elif [ -z "$LAST_MSG" ]; then
     echo "  SKIP: no commits yet"
 else
-    echo "  FAIL: last commit lacks Spec-ID or Spec-Exempt trailer"
-    FAIL=1
+    PARENT_COUNT=$(git rev-list --parents -n 1 HEAD 2>/dev/null | wc -w | tr -d ' ' || echo "0")
+    if [ "$PARENT_COUNT" -gt 2 ]; then
+        PR_HEAD_MSG=$(git log -1 --format=%B HEAD^2 2>/dev/null || echo "")
+        if echo "$PR_HEAD_MSG" | grep -qE "$TRAILER_PATTERN"; then
+            echo "  PASS: merge commit lacks trailer; second parent has Spec-ID or Spec-Exempt trailer"
+        else
+            echo "  FAIL: merge commit and second parent lack Spec-ID or Spec-Exempt trailer"
+            FAIL=1
+        fi
+    else
+        echo "  FAIL: last commit lacks Spec-ID or Spec-Exempt trailer"
+        FAIL=1
+    fi
 fi
 
 # ── Result ────────────────────────────────────────────────────────────
