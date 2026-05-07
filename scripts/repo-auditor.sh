@@ -20,6 +20,7 @@
 #
 # Outputs:
 #   <output_dir>/AUDIT_REPORT.md   — Human-readable composite report
+#   <output_dir>/AUDIT_RUN_RECEIPT.json — Run completion/partial/failure receipt
 #   <output_dir>/SCORECARD.json    — Machine-readable 5-dimension scores
 #   <output_dir>/SCORECARD_RECEIPTS.json — Raw scorer receipts + count reconciliation
 #   <output_dir>/CONTEXT_SCORE_MANIFEST.json — Context / git / local-artifact preflight
@@ -37,7 +38,9 @@
 #
 # Exit codes:
 #   0 — audit completed successfully
-#   1 — missing argument or tool failure
+#   1 — missing argument
+#   2 — target not found or not a directory
+#   3 — tool failure or partial artifact set
 
 set -euo pipefail
 
@@ -79,26 +82,163 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-REPO="${POSITIONAL[0]:?Usage: repo-auditor.sh <repo_path> [output_dir] [options]}"
+if [ "${#POSITIONAL[@]}" -lt 1 ]; then
+    echo "Usage: repo-auditor.sh <repo_path> [output_dir] [options]" >&2
+    exit 1
+fi
+
+REPO="${POSITIONAL[0]}"
 OUTPUT_DIR="${POSITIONAL[1]:-audit_output}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+FAILURES=""
+FAIL_COUNT=0
+REPORT_GENERATION_FAILED=0
+REPORT_GENERATION_REASON=""
+
+# Create output structure before any auditable failure so receipts have a home.
+mkdir -p "$OUTPUT_DIR/pre-scan"
+
+required_artifacts_missing() {
+    local missing=""
+    local artifact
+    for artifact in SCORECARD.json SCORECARD_RECEIPTS.json AUDIT_REPORT.md; do
+        if [ ! -f "$OUTPUT_DIR/$artifact" ]; then
+            missing="$missing $artifact"
+        fi
+    done
+    echo "$missing" | sed 's/^ *//'
+}
+
+update_scorecard_audit_metadata() {
+    local status="$1"
+    local artifact_status="$2"
+    local missing="$3"
+    local reason="$4"
+
+    if [ ! -f "$OUTPUT_DIR/SCORECARD.json" ]; then
+        return 0
+    fi
+
+    python3 -c '
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+status, artifact_status, missing_raw, reason = sys.argv[2:6]
+data = json.load(open(path))
+meta = data.setdefault("meta", {})
+meta["audit_status"] = status
+meta["artifact_status"] = artifact_status
+meta["missing_required_artifacts"] = [item for item in missing_raw.split() if item]
+if reason:
+    meta["audit_status_reason"] = reason
+else:
+    meta.pop("audit_status_reason", None)
+json.dump(data, open(path, "w"), indent=2)
+open(path, "a").write("\n")
+' "$OUTPUT_DIR/SCORECARD.json" "$status" "$artifact_status" "$missing" "$reason"
+}
+
+write_audit_run_receipt() {
+    local status="$1"
+    local reason="$2"
+    local exit_code="${3:-0}"
+    local missing
+    local artifact_status
+
+    missing="$(required_artifacts_missing)"
+    artifact_status="completed"
+    if [ -n "$missing" ]; then
+        artifact_status="partial"
+    fi
+
+    update_scorecard_audit_metadata "$status" "$artifact_status" "$missing" "$reason" || true
+
+    python3 -c '
+import datetime
+import json
+import os
+import sys
+
+out, status, reason, exit_code, failures, missing_raw, artifact_status, context_id, compare_version = sys.argv[1:10]
+required = ["SCORECARD.json", "SCORECARD_RECEIPTS.json", "AUDIT_REPORT.md"]
+artifacts = {}
+for name in required:
+    path = os.path.join(out, name)
+    present = os.path.isfile(path)
+    artifacts[name] = {
+        "present": present,
+        "bytes": os.path.getsize(path) if present else 0,
+    }
+receipt = {
+    "receipt_version": "1.0.0",
+    "status": status,
+    "reason": reason or None,
+    "exit_code": int(exit_code),
+    "timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "audit_context_id": context_id,
+    "compare_oracle_version": compare_version,
+    "artifact_status": artifact_status,
+    "required_artifacts": artifacts,
+    "missing_required_artifacts": [item for item in missing_raw.split() if item],
+    "failed_tools": [item for item in failures.split() if item],
+}
+with open(os.path.join(out, "AUDIT_RUN_RECEIPT.json"), "w") as fh:
+    json.dump(receipt, fh, indent=2, sort_keys=True)
+    fh.write("\n")
+' "$OUTPUT_DIR" "$status" "$reason" "$exit_code" "$FAILURES" "$missing" \
+        "$artifact_status" "$AUDIT_CONTEXT_ID" "$COMPARE_ORACLE_VERSION"
+}
+
+finalize_audit_status() {
+    local status="completed"
+    local reason=""
+    local exit_code=0
+    local missing
+
+    missing="$(required_artifacts_missing)"
+
+    if [ "$REPORT_GENERATION_FAILED" -eq 1 ]; then
+        status="partial"
+        reason="$REPORT_GENERATION_REASON"
+        exit_code=3
+    elif [ "$FAIL_COUNT" -gt 0 ]; then
+        status="failed"
+        reason="tool failures:$FAILURES"
+        exit_code=3
+    elif [ -n "$missing" ]; then
+        status="partial"
+        reason="missing required artifacts:$missing"
+        exit_code=3
+    fi
+
+    write_audit_run_receipt "$status" "$reason" "$exit_code"
+    return "$exit_code"
+}
 
 # W6 fix: validate repo path exists
 if [ ! -d "$REPO" ]; then
     echo "ERROR: $REPO not found or not a directory" >&2
-    exit 1
+    FAILURES="target"
+    write_audit_run_receipt "failed" "target not found or not a directory: $REPO" 2
+    exit 2
 fi
 
 # ── C4: Pre-operation guard rails (Stage 11.2) ───────────────────────
 # ── C4: Shared lockdir (H3 fix: single definition, passed to guard) ──
-LOCKDIR="/tmp/repo-auditor-locks"
+LOCKDIR="${REPO_AUDITOR_LOCKDIR:-$OUTPUT_DIR/.repo-auditor-locks}"
 
 GUARD_SCRIPT="$SCRIPT_DIR/operation-guard.sh"
 if [ -x "$GUARD_SCRIPT" ]; then
     GUARD_ARGS=("$REPO" "--lockdir" "$LOCKDIR")
     if ! bash "$GUARD_SCRIPT" "${GUARD_ARGS[@]}" 2>&1; then
         echo "ERROR: Operation guard FAILED. Aborting audit." >&2
-        exit 1
+        FAILURES="$FAILURES operation-guard"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        write_audit_run_receipt "failed" "operation guard failed" 3
+        exit 3
     fi
 fi
 
@@ -111,9 +251,6 @@ trap 'rm -f "$LOCKFILE"' EXIT
 # Resolve repo name for display
 REPO_NAME="$(basename "$REPO")"
 
-# Create output structure
-mkdir -p "$OUTPUT_DIR/pre-scan"
-
 echo "================================================================"
 echo "Repo Auditor: $REPO_NAME"
 echo "================================================================"
@@ -123,10 +260,6 @@ echo "Output:  $OUTPUT_DIR"
 echo "Mode:    $AUDIT_MODE"
 echo "Context: $AUDIT_CONTEXT_ID"
 echo ""
-
-# Track failures (no associative arrays per L10)
-FAILURES=""
-FAIL_COUNT=0
 
 CONTEXT_SCRIPT="$SCRIPT_DIR/write_context_score_manifest.py"
 CONTEXT_MANIFEST="$OUTPUT_DIR/CONTEXT_SCORE_MANIFEST.json"
@@ -149,7 +282,8 @@ else
     FAIL_COUNT=$((FAIL_COUNT + 1))
     if [ "$REQUIRE_PORTABLE_CONTEXT" -eq 1 ]; then
         echo "ERROR: portable context required but preflight rejected this audit." >&2
-        exit 1
+        write_audit_run_receipt "failed" "portable context required but preflight rejected this audit" 3
+        exit 3
     fi
 fi
 echo ""
@@ -157,7 +291,10 @@ echo ""
 PRESCAN_SCRIPT="$SCRIPT_DIR/../.agents/skills/pre-scanning/scripts/pre-scan-target.sh"
 if [ ! -x "$PRESCAN_SCRIPT" ]; then
     echo "ERROR: pre-scan script not found or not executable: $PRESCAN_SCRIPT" >&2
-    exit 1
+    FAILURES="$FAILURES pre-scan-script"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    write_audit_run_receipt "failed" "pre-scan script not found or not executable: $PRESCAN_SCRIPT" 3
+    exit 3
 fi
 
 run_tool() {
@@ -246,19 +383,34 @@ AI_SURFACES="?"
 
 # Parse maturity output
 if [ -f "$OUTPUT_DIR/maturity.txt" ]; then
-    PHASE=$(grep "^PHASE:" "$OUTPUT_DIR/maturity.txt" | head -1 | sed 's/PHASE: *//' | sed 's/ *$//')
+    PHASE=$(grep "^PHASE:" "$OUTPUT_DIR/maturity.txt" | head -1 | sed 's/PHASE: *//' | sed 's/ *$//' || true)
+    if [ -z "$PHASE" ]; then
+        PHASE="unknown"
+    fi
 fi
 
 # Parse stall-risk output
 if [ -f "$OUTPUT_DIR/stall-risk.txt" ]; then
-    STALL_SCORE=$(grep "SCORE:" "$OUTPUT_DIR/stall-risk.txt" | head -1 | sed 's/.*SCORE: *//' | sed 's/ .*//')
+    STALL_SCORE=$(grep "SCORE:" "$OUTPUT_DIR/stall-risk.txt" | head -1 | sed 's/.*SCORE: *//' | sed 's/ .*//' || true)
+    if [ -z "$STALL_SCORE" ]; then
+        STALL_SCORE="?"
+    fi
 fi
 
 # Parse DNA output
 if [ -f "$OUTPUT_DIR/dna.txt" ]; then
-    MATURITY_SCORE=$(grep "Maturity Score:" "$OUTPUT_DIR/dna.txt" | head -1 | sed 's/.*Maturity Score: *//' | sed 's/ *$//')
-    TRAJECTORY=$(grep "Trajectory:" "$OUTPUT_DIR/dna.txt" | head -1 | sed 's/.*Trajectory: *//' | sed 's/ *$//')
-    CO_EVO=$(grep "Co-Evolution Ratio:" "$OUTPUT_DIR/dna.txt" | head -1 | sed 's/.*Co-Evolution Ratio: *//' | sed 's/ *$//')
+    MATURITY_SCORE=$(grep "Maturity Score:" "$OUTPUT_DIR/dna.txt" | head -1 | sed 's/.*Maturity Score: *//' | sed 's/ *$//' || true)
+    TRAJECTORY=$(grep "Trajectory:" "$OUTPUT_DIR/dna.txt" | head -1 | sed 's/.*Trajectory: *//' | sed 's/ *$//' || true)
+    CO_EVO=$(grep "Co-Evolution Ratio:" "$OUTPUT_DIR/dna.txt" | head -1 | sed 's/.*Co-Evolution Ratio: *//' | sed 's/ *$//' || true)
+    if [ -z "$MATURITY_SCORE" ]; then
+        MATURITY_SCORE="?"
+    fi
+    if [ -z "$TRAJECTORY" ]; then
+        TRAJECTORY="?"
+    fi
+    if [ -z "$CO_EVO" ]; then
+        CO_EVO="?"
+    fi
 fi
 
 # Parse drift output
@@ -340,7 +492,7 @@ PY
 )
 fi
 
-cat > "$OUTPUT_DIR/AUDIT_REPORT.md" << EOF
+if cat > "$OUTPUT_DIR/AUDIT_REPORT.md" << EOF
 # Audit Report: $REPO_NAME
 
 > Generated by repo-auditor.sh (deterministic)
@@ -397,8 +549,16 @@ $FIRED_SIGNATURES_MD
 
 $(if [ "$FAIL_COUNT" -eq 0 ]; then echo "None."; else echo "**$FAIL_COUNT tool(s) failed:** $FAILURES"; fi)
 EOF
-
-echo "  ✅ AUDIT_REPORT.md written"
+then
+    echo "  ✅ AUDIT_REPORT.md written"
+else
+    report_rc=$?
+    echo "  [report] ⚠️  AUDIT_REPORT.md generation failed (exit $report_rc)"
+    REPORT_GENERATION_FAILED=1
+    REPORT_GENERATION_REASON="report generation failed (exit $report_rc)"
+    FAILURES="$FAILURES report-generation"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+fi
 echo ""
 echo "================================================================"
 echo "Audit Complete: $REPO_NAME"
@@ -412,6 +572,7 @@ echo "  Tool failures:  $FAIL_COUNT"
 echo ""
 echo "Outputs:"
 echo "  $OUTPUT_DIR/AUDIT_REPORT.md"
+echo "  $OUTPUT_DIR/AUDIT_RUN_RECEIPT.json"
 echo "  $OUTPUT_DIR/SCORECARD.json"
 echo "  $OUTPUT_DIR/SCORECARD_RECEIPTS.json"
 echo "  $OUTPUT_DIR/CONTEXT_SCORE_MANIFEST.json"
@@ -512,6 +673,12 @@ fi
 
 # Lockfile cleanup handled by trap EXIT (set at lock acquisition)
 
-if [ "$FAIL_COUNT" -gt 0 ]; then
-    exit 1
+if finalize_audit_status; then
+    AUDIT_EXIT=0
+else
+    AUDIT_EXIT=$?
+fi
+
+if [ "$AUDIT_EXIT" -ne 0 ]; then
+    exit "$AUDIT_EXIT"
 fi

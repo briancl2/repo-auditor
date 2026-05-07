@@ -25,6 +25,7 @@ labels, hotspot fields, or exact attribution receipts are missing.
 | Artifact | Format | Description |
 |---|---|---|
 | SCORECARD.json | JSON (schemas/SCORECARD.schema.json) | 5-dimension composite score (0-100) |
+| AUDIT_RUN_RECEIPT.json | JSON | Run-level receipt with `status`, `reason`, required artifact presence, and exit code |
 | AUDIT_REPORT.md | Markdown | Human-readable audit summary |
 | pre-scan/PRE_SCAN.md | Markdown | File inventory and AI surface analysis |
 | maturity.txt | Plain text | Maturity phase classification |
@@ -44,6 +45,34 @@ labels, hotspot fields, or exact attribution receipts are missing.
 | 1 | Invalid arguments (missing TARGET or OUTPUT_DIR) |
 | 2 | Target not found or not a directory |
 | 3 | Tool failure (partial artifacts may exist) |
+
+## Run Receipt and Partial Artifacts
+
+Every invocation that has an output directory writes `AUDIT_RUN_RECEIPT.json`.
+The receipt is the authoritative way for consumers to distinguish complete,
+partial, and failed audit runs without inferring status from file presence alone.
+
+Receipt `status` values:
+
+- `completed`: required artifacts were produced and no audit tool failures were
+  recorded.
+- `partial`: a machine-readable scorecard was produced, but required report
+  artifacts are absent or report generation failed. Consumers may read
+  `SCORECARD.json`, but must treat the run as an incomplete artifact set.
+- `failed`: the audit could not complete successfully. The receipt includes a
+  non-empty `reason` and any known `failed_tools`.
+
+Required artifacts for completeness are `SCORECARD.json`,
+`SCORECARD_RECEIPTS.json`, and `AUDIT_REPORT.md`. The receipt records each
+required artifact under `required_artifacts` and lists missing files in
+`missing_required_artifacts`.
+
+When `SCORECARD.json` exists, its `meta` object mirrors the run state with:
+
+- `audit_status`: `completed`, `partial`, or `failed`
+- `artifact_status`: `completed` or `partial`
+- `missing_required_artifacts`: required artifacts absent at closeout
+- `audit_status_reason`: present when the status is not `completed`
 
 ## Invocation Examples
 
