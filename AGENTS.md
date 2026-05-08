@@ -45,7 +45,7 @@ maturity phase classification.
 | 3 | detection-signatures | Detection signature runner (DS-34 through DS-47 + AS-*) |
 | 4 | scoring | 5-dimension scoring pipeline + stall risk + maturity |
 
-## Scripts (49 total = 45 shell + 4 Python helpers)
+## Scripts (54 total = 50 shell + 4 Python helpers)
 
 ### Core Pipeline
 
@@ -94,6 +94,11 @@ maturity phase classification.
 | `scripts/detect-as-prompt-only-optimization-surface.sh` | AS-06 | Prompt-only optimization surface detection |
 | `scripts/detect-as-unused-platform-surface.sh` | AS-07 | Unused platform surface detection |
 | `scripts/detect-external-critique-health.sh` | AS-08 | External critique health detection |
+| `scripts/detect-as-cost-without-token-fields.sh` | AS-09 | Cost estimate without token fields detection |
+| `scripts/detect-as-cost-model-mismatch.sh` | AS-10 | Selected/current/modelMetrics mismatch detection |
+| `scripts/detect-as-request-tool-amplification-gap.sh` | AS-11 | Request/tool amplification gap detection |
+| `scripts/detect-as-pricing-provenance-gap.sh` | AS-12 | Pricing provenance gap detection |
+| `scripts/detect-as-copied-evidence-boundary-gap.sh` | AS-13 | Copied evidence boundary gap detection |
 
 ### Helpers
 

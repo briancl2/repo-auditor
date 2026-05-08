@@ -40,6 +40,11 @@ scripts=(
     "detect-as-prompt-only-optimization-surface.sh"
     "detect-as-unused-platform-surface.sh"
     "detect-external-critique-health.sh"
+    "detect-as-cost-without-token-fields.sh"
+    "detect-as-cost-model-mismatch.sh"
+    "detect-as-request-tool-amplification-gap.sh"
+    "detect-as-pricing-provenance-gap.sh"
+    "detect-as-copied-evidence-boundary-gap.sh"
 )
 
 idx=0

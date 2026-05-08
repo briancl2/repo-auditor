@@ -12,6 +12,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPT_TEMPLATE="$SKILL_DIR/references/review-prompt.md"
+COPILOT_BIN="${COPILOT_BIN:-/opt/homebrew/bin/copilot}"
+
+if [ ! -x "$COPILOT_BIN" ]; then
+    COPILOT_BIN="$(command -v copilot || true)"
+fi
+
+if [ -z "$COPILOT_BIN" ]; then
+    echo "ERROR: copilot executable not found. Set COPILOT_BIN to the full path."
+    exit 1
+fi
 
 # Verify prompt template exists
 if [ ! -f "$PROMPT_TEMPLATE" ]; then
@@ -74,7 +84,7 @@ fi
 echo "Reviewing $(git diff --cached --name-only | wc -l | tr -d ' ') staged file(s)..."
 echo ""
 
-copilot -p "$PROMPT" --no-color -s 2>&1
+"$COPILOT_BIN" -p "$PROMPT" --no-color -s 2>&1
 
 echo ""
 echo "Review complete."

@@ -62,3 +62,53 @@
 - **Severity:** HIGH
 - **Source:** BMA `D-004` row-authority landing on 2026-04-18, which bounded the reusable row to same-bundle summary-provenance, direct-parser, and raw-event parity on the three checked fields only
 - **Script:** `scripts/detect-summary-source-parity-gap.sh`
+
+### AS-09: Cost Estimate Without Token Fields
+- **Detects:** Dollar or cost estimates that do not carry direct token fields on the same evidence surface
+- **Signal:** A cost claim appears without fields such as `input_tokens`, `output_tokens`, `total_tokens`, `cache_read_tokens`, `cache_write_tokens`, or equivalent direct token counts
+- **Phase range:** Cost evidence / benchmark evidence surfaces
+- **Check:** Scan text and JSON surfaces for direct dollar/cost claims, then require at least one direct token field in the same file
+- **Fire condition:** `cost_without_token_field_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-cost-without-token-fields.sh`
+
+### AS-10: Cost Model Mismatch
+- **Detects:** Cost evidence where `selected`, `current`, and `modelMetrics.model` model fields disagree
+- **Signal:** A pricing or metrics payload is tied to more than one model identity without an explicit reconciliation surface
+- **Phase range:** Cost evidence / benchmark evidence surfaces
+- **Check:** Extract `selected_model` / `selectedModel`, `current_model` / `currentModel`, and `modelMetrics.model` from JSON-like text and compare normalized values
+- **Fire condition:** `model_mismatch_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-cost-model-mismatch.sh`
+
+### AS-11: Uncalled Request/Tool Amplification
+- **Detects:** Request or tool-call volume in cost/token evidence without an amplification or fan-out callout
+- **Signal:** Cost evidence includes request/tool counts but does not say whether tool fan-out amplified the apparent cost or token load
+- **Phase range:** Cost evidence / benchmark evidence surfaces
+- **Check:** Require an amplification, multiplier, or fan-out callout when request/tool volume appears alongside cost or token evidence
+- **Fire condition:** `uncalled_amplification_count > 0`
+- **Prevention tier:** T2
+- **Severity:** MEDIUM
+- **Script:** `scripts/detect-as-request-tool-amplification-gap.sh`
+
+### AS-12: Pricing Provenance Gap
+- **Detects:** API-equivalent pricing references that are stale or missing source/fetched-at provenance
+- **Signal:** A cost calculation uses per-million-token/API pricing without both source provenance and a dated `fetched_at` / timestamp / as-of marker
+- **Phase range:** Cost evidence / benchmark evidence surfaces
+- **Check:** Scan API-equivalent pricing references, require source plus timestamp/date provenance, and flag references whose newest date is older than 180 days
+- **Fire condition:** `missing_pricing_provenance_count > 0` or `stale_pricing_reference_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-pricing-provenance-gap.sh`
+
+### AS-13: Copied Evidence Boundary Gap
+- **Detects:** Review payload bloat or unclear boundaries between copied evidence and authored claims
+- **Signal:** A copied/review evidence payload includes long copied blocks or claim language without explicit copied-evidence and authored-claim boundaries
+- **Phase range:** Review, benchmark, and cost-evidence surfaces
+- **Check:** Scan copied-evidence/review payload surfaces for long quoted payloads or claim language and require boundary markers such as `copied_evidence`, `authored_claims`, or an explicit claims boundary
+- **Fire condition:** `unclear_boundary_count > 0`
+- **Prevention tier:** T2
+- **Severity:** MEDIUM
+- **Script:** `scripts/detect-as-copied-evidence-boundary-gap.sh`
