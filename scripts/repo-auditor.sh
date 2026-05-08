@@ -228,7 +228,8 @@ fi
 
 # ── C4: Pre-operation guard rails (Stage 11.2) ───────────────────────
 # ── C4: Shared lockdir (single definition, passed to guard) ──────────
-LOCKDIR="${REPO_AUDITOR_LOCKDIR:-${TMPDIR:-/tmp}/repo-auditor-locks}"
+TMPDIR_CLEAN="${TMPDIR:-/tmp}"
+LOCKDIR="${REPO_AUDITOR_LOCKDIR:-${TMPDIR_CLEAN%/}/repo-auditor-locks}"
 
 GUARD_SCRIPT="$SCRIPT_DIR/operation-guard.sh"
 if [ -x "$GUARD_SCRIPT" ]; then
