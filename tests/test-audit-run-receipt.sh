@@ -144,6 +144,23 @@ assert "SCORECARD.json" in receipt["missing_required_artifacts"], receipt
 PY
 }
 
+assert_guard_failed_receipt() {
+    local out_dir="$1"
+    python3 - "$out_dir" <<'PY'
+import json
+import pathlib
+import sys
+
+out = pathlib.Path(sys.argv[1])
+receipt = json.load(open(out / "AUDIT_RUN_RECEIPT.json"))
+
+assert receipt["status"] == "failed", receipt
+assert receipt["exit_code"] == 3, receipt
+assert "operation guard failed" in receipt["reason"], receipt
+assert "operation-guard" in receipt["failed_tools"], receipt
+PY
+}
+
 echo "=== Audit Run Receipt Validation ==="
 rm -rf "$TEST_ROOT"
 mkdir -p "$TEST_ROOT"
@@ -187,5 +204,25 @@ if [ "$FAILED_RC" -eq 0 ]; then
 fi
 assert_failed_receipt "$FAILED_OUT"
 echo "  ✓ failed audit writes failed receipt with reason"
+
+LOCKED_REPO="$TEST_ROOT/locked-repo"
+LOCKED_OUT="$TEST_ROOT/locked-output"
+create_fixture_repo "$LOCKED_REPO"
+DEFAULT_LOCKDIR="${TMPDIR:-/tmp}/repo-auditor-locks"
+LOCKFILE="$DEFAULT_LOCKDIR/$(echo "$LOCKED_REPO" | tr '/' '_').lock"
+mkdir -p "$DEFAULT_LOCKDIR"
+echo $$ > "$LOCKFILE"
+set +e
+bash "$REPO_ROOT/scripts/repo-auditor.sh" "$LOCKED_REPO" "$LOCKED_OUT" \
+    > "$TEST_ROOT/locked.log" 2>&1
+LOCKED_RC=$?
+set -e
+rm -f "$LOCKFILE"
+if [ "$LOCKED_RC" -eq 0 ]; then
+    echo "FAIL: active shared lock should block audit even with independent output dir"
+    exit 1
+fi
+assert_guard_failed_receipt "$LOCKED_OUT"
+echo "  ✓ active shared lock blocks concurrent audit across output dirs"
 
 echo "  VERDICT: PASS"

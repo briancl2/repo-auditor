@@ -31,7 +31,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-LOCKDIR="${LOCKDIR:-/tmp/repo-auditor-locks}"
+LOCKDIR="${LOCKDIR:-${TMPDIR:-/tmp}/repo-auditor-locks}"
 LOCKFILE="$LOCKDIR/$(echo "$TARGET" | tr '/' '_').lock"
 
 PASS=0
