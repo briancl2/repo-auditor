@@ -37,6 +37,10 @@ fi
 
 REPO_NAME=$(basename "$(pwd)")
 
+has_any_output() {
+    awk 'NF { found = 1 } END { exit(found ? 0 : 1) }'
+}
+
 # ============================================================
 # S1: Refactor Ratio (0-25)
 # ============================================================
@@ -155,12 +159,12 @@ fi
 PLAN_INFRA=0
 
 # Has plan-generation skill?
-if find . -maxdepth 5 -path "*/plan*" -name "SKILL.md" -not -path "./.git/*" 2>/dev/null | grep -q .; then
+if find . -maxdepth 5 -path "*/plan*" -name "SKILL.md" -not -path "./.git/*" 2>/dev/null | has_any_output; then
     PLAN_INFRA=$((PLAN_INFRA + 3))
 fi
 
 # Plans have PR/commit tracking?
-PLAN_FILES=$(find . -maxdepth 4 -not -path "./.git/*" \( -iname "*plan*" -o -iname "*roadmap*" \) -name "*.md" -type f 2>/dev/null | head -20)
+PLAN_FILES=$(find . -maxdepth 4 -not -path "./.git/*" \( -iname "*plan*" -o -iname "*roadmap*" \) -name "*.md" -type f 2>/dev/null | awk 'NR <= 20 { print }')
 if [ -n "$PLAN_FILES" ]; then
     SHA_PLANS=0
     while IFS= read -r pf; do
