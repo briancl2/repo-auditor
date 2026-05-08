@@ -191,6 +191,26 @@ if [ "$TOTAL_FILES" -ne "$MATURITY_TOTAL_FILES" ] || [ "$TOTAL_FILES" -ne "$DNA_
     COUNT_RECON_NOTE="Count surfaces disagree and require reconciliation before this scorecard can act as a portable widening receipt."
 fi
 
+AUDITORIGNORE_ACTIVE=false
+AUDITORIGNORE_ENTRY_COUNT=0
+AUDITORIGNORE_ENTRY_COUNT_STATUS="none"
+if [ -f "$DIR/pre-scan-log.txt" ]; then
+    AUDITORIGNORE_RAW=$(awk -F: '/^Auditorignore:/ { split($2, parts, /[[:space:]]+/); for (idx in parts) if (parts[idx] != "") { print parts[idx]; exit } }' "$DIR/pre-scan-log.txt" 2>/dev/null || true)
+    case "$AUDITORIGNORE_RAW" in
+        yes|YES|Yes|true|TRUE|True)
+            AUDITORIGNORE_ACTIVE=true
+            AUDITORIGNORE_ENTRY_COUNT_STATUS="unknown"
+            ;;
+    esac
+fi
+if [ -n "$REPO_PATH" ] && [ -f "$REPO_PATH/.auditorignore" ]; then
+    AUDITORIGNORE_ACTIVE=true
+    AUDITORIGNORE_ENTRY_COUNT_STATUS="known"
+    AUDITORIGNORE_ENTRY_COUNT=$(
+        sed 's/#.*//' "$REPO_PATH/.auditorignore" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | awk 'NF { count += 1 } END { print count + 0 }'
+    ) || AUDITORIGNORE_ENTRY_COUNT=0
+fi
+
 # --- Compute dimension scores (each 0-20) ---
 
 # D1 Governance: avg(GOV_COUNT, DNA_G) × 4 — blend avoids masking disagreement
@@ -496,7 +516,36 @@ cat > "$DIR/SCORECARD_RECEIPTS.json" << EOF
     "pre_scan_total_files": $PRE_SCAN_TOTAL_FILES,
     "maturity_total_files": $MATURITY_TOTAL_FILES,
     "dna_total_files": $DNA_TOTAL_FILES,
-    "note": $COUNT_RECON_NOTE_JSON
+    "note": $COUNT_RECON_NOTE_JSON,
+    "denominator_semantics": {
+      "name": "auditor_pruned_analysis_scorecard_denominator",
+      "authoritative_total_files_meaning": "Files counted on the auditor-pruned analysis and scorecard surface.",
+      "source": "pre-scan Total files, reconciled with maturity.txt and dna.txt totals",
+      "count_behavior": "metadata-only; existing count behavior is preserved"
+    },
+    "excluded_path_classes": {
+      "default_pruned_directories": [
+        ".git",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".tox",
+        ".mypy_cache",
+        "__pycache__",
+        "vendor",
+        ".eggs"
+      ],
+      "default_excluded_files": [
+        ".DS_Store"
+      ],
+      "auditorignore": {
+        "active": $AUDITORIGNORE_ACTIVE,
+        "entry_count": $AUDITORIGNORE_ENTRY_COUNT,
+        "entry_count_status": "$AUDITORIGNORE_ENTRY_COUNT_STATUS",
+        "entries_emitted": false,
+        "entry_values_source": "CONTEXT_SCORE_MANIFEST.json auditorignore.entries when that artifact is retained"
+      }
+    }
   },
   "dimensions": {
     "D3_skill_maturity": {
@@ -670,6 +719,14 @@ for dim, fields in required_fields.items():
 assert receipts["count_reconciliation"]["authoritative_total_files"] >= 0
 assert receipts["count_reconciliation"]["maturity_total_files"] >= 0
 assert receipts["count_reconciliation"]["dna_total_files"] >= 0
+recon = receipts["count_reconciliation"]
+assert recon["denominator_semantics"]["name"] == "auditor_pruned_analysis_scorecard_denominator"
+classes = recon["excluded_path_classes"]
+for required_dir in [".git", ".venv", "venv", "node_modules", ".tox", ".mypy_cache", "__pycache__", "vendor", ".eggs"]:
+    assert required_dir in classes["default_pruned_directories"]
+assert ".DS_Store" in classes["default_excluded_files"]
+assert isinstance(classes["auditorignore"]["active"], bool)
+assert classes["auditorignore"]["entries_emitted"] is False
 PY
 
 # --- Print summary to stdout ---

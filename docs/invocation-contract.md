@@ -25,6 +25,7 @@ labels, hotspot fields, or exact attribution receipts are missing.
 | Artifact | Format | Description |
 |---|---|---|
 | SCORECARD.json | JSON (schemas/SCORECARD.schema.json) | 5-dimension composite score (0-100) |
+| SCORECARD_RECEIPTS.json | JSON | Raw dimension receipts plus count reconciliation metadata |
 | AUDIT_RUN_RECEIPT.json | JSON | Run-level receipt with `status`, `reason`, required artifact presence, and exit code |
 | AUDIT_REPORT.md | Markdown | Human-readable audit summary |
 | pre-scan/PRE_SCAN.md | Markdown | File inventory and AI surface analysis |
@@ -66,6 +67,41 @@ Required artifacts for completeness are `SCORECARD.json`,
 `SCORECARD_RECEIPTS.json`, and `AUDIT_REPORT.md`. The receipt records each
 required artifact under `required_artifacts` and lists missing files in
 `missing_required_artifacts`.
+
+## Scorecard Receipts and Count Reconciliation
+
+`SCORECARD_RECEIPTS.json.count_reconciliation` records the file-count surface
+used by the scorecard. Existing consumers can continue reading:
+
+- `status`
+- `authoritative_total_files`
+- `pre_scan_total_files`
+- `maturity_total_files`
+- `dna_total_files`
+- `note`
+
+The authoritative total is the auditor-pruned analysis/scorecard denominator:
+files counted after repo-auditor excludes its default non-analysis path classes
+and any active `.auditorignore` rules. The metadata is descriptive only and does
+not change count behavior.
+
+Additive metadata fields:
+
+- `denominator_semantics.name`:
+  `auditor_pruned_analysis_scorecard_denominator`
+- `denominator_semantics.authoritative_total_files_meaning`: a plain-language
+  description of the authoritative count surface
+- `denominator_semantics.source`: the pre-scan total reconciled with maturity
+  and DNA totals
+- `denominator_semantics.count_behavior`: states that the metadata is
+  descriptive only and does not change existing counts
+- `excluded_path_classes.default_pruned_directories`: `.git`, `.venv`, `venv`,
+  `node_modules`, `.tox`, `.mypy_cache`, `__pycache__`, `vendor`, and `.eggs`
+- `excluded_path_classes.default_excluded_files`: `.DS_Store`
+- `excluded_path_classes.auditorignore`: active state, entry count, and an
+  `entry_count_status` of `known`, `unknown`, or `none`; it also includes an
+  explicit `entries_emitted=false` marker so scorecard receipts do not enumerate
+  target-private ignored paths
 
 When `SCORECARD.json` exists, its `meta` object mirrors the run state with:
 
