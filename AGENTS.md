@@ -45,7 +45,7 @@ maturity phase classification.
 | 3 | detection-signatures | Detection signature runner (DS-34 through DS-47 + AS-*) |
 | 4 | scoring | 5-dimension scoring pipeline + stall risk + maturity |
 
-## Scripts (54 total = 50 shell + 4 Python helpers)
+## Scripts (55 total = 50 shell + 5 Python helpers)
 
 ### Core Pipeline
 
@@ -107,6 +107,7 @@ maturity phase classification.
 | `scripts/assemble_ds_results.py` | Assemble DS-34+ results |
 | `scripts/as_signature_scan.py` | Shared AS-* signature evaluator |
 | `scripts/backtest_ds34_42.py` | Backtest DS-34 through DS-42 against targets |
+| `scripts/collect-target-native-quality-gates.py` | Additive target-local quality gate receipt collector |
 | `scripts/ds_json_helper.py` | Safe JSON output for detection scripts |
 
 ### Gates and Hooks
@@ -168,6 +169,7 @@ make help                          # Show all available targets
 | AUDIT_REPORT.md | Markdown | Human-readable report with findings |
 | PRE_SCAN.md | Markdown | File inventory and AI surface analysis |
 | DS-34-plus-results.json | JSON | Extended signature bundle for DS-34+ and AS-* |
+| TARGET_NATIVE_QUALITY_GATES.json | JSON | Additive target-local quality gate receipt when retained local gate evidence exists |
 
 ## Token Budget
 

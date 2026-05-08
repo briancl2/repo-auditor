@@ -63,6 +63,35 @@
         }
       }
     },
+    "receipts": {
+      "type": "object",
+      "properties": {
+        "file": { "type": "string" },
+        "version": { "type": "string" },
+        "count_reconciliation_status": { "type": "string" },
+        "target_native_quality_gates": {
+          "type": "object",
+          "required": ["file", "version", "status", "target_gate_state", "contradiction"],
+          "properties": {
+            "file": { "type": "string", "const": "TARGET_NATIVE_QUALITY_GATES.json" },
+            "version": { "type": "string" },
+            "status": { "type": "string", "enum": ["present"] },
+            "target_gate_state": { "type": "string", "enum": ["pass", "fail", "warning", "unknown"] },
+            "contradiction": {
+              "type": "string",
+              "enum": [
+                "target_policy_explained",
+                "unresolved",
+                "true_target_risk",
+                "fleet_metric_stale",
+                "partial_run_no_verdict",
+                "unclassified_requires_amendment"
+              ]
+            }
+          }
+        }
+      }
+    },
     "meta": {
       "type": "object",
       "required": ["phase", "maturity_score", "timestamp", "auditor_version"],
