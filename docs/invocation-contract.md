@@ -27,6 +27,7 @@ labels, hotspot fields, or exact attribution receipts are missing.
 | SCORECARD.json | JSON (schemas/SCORECARD.schema.json) | 5-dimension composite score (0-100) |
 | SCORECARD_RECEIPTS.json | JSON | Raw dimension receipts plus count reconciliation metadata |
 | AUDIT_RUN_RECEIPT.json | JSON | Run-level receipt with `status`, `reason`, required artifact presence, and exit code |
+| TARGET_NATIVE_QUALITY_GATES.json | JSON | Additive target-local quality gate receipt emitted only when retained local gate evidence is present |
 | AUDIT_REPORT.md | Markdown | Human-readable audit summary |
 | pre-scan/PRE_SCAN.md | Markdown | File inventory and AI surface analysis |
 | maturity.txt | Plain text | Maturity phase classification |
@@ -109,6 +110,29 @@ When `SCORECARD.json` exists, its `meta` object mirrors the run state with:
 - `artifact_status`: `completed` or `partial`
 - `missing_required_artifacts`: required artifacts absent at closeout
 - `audit_status_reason`: present when the status is not `completed`
+
+## Target-Native Quality Gates
+
+When a target already retains a recognizable local quality gate artifact, the
+auditor emits `TARGET_NATIVE_QUALITY_GATES.json` and adds pointers to
+`SCORECARD.json.receipts.target_native_quality_gates` and
+`SCORECARD_RECEIPTS.json.target_native_quality_gates`.
+
+This receipt is parallel evidence only. It does not replace
+`SCORECARD.json.composite`, dimensions, or Tier-1/Tier-2 checks. If the generic
+audit output is partial or missing required artifacts, the contradiction is
+`partial_run_no_verdict` and the receipt states that the partial diagnostic is
+not a target-quality verdict. If gate-like evidence is present but unclassified,
+the contradiction is `unclassified_requires_amendment`.
+
+Provisional contradiction values:
+
+- `target_policy_explained`
+- `unresolved`
+- `true_target_risk`
+- `fleet_metric_stale`
+- `partial_run_no_verdict`
+- `unclassified_requires_amendment`
 
 ## Invocation Examples
 

@@ -98,6 +98,7 @@ REPORT_GENERATION_REASON=""
 
 # Create output structure before any auditable failure so receipts have a home.
 mkdir -p "$OUTPUT_DIR/pre-scan"
+rm -f "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" "$OUTPUT_DIR/target-native-quality-gates-log.txt"
 
 required_artifacts_missing() {
     local missing=""
@@ -561,6 +562,47 @@ else
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 echo ""
+
+# --- Additive target-native quality gate receipt ---
+TARGET_NATIVE_SCRIPT="$SCRIPT_DIR/collect-target-native-quality-gates.py"
+if [ -f "$TARGET_NATIVE_SCRIPT" ] && [ -f "$OUTPUT_DIR/SCORECARD.json" ] && [ -f "$OUTPUT_DIR/SCORECARD_RECEIPTS.json" ]; then
+    echo "--- Collecting target-native quality gate evidence ---"
+    echo ""
+    TARGET_NATIVE_MISSING="$(required_artifacts_missing)"
+    TARGET_NATIVE_AUDIT_STATUS="completed"
+    if [ "$REPORT_GENERATION_FAILED" -eq 1 ] || [ -n "$TARGET_NATIVE_MISSING" ]; then
+        TARGET_NATIVE_AUDIT_STATUS="partial"
+    elif [ "$FAIL_COUNT" -gt 0 ]; then
+        TARGET_NATIVE_AUDIT_STATUS="failed"
+    fi
+    if python3 "$TARGET_NATIVE_SCRIPT" "$REPO" "$OUTPUT_DIR" \
+        --audit-status "$TARGET_NATIVE_AUDIT_STATUS" \
+        --missing-required-artifacts "$TARGET_NATIVE_MISSING" \
+        > "$OUTPUT_DIR/target-native-quality-gates-log.txt" 2>&1; then
+        if [ -f "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" ]; then
+            TARGET_NATIVE_CONTRADICTION=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("contradiction", "unknown"))' "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" 2>/dev/null || echo "unknown")
+            TARGET_NATIVE_STATE=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("target_gate_state", "unknown"))' "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" 2>/dev/null || echo "unknown")
+            echo "  [target-native] ✅ receipt written ($TARGET_NATIVE_CONTRADICTION)"
+            if [ -f "$OUTPUT_DIR/AUDIT_REPORT.md" ]; then
+                printf '\n## Target-Native Quality Gates\n\n| Field | Value |\n|---|---|\n| Receipt | TARGET_NATIVE_QUALITY_GATES.json |\n| Target gate state | %s |\n| Contradiction | %s |\n\nTarget-native quality gate evidence is parallel truth; it does not replace the generic fleet score.\n' \
+                    "$TARGET_NATIVE_STATE" "$TARGET_NATIVE_CONTRADICTION" >> "$OUTPUT_DIR/AUDIT_REPORT.md"
+            fi
+        else
+            echo "  [target-native] no retained local gate found"
+        fi
+    else
+        rc=$?
+        echo "  [target-native] ⚠️  exit $rc (details in target-native-quality-gates-log.txt)"
+        FAILURES="$FAILURES target-native-quality-gates"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        if [ -f "$OUTPUT_DIR/AUDIT_REPORT.md" ]; then
+            printf '\n## Target-Native Quality Gates\n\nTarget-native quality gate collection failed. See `target-native-quality-gates-log.txt`; generic scorecard artifacts remain available.\n' \
+                >> "$OUTPUT_DIR/AUDIT_REPORT.md"
+        fi
+    fi
+    echo ""
+fi
+
 echo "================================================================"
 echo "Audit Complete: $REPO_NAME"
 echo "================================================================"
@@ -576,6 +618,9 @@ echo "  $OUTPUT_DIR/AUDIT_REPORT.md"
 echo "  $OUTPUT_DIR/AUDIT_RUN_RECEIPT.json"
 echo "  $OUTPUT_DIR/SCORECARD.json"
 echo "  $OUTPUT_DIR/SCORECARD_RECEIPTS.json"
+if [ -f "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" ]; then
+    echo "  $OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json"
+fi
 echo "  $OUTPUT_DIR/CONTEXT_SCORE_MANIFEST.json"
 echo "================================================================"
 

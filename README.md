@@ -31,6 +31,7 @@ make review
 | `SCORECARD.json` | Machine-readable | repo-upgrade-advisor, repo-optimizer, continuous loop |
 | `AUDIT_REPORT.md` | Human-readable | Developer |
 | `DS-34-plus-results.json` | Machine-readable | DS-34+ and AS-* signature-level diagnostics |
+| `TARGET_NATIVE_QUALITY_GATES.json` | Machine-readable | Additive target-local quality gate evidence when retained target artifacts are present |
 | `*_findings.json` | Per-domain details | Internal |
 | `TOKEN_MEASUREMENT_SUMMARY.json` | Machine-readable | additive measurement-mode pilot |
 | `HOTSPOT_EVIDENCE_PACKETS.json` | Machine-readable | additive measurement-mode pilot |
