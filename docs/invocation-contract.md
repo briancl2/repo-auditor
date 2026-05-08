@@ -25,7 +25,7 @@ labels, hotspot fields, or exact attribution receipts are missing.
 | Artifact | Format | Description |
 |---|---|---|
 | SCORECARD.json | JSON (schemas/SCORECARD.schema.json) | 5-dimension composite score (0-100) |
-| SCORECARD_RECEIPTS.json | JSON | Raw dimension receipts plus count reconciliation metadata |
+| SCORECARD_RECEIPTS.json | JSON | Raw dimension receipts plus count reconciliation and inventory metadata |
 | AUDIT_RUN_RECEIPT.json | JSON | Run-level receipt with `status`, `reason`, required artifact presence, and exit code |
 | TARGET_NATIVE_QUALITY_GATES.json | JSON | Additive target-local quality gate receipt emitted only when retained local gate evidence is present |
 | AUDIT_REPORT.md | Markdown | Human-readable audit summary |
@@ -110,6 +110,39 @@ When `SCORECARD.json` exists, its `meta` object mirrors the run state with:
 - `artifact_status`: `completed` or `partial`
 - `missing_required_artifacts`: required artifacts absent at closeout
 - `audit_status_reason`: present when the status is not `completed`
+
+## Dual Inventory Receipts
+
+Every standard audit with scorecard artifacts adds inventory metadata to
+`SCORECARD_RECEIPTS.json` and a compact pointer at
+`SCORECARD.json.receipts.dual_inventory`.
+
+`SCORECARD_RECEIPTS.json.primary_surface_inventory` records a bounded inventory
+of primary AI, instruction, agent, skill, governance, validation, and workflow
+surfaces. It includes:
+
+- `status`: `available`, `available_empty`, `available_limited`, or
+  `unavailable`
+- `scan_limit` and `scan_limit_reached`
+- `total_unique_paths`
+- `categories` with bounded path samples and omitted-path counts
+- `non_authorization_statement`
+
+`SCORECARD_RECEIPTS.json.full_facts_inventory` records the broader
+auditor-pruned fact surface by coarse class counts. It includes:
+
+- `status`: `available`, `available_limited`, or `unavailable`
+- `scan_limit` and `scan_limit_reached`
+- `total_files_scanned`
+- `class_counts`
+- `.auditorignore` active/count state without ignored path values
+- `paths_emitted=false`
+- `non_authorization_statement`
+
+Inventory receipts are evidence context only. Missing, empty, limited, or
+unavailable inventory means insufficient evidence for stronger downstream claims;
+it never authorizes deletion, archiving, compression, or rewriting of target
+files. The default inventory scan limit is 200 auditor-pruned files per target.
 
 ## Target-Native Quality Gates
 

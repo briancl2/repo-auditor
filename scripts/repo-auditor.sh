@@ -368,6 +368,24 @@ else
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
+# --- Additive dual inventory receipts ---
+DUAL_INVENTORY_SCRIPT="$SCRIPT_DIR/collect-dual-inventory.py"
+if [ -f "$DUAL_INVENTORY_SCRIPT" ] && [ -f "$OUTPUT_DIR/SCORECARD.json" ] && [ -f "$OUTPUT_DIR/SCORECARD_RECEIPTS.json" ]; then
+    echo "--- Collecting dual inventory evidence ---"
+    echo ""
+    if python3 "$DUAL_INVENTORY_SCRIPT" "$REPO" "$OUTPUT_DIR" > "$OUTPUT_DIR/dual-inventory-log.txt" 2>&1; then
+        DUAL_PRIMARY_STATUS=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["primary_surface_inventory"]["status"])' "$OUTPUT_DIR/SCORECARD_RECEIPTS.json" 2>/dev/null || echo "unknown")
+        DUAL_FULL_STATUS=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["full_facts_inventory"]["status"])' "$OUTPUT_DIR/SCORECARD_RECEIPTS.json" 2>/dev/null || echo "unknown")
+        echo "  [dual-inventory] ✅ receipts written (primary=$DUAL_PRIMARY_STATUS, full=$DUAL_FULL_STATUS)"
+    else
+        rc=$?
+        echo "  [dual-inventory] ⚠️  exit $rc (details in dual-inventory-log.txt)"
+        FAILURES="$FAILURES dual-inventory"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+    fi
+    echo ""
+fi
+
 # --- Generate composite report ---
 echo ""
 echo "--- Generating AUDIT_REPORT.md ---"

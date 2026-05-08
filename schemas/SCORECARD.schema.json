@@ -89,6 +89,31 @@
               ]
             }
           }
+        },
+        "dual_inventory": {
+          "type": "object",
+          "required": [
+            "file",
+            "version",
+            "primary_surface_inventory_status",
+            "full_facts_inventory_status",
+            "non_authorization"
+          ],
+          "properties": {
+            "file": { "type": "string", "const": "SCORECARD_RECEIPTS.json" },
+            "version": { "type": "string" },
+            "primary_surface_inventory_status": {
+              "type": "string",
+              "enum": ["available", "available_empty", "available_limited", "unavailable"]
+            },
+            "primary_surface_count": { "type": "integer", "minimum": 0 },
+            "full_facts_inventory_status": {
+              "type": "string",
+              "enum": ["available", "available_limited", "unavailable"]
+            },
+            "full_facts_total_files_scanned": { "type": "integer", "minimum": 0 },
+            "non_authorization": { "type": "boolean", "const": true }
+          }
         }
       }
     },
