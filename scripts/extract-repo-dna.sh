@@ -16,6 +16,10 @@ cd "$REPO"
 
 REPO_NAME=$(basename "$(pwd)")
 
+has_any_output() {
+    awk 'NF { found = 1 } END { exit(found ? 0 : 1) }'
+}
+
 # .auditorignore support — exclude archival directories from file counts.
 # Keep default excludes aligned with pre-scan + maturity counted-file surfaces.
 FIND_EXCLUDES="-not -path './.git/*' -not -name '.DS_Store' -not -path '*/.venv/*' -not -path '*/venv/*' -not -path '*/node_modules/*' -not -path '*/.tox/*' -not -path '*/.mypy_cache/*' -not -path '*/__pycache__/*' -not -path '*/vendor/*' -not -path '*/.eggs/*'"
@@ -75,21 +79,21 @@ fi
 # ============================================================
 Sc=0
 # Structural scorers (file existence checks)
-find . -maxdepth 4 -not -path './.git/*' \( -name "preflight*.sh" -o -name "check-*.sh" \) 2>/dev/null | grep -q . && Sc=$((Sc + 1))
+find . -maxdepth 4 -not -path './.git/*' \( -name "preflight*.sh" -o -name "check-*.sh" \) 2>/dev/null | has_any_output && Sc=$((Sc + 1))
 # Heuristic scorers (content grep)
-find . -maxdepth 4 -not -path './.git/*' \( -name "score-*.sh" -o -name "score*.py" \) 2>/dev/null | grep -q . && Sc=$((Sc + 1))
+find . -maxdepth 4 -not -path './.git/*' \( -name "score-*.sh" -o -name "score*.py" \) 2>/dev/null | has_any_output && Sc=$((Sc + 1))
 # Validation scripts
-find . -maxdepth 4 -not -path './.git/*' \( -name "validate-*.sh" -o -name "validate_*.py" \) 2>/dev/null | grep -q . && Sc=$((Sc + 1))
+find . -maxdepth 4 -not -path './.git/*' \( -name "validate-*.sh" -o -name "validate_*.py" \) 2>/dev/null | has_any_output && Sc=$((Sc + 1))
 # Test suites
-find . -maxdepth 4 -not -path './.git/*' \( -name "test_*.py" -o -name "*_test.py" -o -name "test-*.sh" \) 2>/dev/null | grep -q . && Sc=$((Sc + 1))
+find . -maxdepth 4 -not -path './.git/*' \( -name "test_*.py" -o -name "*_test.py" -o -name "test-*.sh" \) 2>/dev/null | has_any_output && Sc=$((Sc + 1))
 # CI workflows
-[ -d ".github/workflows" ] && find .github/workflows -maxdepth 1 \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | grep -q . && Sc=$((Sc + 1))
+[ -d ".github/workflows" ] && find .github/workflows -maxdepth 1 \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | has_any_output && Sc=$((Sc + 1))
 # Makefile test targets
 [ -f "Makefile" ] && grep -qE '^(test|check|lint|validate|score|review):' Makefile 2>/dev/null && Sc=$((Sc + 1))
 # pytest/jest config
 { [ -f "pytest.ini" ] || [ -f "pyproject.toml" ] || [ -f "jest.config.js" ]; } && Sc=$((Sc + 1))
 # Panel/LLM judges
-find . -maxdepth 4 -not -path './.git/*' \( -name "*panel*" -o -name "*judge*" -o -name "*llm-judge*" \) 2>/dev/null | grep -q . && Sc=$((Sc + 1))
+find . -maxdepth 4 -not -path './.git/*' \( -name "*panel*" -o -name "*judge*" -o -name "*llm-judge*" \) 2>/dev/null | has_any_output && Sc=$((Sc + 1))
 [ "$Sc" -gt 10 ] && Sc=10
 
 # ============================================================
@@ -117,14 +121,14 @@ G=0
 # Pi: Plan Infrastructure (0-4)
 # ============================================================
 Pi=0
-PLAN_FILES=$(find . -maxdepth 4 -not -path './.git/*' \( -iname "*plan*" -o -iname "*roadmap*" \) -name "*.md" -type f 2>/dev/null | head -20)
+PLAN_FILES=$(find . -maxdepth 4 -not -path './.git/*' \( -iname "*plan*" -o -iname "*roadmap*" \) -name "*.md" -type f 2>/dev/null | awk 'NR <= 20 { print }')
 [ -n "$PLAN_FILES" ] && Pi=1  # ad-hoc plans exist
 
 # Template-based plans?
-find . -maxdepth 5 -path "*template*" -iname "*plan*" -not -path './.git/*' 2>/dev/null | grep -q . && Pi=2
+find . -maxdepth 5 -path "*template*" -iname "*plan*" -not -path './.git/*' 2>/dev/null | has_any_output && Pi=2
 
 # Skill-generated plans?
-find . -maxdepth 5 -path "*plan*" -name "SKILL.md" -not -path './.git/*' 2>/dev/null | grep -q . && Pi=3
+find . -maxdepth 5 -path "*plan*" -name "SKILL.md" -not -path './.git/*' 2>/dev/null | has_any_output && Pi=3
 
 # PR-tracked + quantified outcomes?
 if [ -n "$PLAN_FILES" ]; then
@@ -156,20 +160,20 @@ Cp=0
 # ============================================================
 Ad=0
 # Stage 1: Manual checks (evidence of any audit-related files)
-find . -maxdepth 4 -iname "*audit*" -not -path './.git/*' 2>/dev/null | grep -q . && Ad=1
+find . -maxdepth 4 -iname "*audit*" -not -path './.git/*' 2>/dev/null | has_any_output && Ad=1
 # Stage 2: Scripted validation
-find . -maxdepth 4 -not -path './.git/*' \( -name "validate-*.sh" -o -name "check-*.sh" -o -name "preflight*.sh" \) 2>/dev/null | grep -q . && Ad=2
+find . -maxdepth 4 -not -path './.git/*' \( -name "validate-*.sh" -o -name "check-*.sh" -o -name "preflight*.sh" \) 2>/dev/null | has_any_output && Ad=2
 # Stage 3: Agent-driven audit
 AUDIT_AGENTS=0
 while IFS= read -r af; do
     [ -z "$af" ] && continue
     grep -qiE "audit" "$af" 2>/dev/null && AUDIT_AGENTS=1 && break
-done < <(find . -maxdepth 5 -name "*.agent.md" -not -path './.git/*' 2>/dev/null | head -30)
+done < <(find . -maxdepth 5 -name "*.agent.md" -not -path './.git/*' 2>/dev/null | awk 'NR <= 30 { print }')
 [ "$AUDIT_AGENTS" -eq 1 ] && Ad=3
 # Stage 4: Multi-model comparison
-find . -maxdepth 5 -iname "*comparison*" -o -iname "*multi-model*" -o -iname "*cross-model*" 2>/dev/null | grep -q . && Ad=4
+find . -maxdepth 5 -iname "*comparison*" -o -iname "*multi-model*" -o -iname "*cross-model*" 2>/dev/null | has_any_output && Ad=4
 # Stage 5: Self-evaluating (runtime logs + meta-reviews)
-find . -maxdepth 5 -iname "*runtime*log*" -o -iname "*self-audit*" -o -iname "*meta-review*" 2>/dev/null | grep -q . && Ad=5
+find . -maxdepth 5 -iname "*runtime*log*" -o -iname "*self-audit*" -o -iname "*meta-review*" 2>/dev/null | has_any_output && Ad=5
 # Stage 6: Self-scheduling (CI-triggered audits)
 if [ -d ".github/workflows" ]; then
     CI_AUDIT=0
@@ -187,13 +191,13 @@ Ab=0
 [ "$AGENT_COUNT" -gt 0 ] && Ab=1                          # agents exist
 [ "$SKILL_COUNT" -gt 0 ] && [ "$AGENT_COUNT" -gt 0 ] && Ab=2  # agents use skills
 # Skills generate plans?
-find . -maxdepth 5 -path "*plan*" -name "SKILL.md" -not -path './.git/*' 2>/dev/null | grep -q . && Ab=3
+find . -maxdepth 5 -path "*plan*" -name "SKILL.md" -not -path './.git/*' 2>/dev/null | has_any_output && Ab=3
 # Optimizers use audit findings?
 OPTIM_AGENTS=0
 while IFS= read -r af; do
     [ -z "$af" ] && continue
     grep -qiE "optim" "$af" 2>/dev/null && OPTIM_AGENTS=1 && break
-done < <(find . -maxdepth 5 -name "*.agent.md" -not -path './.git/*' 2>/dev/null | head -30)
+done < <(find . -maxdepth 5 -name "*.agent.md" -not -path './.git/*' 2>/dev/null | awk 'NR <= 30 { print }')
 [ "$OPTIM_AGENTS" -eq 1 ] && [ "$Ad" -ge 3 ] && Ab=4
 
 # ============================================================
