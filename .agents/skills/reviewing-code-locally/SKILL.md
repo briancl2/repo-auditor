@@ -53,8 +53,9 @@ The script:
 1. Captures `git diff --cached`
 2. Reads full contents of each changed file (up to 500 lines per file)
 3. Substitutes diff + file context into the review prompt template
-4. Runs `copilot -p "<prompt>" --no-color -s`
-5. Prints findings to stdout
+4. Runs `copilot -p "<prompt>" --no-color -s` with stdin suppressed
+5. Fails closed on timeout instead of hanging indefinitely
+6. Prints findings to stdout
 
 ### Step 3: Act on findings
 
@@ -79,6 +80,7 @@ Each finding includes file path, line range, description, and suggested fix. End
 ## Known Limitations
 
 - **ARG_MAX**: Prompt is passed as a CLI argument (`copilot -p`). Capped at 500KB to leave headroom for macOS ARG_MAX (~1MB including env).
+- **Timeout**: `REVIEW_TIMEOUT_SECONDS` defaults to 900 seconds; timeout exits 124 and does not print a success completion.
 - **File context reads working tree**: File contents come from the working tree, not the staged index.
 - **Large files skipped**: Files over 500 lines are excluded from context to avoid prompt bloat.
 - **Placeholder collision**: If a diff contains the literal strings `{{DIFF}}` or `{{FILE_CONTEXT}}`, the awk substitution will misfire.
@@ -87,6 +89,8 @@ Each finding includes file path, line range, description, and suggested fix. End
 
 - `make review` with nothing staged prints "Nothing staged" and exits 1
 - `make review` with staged changes prints severity-tagged findings to stdout
+- Copilot child stdin is `/dev/null`, so inherited terminal/stdin streams cannot hang the review
+- Timeout failures exit nonzero without `Review complete.`
 - Repo-specific rules surface via auto-loaded `AGENTS.md`
 - Review completes in under 30 seconds for typical diffs (<500 lines)
 
