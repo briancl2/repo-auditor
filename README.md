@@ -8,6 +8,9 @@ Standalone **repo health auditor** — produces machine-readable scorecards (SCO
 # Audit a target repository
 make audit TARGET=~/repos/some-target-repo
 
+# Explicitly audit a clean HEAD snapshot when the live target is dirty
+make audit-snapshot TARGET=~/repos/some-target-repo OUTPUT_DIR=./audit-output SNAPSHOT_DIR=./audit-snapshot
+
 # Replay the additive token-efficiency pilot
 make token-efficiency-measure
 
@@ -23,6 +26,8 @@ make review
 4. **Produces** AUDIT_REPORT.md (human-readable) + per-domain findings
 5. **Optionally replays** a frozen token-efficiency corpus into additive pilot artifacts
 6. **Runs** the DS-34+ bundle plus the AS-* owner-surface health family
+7. **Optionally audits** an explicit clean HEAD snapshot of a dirty target with
+   provenance receipts
 
 ## Outputs
 
@@ -32,6 +37,7 @@ make review
 | `AUDIT_REPORT.md` | Human-readable | Developer |
 | `DS-34-plus-results.json` | Machine-readable | DS-34+ and AS-* signature-level diagnostics |
 | `TARGET_NATIVE_QUALITY_GATES.json` | Machine-readable | Additive target-local quality gate evidence when retained target artifacts are present |
+| `CLEAN_HEAD_SNAPSHOT_RECEIPT.json` | Machine-readable | Provenance for explicit clean HEAD snapshot audits of dirty targets |
 | `*_findings.json` | Per-domain details | Internal |
 | `TOKEN_MEASUREMENT_SUMMARY.json` | Machine-readable | additive measurement-mode pilot |
 | `HOTSPOT_EVIDENCE_PACKETS.json` | Machine-readable | additive measurement-mode pilot |

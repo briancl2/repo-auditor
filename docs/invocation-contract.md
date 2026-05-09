@@ -7,6 +7,7 @@
 | TARGET | Yes | Path to target repository (absolute recommended) |
 | OUTPUT_DIR | Yes | Path to output directory (will be created; absolute recommended) |
 | MODE | No | `standard` (default) or `deep` |
+| SNAPSHOT_DIR | Snapshot mode only | Directory to create for an explicit clean HEAD snapshot |
 
 ## Additive Pilot
 
@@ -20,6 +21,23 @@ This pilot does not modify `SCORECARD.json` semantics. It replays a retained
 token-efficiency source pack into additive artifacts and fails closed when
 labels, hotspot fields, or exact attribution receipts are missing.
 
+## Clean HEAD Snapshot Mode
+
+Dirty git targets still fail the standard audit guard. When an operator needs
+committed-state evidence from a dirty real-world target, use the explicit
+snapshot mode:
+
+```bash
+make audit-snapshot TARGET=<path> OUTPUT_DIR=<dir> SNAPSHOT_DIR=<dir>
+```
+
+Snapshot mode clones the target's committed HEAD into `SNAPSHOT_DIR` with local
+clone optimizations disabled, runs the unchanged standard auditor against that
+snapshot, and writes provenance to `CLEAN_HEAD_SNAPSHOT_RECEIPT.json`. It does
+not include untracked or modified source worktree files, does not mutate the
+source target, does not change score semantics, and does not change dual
+inventory scan limits.
+
 ## Outputs (all written to OUTPUT_DIR/)
 
 | Artifact | Format | Description |
@@ -28,6 +46,7 @@ labels, hotspot fields, or exact attribution receipts are missing.
 | SCORECARD_RECEIPTS.json | JSON | Raw dimension receipts plus count reconciliation and inventory metadata |
 | AUDIT_RUN_RECEIPT.json | JSON | Run-level receipt with `status`, `reason`, required artifact presence, and exit code |
 | TARGET_NATIVE_QUALITY_GATES.json | JSON | Additive target-local quality gate receipt emitted only when retained local gate evidence is present |
+| CLEAN_HEAD_SNAPSHOT_RECEIPT.json | JSON | Snapshot-mode provenance receipt emitted only by explicit clean HEAD snapshot invocation |
 | AUDIT_REPORT.md | Markdown | Human-readable audit summary |
 | pre-scan/PRE_SCAN.md | Markdown | File inventory and AI surface analysis |
 | maturity.txt | Plain text | Maturity phase classification |
@@ -167,11 +186,33 @@ Provisional contradiction values:
 - `partial_run_no_verdict`
 - `unclassified_requires_amendment`
 
+## Clean HEAD Snapshot Receipts
+
+When `make audit-snapshot` is used, `CLEAN_HEAD_SNAPSHOT_RECEIPT.json` records:
+
+- `mode=clean-head-snapshot`
+- source path, branch, HEAD, tree, dirty state, and status counts
+- snapshot path, HEAD, tree, clone arguments, and clean status
+- audit output directory and audit exit code
+- explicit non-authorization and scan-cap statements
+
+Completed snapshot audits also add compact pointers at
+`SCORECARD_RECEIPTS.json.clean_head_snapshot` and
+`SCORECARD.json.receipts.clean_head_snapshot`. Consumers must treat these runs
+as committed-HEAD snapshot evidence, not live dirty-worktree evidence. Snapshot
+mode does not authorize target cleanup and does not convert scan-limited
+inventory into complete evidence.
+
 ## Invocation Examples
 
 ### Bash (direct)
 ```bash
 bash scripts/repo-auditor.sh /path/to/target /path/to/output
+```
+
+### Bash (clean HEAD snapshot)
+```bash
+python3 scripts/audit-clean-head-snapshot.py /path/to/target /path/to/output --snapshot-dir /path/to/snapshot
 ```
 
 ### Agent (copilot CLI)
@@ -183,4 +224,4 @@ cd ~/repos/repo-auditor && copilot --model claude-haiku-4.5 \
 
 ## Version
 - Contract: 1.0
-- Compatible with: repo-auditor.sh, repo-auditor.agent.md
+- Compatible with: repo-auditor.sh, audit-clean-head-snapshot.py, repo-auditor.agent.md

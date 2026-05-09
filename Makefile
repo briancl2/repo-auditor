@@ -1,7 +1,8 @@
-.PHONY: review audit audit-deep audit-quick token-efficiency-measure test validate help install-hooks check work work-close health
+.PHONY: review audit audit-deep audit-quick audit-snapshot token-efficiency-measure test validate help install-hooks check work work-close health
 
 TARGET ?= .
 OUTPUT_DIR ?= audit_output
+SNAPSHOT_DIR ?= $(OUTPUT_DIR).clean-head-snapshot
 SOURCE_PACK ?= tests/fixtures/token-efficiency-measurement-pilot/source-pack.json
 
 help:
@@ -9,6 +10,7 @@ help:
 	@echo ""
 	@echo "Targets:"
 	@echo "  make audit TARGET=<path>       Standard audit (deterministic)"
+	@echo "  make audit-snapshot TARGET=<path> OUTPUT_DIR=<dir> SNAPSHOT_DIR=<dir>"
 	@echo "  make audit-deep TARGET=<path>  Deep audit with LLM domain agents"
 	@echo "  make audit-quick TARGET=<path> Quick pre-scan only"
 	@echo "  make token-efficiency-measure  Replay frozen token-efficiency corpus"
@@ -28,6 +30,11 @@ audit:
 	@mkdir -p $(OUTPUT_DIR)
 	@bash scripts/repo-auditor.sh "$(TARGET)" "$(OUTPUT_DIR)"
 	@echo "=== Audit complete. Artifacts in $(OUTPUT_DIR)/ ==="
+
+audit-snapshot:
+	@echo "=== repo-auditor: Clean HEAD Snapshot Mode ==="
+	@python3 scripts/audit-clean-head-snapshot.py "$(TARGET)" "$(OUTPUT_DIR)" --snapshot-dir "$(SNAPSHOT_DIR)"
+	@echo "=== Snapshot audit complete. Artifacts in $(OUTPUT_DIR)/; snapshot in $(SNAPSHOT_DIR)/ ==="
 
 audit-deep:
 	@echo "=== repo-auditor: Deep Mode ==="

@@ -45,7 +45,7 @@ maturity phase classification.
 | 3 | detection-signatures | Detection signature runner (DS-34 through DS-47 + AS-*) |
 | 4 | scoring | 5-dimension scoring pipeline + stall risk + maturity |
 
-## Scripts (65 total = 55 shell + 10 Python helpers)
+## Scripts (66 total = 55 shell + 11 Python helpers)
 
 ### Core Pipeline
 
@@ -110,6 +110,7 @@ maturity phase classification.
 | Script | Purpose |
 |---|---|
 | `scripts/assemble_ds_results.py` | Assemble DS-34+ results |
+| `scripts/audit-clean-head-snapshot.py` | Explicit clean-HEAD snapshot audit wrapper for dirty targets |
 | `scripts/as_signature_scan.py` | Shared AS-* signature evaluator |
 | `scripts/backtest_ds34_42.py` | Backtest DS-34 through DS-42 against targets |
 | `scripts/collect-dual-inventory.py` | Additive primary-surface and full-facts inventory receipt collector |
@@ -135,6 +136,7 @@ maturity phase classification.
 ```bash
 # Mode A -- Outbound (from this repo)
 make audit TARGET=~/repos/some-repo
+make audit-snapshot TARGET=~/repos/some-repo OUTPUT_DIR=./audit-output SNAPSHOT_DIR=./audit-snapshot
 
 # Mode B -- Inbound (from target repo, reference this agent)
 # Add to target's AGENTS.md: @repo-auditor at briancl2/repo-auditor
