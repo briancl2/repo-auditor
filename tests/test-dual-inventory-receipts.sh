@@ -113,12 +113,18 @@ assert ".agents/skills/example/SKILL.md" in primary["categories"]["skill_definit
 assert full["status"] == "available", full
 assert full["scan_limit"] == 200, full
 assert full["scan_limit_reached"] is False, full
+assert full["denominator_mode"] == "not_measured", full
+assert full["auditor_pruned_total_files"] is None, full
+assert full["scan_coverage_ratio"] is None, full
 assert full["paths_emitted"] is False, full
 assert full["auditorignore"]["active"] is True, full
 assert full["auditorignore"]["entries_emitted"] is False, full
 assert pointer["file"] == "SCORECARD_RECEIPTS.json", pointer
 assert pointer["primary_surface_inventory_status"] == "available", pointer
 assert pointer["full_facts_inventory_status"] == "available", pointer
+assert pointer["full_facts_denominator_mode"] == "not_measured", pointer
+assert pointer["full_facts_auditor_pruned_total_files"] is None, pointer
+assert pointer["full_facts_scan_coverage_ratio"] is None, pointer
 assert pointer["non_authorization"] is True, pointer
 serialized = json.dumps(receipts, sort_keys=True)
 assert "ignored-private" not in serialized, serialized
@@ -221,6 +227,36 @@ assert scorecard["receipts"]["dual_inventory"]["full_facts_inventory_status"] ==
 assert scorecard["composite"] == 42
 PY
 echo "  ✓ scan-limited inventory is explicit insufficient evidence"
+
+DENOMINATOR_OUT="$TMP_ROOT/denominator-output"
+make_score_output "$DENOMINATOR_OUT"
+REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES=50 \
+    REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR=1 \
+    python3 "$REPO_ROOT/scripts/collect-dual-inventory.py" "$LIMITED_TARGET" "$DENOMINATOR_OUT"
+python3 - "$DENOMINATOR_OUT" <<'PY'
+import json
+import pathlib
+import sys
+
+out = pathlib.Path(sys.argv[1])
+receipts = json.load(open(out / "SCORECARD_RECEIPTS.json"))
+scorecard = json.load(open(out / "SCORECARD.json"))
+full = receipts["full_facts_inventory"]
+pointer = scorecard["receipts"]["dual_inventory"]
+
+assert full["status"] == "available_limited", full
+assert full["scan_limit"] == 50, full
+assert full["total_files_scanned"] == 50, full
+assert full["denominator_mode"] == "full_walk", full
+assert full["auditor_pruned_total_files"] == 206, full
+assert full["scan_coverage_ratio"] == round(50 / 206, 6), full
+assert full["git_tracked_file_count"] is None, full
+assert pointer["full_facts_denominator_mode"] == "full_walk", pointer
+assert pointer["full_facts_auditor_pruned_total_files"] == 206, pointer
+assert pointer["full_facts_scan_coverage_ratio"] == round(50 / 206, 6), pointer
+assert pointer["non_authorization"] is True, pointer
+PY
+echo "  ✓ opt-in denominator mode reports coverage without changing score"
 
 UNAVAILABLE_OUT="$TMP_ROOT/unavailable-output"
 make_score_output "$UNAVAILABLE_OUT"
