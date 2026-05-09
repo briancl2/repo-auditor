@@ -11,7 +11,7 @@ required_context:
   - AGENTS.md
   - detection-signatures/DS-1-through-DS-33.md
 stop_rules:
-  max_files_scanned: 200
+  max_files_scanned: 1000
   timeout_seconds: 900
   halt_on: "pre-scan failure"
 outputs:
@@ -69,4 +69,4 @@ After the script completes, verify:
 - Verify `git status --porcelain` after every phase
 - Allowed dirty paths: `$OUTPUT_DIR/` only
 - Schema-validate SCORECARD.json before writing final output
-- Max 200 files scanned per run
+- Max 1000 files scanned per run by default; higher caps require explicit trusted-local environment override

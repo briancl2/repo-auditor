@@ -192,7 +192,7 @@ make help                          # Show all available targets
 
 ## Stop Rules
 
-- Max 200 files scanned per target
+- Max 1000 files scanned per target by default; higher caps require explicit trusted-local environment override
 - Max 30 files per domain subagent
 - Max 900 seconds per run
 - Halt on pre-scan failure

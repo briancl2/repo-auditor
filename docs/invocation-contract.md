@@ -168,15 +168,17 @@ auditor-pruned fact surface by coarse class counts. It includes:
 Inventory receipts are evidence context only. Missing, empty, limited, or
 unavailable inventory means insufficient evidence for stronger downstream claims;
 it never authorizes deletion, archiving, compression, or rewriting of target
-files. The default inventory scan limit is 200 auditor-pruned files per target.
+files. The default inventory scan limit is 1000 auditor-pruned files per target.
 
 By default, dual inventory keeps denominator fields unmeasured to preserve the
 bounded scan contract. Operators that need cap-curve evidence may set
 `REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR=1` to add a full auditor-pruned
 file denominator and coverage ratio. Operators may set
 `REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES=<n>` to choose the bounded inventory cap.
-These fields are descriptive evidence only and do not change scoring, scan
-status, or non-authorization semantics.
+Caps above the default are trusted-local measurement policy: they require that
+explicit environment override and do not weaken dirty-target guards, mutate the
+target, or authorize downstream cleanup. These fields are descriptive evidence
+only and do not change scoring, scan status, or non-authorization semantics.
 
 ## Target-Native Quality Gates
 

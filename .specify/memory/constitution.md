@@ -47,9 +47,11 @@ severity, evidence format. New signatures must be validated against known
 positive and negative examples before merge.
 
 ### 6. Bounded Execution
-Scan budget: max 200 files per target. Check timeout: 5 minutes total.
-If a target exceeds these bounds, the auditor reports partial results with
-a coverage warning, not a failure.
+Default dual-inventory scan budget: max 1000 auditor-pruned files per target.
+Higher caps are trusted-local measurement policy and require explicit
+`REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES=<n>` override. Check timeout: 5 minutes
+total. If a target exceeds these bounds, the auditor reports partial results
+with a coverage warning, not a failure.
 
 ## Spec-Kit Operating Rules
 
