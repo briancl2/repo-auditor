@@ -190,6 +190,14 @@ Recommended model: claude-sonnet-4.6 for the next production route.
 production_confirmation_receipt: missing
 EOF
 
+cat > "$TEST_REPO/docs/phase-attribution-alias-gap.md" <<'EOF'
+# Phase Attribution Alias Gap
+
+The phase1b_xcode phase attribution proves pre-phase token growth and cost growth.
+largest_positive_phase_delta: phase1b_xcode
+phase_label_semantics: []
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -203,8 +211,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 22
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 22
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 23
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 23
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -230,6 +238,7 @@ assert as_ids == {
     "AS-20",
     "AS-21",
     "AS-22",
+    "AS-23",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -318,6 +327,9 @@ No model recommendation is made from this evidence.
 production_confirmation_receipt: retained pass
 
 Recommendation: update the docs after the evidence packet is retained.
+
+Phase attribution is grounded with phase_label_semantics: multi_artifact_phase1b_retrieval_alias.
+The phase1b_xcode label is the Phase 1B retrieval command boundary, not an isolated Xcode-only request.
 EOF
 
 python3 - "$REPO_ROOT" "$CLEAN_REPO" <<'PY'
@@ -341,6 +353,7 @@ scripts = {
     "AS-20": "detect-as-stale-copilot-reporting-reuse.sh",
     "AS-21": "detect-as-promotion-without-control-noise-floor.sh",
     "AS-22": "detect-as-model-recommendation-before-production-confirmation.sh",
+    "AS-23": "detect-as-phase-attribution-alias-gap.sh",
 }
 
 for signature_id, script in scripts.items():

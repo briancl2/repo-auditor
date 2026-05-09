@@ -144,6 +144,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-model-recommendation-before-production-confirmation.sh",
     },
+    "AS-23": {
+        "name": "Phase attribution alias gap",
+        "severity": "MEDIUM",
+        "prevention_tier": "T2",
+        "script": "detect-as-phase-attribution-alias-gap.sh",
+    },
 }
 
 
@@ -1229,6 +1235,63 @@ def model_recommendation_before_production_confirmation(texts: dict[str, str]) -
     }
 
 
+PHASE_ATTRIBUTION_CLAIM_PATTERN = re.compile(
+    r"\b(phase[-_ ]?specific|phase[-_ ]?level|pre[-_ ]?phase|phase1b|phase1b_xcode|"
+    r"phase attribution|attribution|token growth|context growth|source growth|"
+    r"cost growth|largest_positive_phase_delta)\b"
+)
+PHASE_ALIAS_RISK_PATTERN = re.compile(
+    r"\b(phase1b_xcode|last receipt|last_receipt|boundary_receipt|multi[-_ ]?artifact|"
+    r"receipt label|phase label|phase_id)\b"
+)
+PHASE_ALIAS_GROUNDING_PATTERN = re.compile(
+    r"\b(phase_label_semantics|multi_artifact_phase1b_retrieval_alias|"
+    r"multi[-_ ]?artifact (command|phase|retrieval|semantics)|"
+    r"phase1b_retrieval|command boundary|not an isolated xcode|"
+    r"not xcode[-_ ]?only|orchestrator_semantics|receipt[-_ ]?alias)\b"
+)
+PHASE_ALIAS_MISSING_PATTERN = re.compile(
+    r"\b(phase_label_semantics|orchestrator_semantics|command boundary|"
+    r"receipt[-_ ]?alias|multi[-_ ]?artifact semantics)\s*[:=]\s*"
+    r"((missing|none|false|no|null|n/a|na|0)\b|\[\](?=\s|$|[,}]))"
+)
+
+
+def phase_attribution_alias_gap(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
+    offenders: list[str] = []
+    grounded: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        lowered = text.lower()
+        if not PHASE_ATTRIBUTION_CLAIM_PATTERN.search(lowered):
+            continue
+        if not PHASE_ALIAS_RISK_PATTERN.search(lowered):
+            continue
+        if PHASE_ALIAS_MISSING_PATTERN.search(lowered):
+            offenders.append(path)
+        elif PHASE_ALIAS_GROUNDING_PATTERN.search(lowered):
+            grounded.append(path)
+        else:
+            offenders.append(path)
+
+    details = [
+        f"alias_gap=>{','.join(offenders[:4]) or 'none'}",
+        f"alias_grounded=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "phase_alias_claim_file_count": len(offenders) + len(grounded),
+            "phase_attribution_alias_gap_count": len(offenders),
+            "phase_attribution_alias_grounded_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "phase attribution uses risky receipt labels without alias/command-boundary semantics" if offenders else "phase attribution is alias-grounded or absent",
+    }
+
+
 COPIED_EVIDENCE_PATTERN = re.compile(r"\b(copied evidence|copied-evidence|evidence payload|review payload|verbatim evidence)\b")
 AUTHOR_BOUNDARY_PATTERN = re.compile(
     r"\b(authored claims?|author claims?|claims boundary|copied evidence boundary|"
@@ -1292,6 +1355,7 @@ EVALUATORS = {
     "AS-20": stale_copilot_reporting_reuse,
     "AS-21": promotion_without_control_noise_floor,
     "AS-22": model_recommendation_before_production_confirmation,
+    "AS-23": phase_attribution_alias_gap,
 }
 
 

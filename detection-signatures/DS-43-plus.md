@@ -202,3 +202,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-model-recommendation-before-production-confirmation.sh`
+
+### AS-23: Phase Attribution Alias Gap
+- **Detects:** Phase/token attribution claims that rely on risky receipt labels without explaining command-boundary or alias semantics
+- **Signal:** A cost or token-growth surface credits a phase label such as `phase1b_xcode` while that label may be a last-receipt alias for a broader multi-artifact command
+- **Phase range:** Cost attribution, canary attribution, pre-Phase context/source growth, and phase metrics evidence surfaces
+- **Check:** Scan phase-attribution claims with alias-risk markers and require same-surface `phase_label_semantics`, command-boundary, multi-artifact, or receipt-alias grounding
+- **Fire condition:** `phase_attribution_alias_gap_count > 0`
+- **Prevention tier:** T2
+- **Severity:** MEDIUM
+- **Script:** `scripts/detect-as-phase-attribution-alias-gap.sh`

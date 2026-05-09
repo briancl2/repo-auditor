@@ -54,6 +54,7 @@ scripts=(
     "detect-as-stale-copilot-reporting-reuse.sh"
     "detect-as-promotion-without-control-noise-floor.sh"
     "detect-as-model-recommendation-before-production-confirmation.sh"
+    "detect-as-phase-attribution-alias-gap.sh"
 )
 
 idx=0
