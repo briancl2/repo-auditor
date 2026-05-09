@@ -50,6 +50,10 @@ scripts=(
     "detect-as-aggregate-only-readiness.sh"
     "detect-as-stale-direct-token-evidence.sh"
     "detect-as-forbidden-public-customernewsletter-mutation.sh"
+    "detect-as-model-effort-binding-gap.sh"
+    "detect-as-stale-copilot-reporting-reuse.sh"
+    "detect-as-promotion-without-control-noise-floor.sh"
+    "detect-as-model-recommendation-before-production-confirmation.sh"
 )
 
 idx=0
