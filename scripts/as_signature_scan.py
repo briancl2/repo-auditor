@@ -132,7 +132,23 @@ INSTRUCTION_FILES = {
 }
 
 TEXT_EXTENSIONS = {".md", ".txt", ".json", ".yml", ".yaml", ".sh", ".py", ".prompt"}
-SKIP_PARTS = {".git", "node_modules", "vendor", "__pycache__", "work", "audit_output", ".tmp"}
+SKIP_PARTS = {
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules",
+    ".tox",
+    ".mypy_cache",
+    "__pycache__",
+    "vendor",
+    ".eggs",
+    "work",
+    "audit_output",
+    ".tmp",
+}
+SYNTHETIC_EVIDENCE_PARTS = {"fixture", "fixtures", "__fixtures__", "testdata", "test-data"}
+SYNTHETIC_EVIDENCE_ROOTS = {"test", "tests"}
+SELF_INSTRUMENTATION_PATHS = {"scripts/as_signature_scan.py"}
 
 
 def parse_args() -> tuple[str, Path]:
@@ -149,7 +165,7 @@ def load_texts(repo: Path) -> dict[str, str]:
         if not path.is_file():
             continue
         rel = path.relative_to(repo)
-        if any(part in SKIP_PARTS for part in rel.parts):
+        if any(part.lower() in SKIP_PARTS for part in rel.parts):
             continue
         if path.suffix.lower() not in TEXT_EXTENSIONS and path.name not in INSTRUCTION_FILES:
             continue
@@ -158,6 +174,19 @@ def load_texts(repo: Path) -> dict[str, str]:
         except OSError:
             continue
     return texts
+
+
+def is_instrumentation_noise_path(path: str) -> bool:
+    parts = tuple(part.lower() for part in path.split("/"))
+    if path in SELF_INSTRUMENTATION_PATHS:
+        return True
+    if any(part in SYNTHETIC_EVIDENCE_PARTS for part in parts):
+        return True
+    return bool(parts) and parts[0] in SYNTHETIC_EVIDENCE_ROOTS
+
+
+def owner_evidence_texts(texts: dict[str, str]) -> dict[str, str]:
+    return {path: text for path, text in texts.items() if not is_instrumentation_noise_path(path)}
 
 
 def rels_matching(texts: dict[str, str], predicate) -> list[str]:
@@ -404,23 +433,22 @@ def unused_platform_surface(texts: dict[str, str]) -> dict[str, Any]:
 
 
 def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
-    detector_path = "scripts/as_signature_scan.py"
+    evidence_texts = owner_evidence_texts(texts)
     responder_truth_files = rels_matching(
-        texts,
+        evidence_texts,
         lambda path, text: re.search(r"\b(responder truth|responder-truth|truth.*output|output.*truth)\b", text) is not None,
     )
     receipt_output_files = rels_matching(
-        texts,
+        evidence_texts,
         lambda path, text: re.search(r"\b(receipt-output|receipt.*output|output.*receipt|receipt.*mismatch)\b", text) is not None,
     )
     helper_only_files = rels_matching(
-        texts,
+        evidence_texts,
         lambda path, text: re.search(r"\b(helper-only|helper only|helper-only misclassification)\b", text) is not None,
     )
     bounded_calibration_files = rels_matching(
-        texts,
-        lambda path, text: path != detector_path
-        and re.search(
+        evidence_texts,
+        lambda path, text: re.search(
             r"\b(external_critique_health|bounded_current_anchor|bounded_calibrated|downstream_admission\b.{0,24}\bbounded)\b",
             text,
         )
@@ -428,7 +456,8 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
     )
     validation_files = rels_matching(
         texts,
-        lambda path, text: (
+        lambda path, text: path not in SELF_INSTRUMENTATION_PATHS
+        and (
             path.endswith(".sh")
             or path.endswith(".py")
             or path.endswith(".md")
@@ -485,7 +514,7 @@ DIRECT_COST_CLAIM_PATTERN = re.compile(
 def cost_without_token_fields(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
-    for path, text in texts.items():
+    for path, text in owner_evidence_texts(texts).items():
         lowered = text.lower()
         if not DIRECT_COST_CLAIM_PATTERN.search(lowered):
             continue
@@ -524,7 +553,7 @@ def normalize_model_name(value: str) -> str:
 def cost_model_mismatch(texts: dict[str, str]) -> dict[str, Any]:
     mismatches: list[str] = []
     matched: list[str] = []
-    for path, text in texts.items():
+    for path, text in owner_evidence_texts(texts).items():
         extracted: dict[str, str] = {}
         for field, pattern in MODEL_FIELD_PATTERNS.items():
             match = pattern.search(text)
@@ -568,7 +597,7 @@ AMPLIFICATION_CALLOUT_PATTERN = re.compile(
 def request_tool_amplification_gap(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     called_out: list[str] = []
-    for path, text in texts.items():
+    for path, text in owner_evidence_texts(texts).items():
         lowered = text.lower()
         if not AMPLIFICATION_SIGNAL_PATTERN.search(lowered):
             continue
@@ -611,7 +640,7 @@ def pricing_provenance_gap(texts: dict[str, str]) -> dict[str, Any]:
     stale: list[str] = []
     missing: list[str] = []
     current: list[str] = []
-    for path, text in texts.items():
+    for path, text in owner_evidence_texts(texts).items():
         lowered = text.lower()
         if not API_PRICING_PATTERN.search(lowered):
             continue
@@ -684,12 +713,9 @@ def has_affirmative_enablement_auth(text: str) -> bool:
 
 
 def unauthorized_production_default_enablement(texts: dict[str, str]) -> dict[str, Any]:
-    detector_path = "scripts/as_signature_scan.py"
     offenders: list[str] = []
     authorized: list[str] = []
-    for path, text in texts.items():
-        if path == detector_path:
-            continue
+    for path, text in owner_evidence_texts(texts).items():
         lowered_text = text.lower()
         candidate_lines = []
         for line in text.splitlines():
@@ -750,12 +776,9 @@ MISSING_CONTROL_PATTERN = re.compile(
 
 
 def missing_rollback_control_proof(texts: dict[str, str]) -> dict[str, Any]:
-    detector_path = "scripts/as_signature_scan.py"
     offenders: list[str] = []
     controlled: list[str] = []
-    for path, text in texts.items():
-        if path == detector_path:
-            continue
+    for path, text in owner_evidence_texts(texts).items():
         lowered = text.lower()
         if not ENABLEMENT_CLAIM_PATTERN.search(lowered):
             continue
@@ -832,12 +855,9 @@ def has_affirmative_per_case_evidence(text: str) -> bool:
 
 
 def aggregate_only_readiness(texts: dict[str, str]) -> dict[str, Any]:
-    detector_path = "scripts/as_signature_scan.py"
     offenders: list[str] = []
     grounded: list[str] = []
-    for path, text in texts.items():
-        if path == detector_path:
-            continue
+    for path, text in owner_evidence_texts(texts).items():
         lowered = text.lower()
         if not READINESS_CLAIM_PATTERN.search(lowered):
             continue
@@ -875,15 +895,12 @@ TOKEN_EVIDENCE_CONTEXT_PATTERN = re.compile(
 def stale_direct_token_evidence(texts: dict[str, str]) -> dict[str, Any]:
     from datetime import date
 
-    detector_path = "scripts/as_signature_scan.py"
     today = date.today()
     stale_threshold_days = 30
     stale: list[str] = []
     current: list[str] = []
     undated: list[str] = []
-    for path, text in texts.items():
-        if path == detector_path:
-            continue
+    for path, text in owner_evidence_texts(texts).items():
         lowered = text.lower()
         if not TOKEN_FIELD_PATTERN.search(lowered) or not TOKEN_EVIDENCE_CONTEXT_PATTERN.search(lowered):
             continue
@@ -939,12 +956,9 @@ CUSTOMER_NEWSLETTER_GUARDRAIL_PATTERN = re.compile(
 
 
 def forbidden_public_customernewsletter_mutation(texts: dict[str, str]) -> dict[str, Any]:
-    detector_path = "scripts/as_signature_scan.py"
     offenders: list[str] = []
     guarded: list[str] = []
-    for path, text in texts.items():
-        if path == detector_path:
-            continue
+    for path, text in owner_evidence_texts(texts).items():
         for line in text.splitlines():
             lowered = line.lower()
             if not CUSTOMER_NEWSLETTER_PATTERN.search(lowered):
@@ -984,7 +998,7 @@ CLAIM_PATTERN = re.compile(r"\b(conclude|therefore|proves|shows|recommend|should
 def copied_evidence_boundary_gap(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     bounded: list[str] = []
-    for path, text in texts.items():
+    for path, text in owner_evidence_texts(texts).items():
         lowered = text.lower()
         if not COPIED_EVIDENCE_PATTERN.search(lowered):
             continue

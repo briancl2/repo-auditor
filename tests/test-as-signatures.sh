@@ -290,4 +290,61 @@ for signature_id, script in scripts.items():
     assert payload["fired"] is False, payload
 PY
 
+NOISE_REPO="$TMPDIR/as-noise-only-repo"
+mkdir -p \
+    "$NOISE_REPO/.venv/docs" \
+    "$NOISE_REPO/vendor/docs" \
+    "$NOISE_REPO/tests/fixtures/as" \
+    "$NOISE_REPO/tests"
+
+cat > "$NOISE_REPO/README.md" <<'EOF'
+# Noise-only fixture
+EOF
+
+cat > "$NOISE_REPO/.venv/docs/cost.md" <<'EOF'
+# Virtualenv Cost Evidence
+
+Estimated cost: $88.40 for a synthetic fixture run.
+EOF
+
+cat > "$NOISE_REPO/vendor/docs/cost.md" <<'EOF'
+# Vendor Cost Evidence
+
+Estimated cost: $88.40 for a synthetic fixture run.
+EOF
+
+cat > "$NOISE_REPO/tests/fixtures/as/cost.md" <<'EOF'
+# Fixture Cost Evidence
+
+Estimated cost: $88.40 for a synthetic fixture run.
+EOF
+
+cat > "$NOISE_REPO/tests/test-as-signatures.sh" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' 'Estimated cost: $88.40 for a synthetic fixture run.'
+EOF
+chmod +x "$NOISE_REPO/tests/test-as-signatures.sh"
+
+python3 - "$REPO_ROOT" "$NOISE_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, noise_repo = sys.argv[1:3]
+completed = subprocess.run(
+    ["bash", f"{repo_root}/scripts/detect-as-cost-without-token-fields.sh", noise_repo],
+    check=True,
+    text=True,
+    stdout=subprocess.PIPE,
+)
+payload = json.loads(completed.stdout)
+assert payload["ds_id"] == "AS-09", payload
+assert payload["fired"] is False, payload
+assert payload["signals"]["cost_claim_file_count"] == 0, payload
+assert payload["signals"]["cost_without_token_field_count"] == 0, payload
+evidence = payload["evidence"]
+for filtered_path in [".venv", "vendor", "tests/fixtures", "tests/test-as-signatures.sh"]:
+    assert filtered_path not in evidence, payload
+PY
+
 echo "=== test-as-signatures.sh: PASS ==="
