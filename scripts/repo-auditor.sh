@@ -90,6 +90,8 @@ fi
 REPO="${POSITIONAL[0]}"
 OUTPUT_DIR="${POSITIONAL[1]:-audit_output}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+RUN_STARTED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+RUN_STARTED_EPOCH="$(date '+%s')"
 
 FAILURES=""
 FAIL_COUNT=0
@@ -148,22 +150,40 @@ write_audit_run_receipt() {
     local exit_code="${3:-0}"
     local missing
     local artifact_status
+    local completed_at
+    local completed_epoch
+    local elapsed_seconds
 
     missing="$(required_artifacts_missing)"
     artifact_status="completed"
     if [ -n "$missing" ]; then
         artifact_status="partial"
     fi
+    completed_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    completed_epoch="$(date '+%s')"
+    elapsed_seconds=$((completed_epoch - RUN_STARTED_EPOCH))
 
     update_scorecard_audit_metadata "$status" "$artifact_status" "$missing" "$reason" || true
 
     python3 -c '
-import datetime
 import json
 import os
 import sys
 
-out, status, reason, exit_code, failures, missing_raw, artifact_status, context_id, compare_version = sys.argv[1:10]
+(
+    out,
+    status,
+    reason,
+    exit_code,
+    failures,
+    missing_raw,
+    artifact_status,
+    context_id,
+    compare_version,
+    started_at,
+    completed_at,
+    elapsed_seconds,
+) = sys.argv[1:13]
 required = ["SCORECARD.json", "SCORECARD_RECEIPTS.json", "AUDIT_REPORT.md"]
 artifacts = {}
 for name in required:
@@ -178,7 +198,10 @@ receipt = {
     "status": status,
     "reason": reason or None,
     "exit_code": int(exit_code),
-    "timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "timestamp": completed_at,
+    "started_at": started_at,
+    "completed_at": completed_at,
+    "elapsed_seconds": int(elapsed_seconds),
     "audit_context_id": context_id,
     "compare_oracle_version": compare_version,
     "artifact_status": artifact_status,
@@ -190,7 +213,8 @@ with open(os.path.join(out, "AUDIT_RUN_RECEIPT.json"), "w") as fh:
     json.dump(receipt, fh, indent=2, sort_keys=True)
     fh.write("\n")
 ' "$OUTPUT_DIR" "$status" "$reason" "$exit_code" "$FAILURES" "$missing" \
-        "$artifact_status" "$AUDIT_CONTEXT_ID" "$COMPARE_ORACLE_VERSION"
+        "$artifact_status" "$AUDIT_CONTEXT_ID" "$COMPARE_ORACLE_VERSION" \
+        "$RUN_STARTED_AT" "$completed_at" "$elapsed_seconds"
 }
 
 finalize_audit_status() {
