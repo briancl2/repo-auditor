@@ -1,4 +1,4 @@
-.PHONY: review audit audit-deep audit-quick audit-snapshot token-efficiency-measure test validate help install-hooks check work work-close health
+.PHONY: review audit audit-deep audit-quick audit-snapshot measure-dual-inventory-cap-curve token-efficiency-measure test validate help install-hooks check work work-close health
 
 TARGET ?= .
 OUTPUT_DIR ?= audit_output
@@ -11,6 +11,7 @@ help:
 	@echo "Targets:"
 	@echo "  make audit TARGET=<path>       Standard audit (deterministic)"
 	@echo "  make audit-snapshot TARGET=<path> OUTPUT_DIR=<dir> SNAPSHOT_DIR=<dir>"
+	@echo "  make measure-dual-inventory-cap-curve TARGET=<path> OUTPUT_DIR=<dir> CAPS=200,1000,2500,5000"
 	@echo "  make audit-deep TARGET=<path>  Deep audit with LLM domain agents"
 	@echo "  make audit-quick TARGET=<path> Quick pre-scan only"
 	@echo "  make token-efficiency-measure  Replay frozen token-efficiency corpus"
@@ -35,6 +36,11 @@ audit-snapshot:
 	@echo "=== repo-auditor: Clean HEAD Snapshot Mode ==="
 	@python3 scripts/audit-clean-head-snapshot.py "$(TARGET)" "$(OUTPUT_DIR)" --snapshot-dir "$(SNAPSHOT_DIR)"
 	@echo "=== Snapshot audit complete. Artifacts in $(OUTPUT_DIR)/; snapshot in $(SNAPSHOT_DIR)/ ==="
+
+measure-dual-inventory-cap-curve:
+	@echo "=== repo-auditor: Dual Inventory Cap Curve ==="
+	@python3 scripts/measure-dual-inventory-cap-curve.py "$(TARGET)" "$(OUTPUT_DIR)" --caps "$${CAPS:-200,1000,2500,5000}"
+	@echo "=== Cap curve complete. Artifacts in $(OUTPUT_DIR)/ ==="
 
 audit-deep:
 	@echo "=== repo-auditor: Deep Mode ==="
