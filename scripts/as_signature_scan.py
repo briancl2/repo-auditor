@@ -120,6 +120,30 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-forbidden-public-customernewsletter-mutation.sh",
     },
+    "AS-19": {
+        "name": "Model/effort claim binding gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-model-effort-binding-gap.sh",
+    },
+    "AS-20": {
+        "name": "Stale Copilot reporting reuse",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-stale-copilot-reporting-reuse.sh",
+    },
+    "AS-21": {
+        "name": "Promotion without control noise floor",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-promotion-without-control-noise-floor.sh",
+    },
+    "AS-22": {
+        "name": "Model recommendation before production confirmation",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-model-recommendation-before-production-confirmation.sh",
+    },
 }
 
 
@@ -973,6 +997,238 @@ def forbidden_public_customernewsletter_mutation(texts: dict[str, str]) -> dict[
     }
 
 
+MODEL_EFFORT_CLAIM_PATTERN = re.compile(
+    r"\b(model|gpt-[0-9][\w.\-]*|claude|sonnet|haiku|opus|gemini|reasoning[_ -]?effort|"
+    r"effort[_ -]?(level|cell|mode)?|thinking[_ -]?budget)\b"
+)
+MODEL_EFFORT_OUTCOME_PATTERN = re.compile(
+    r"\b(cost|token|spend|quality|winner|best|better|lower|reduction|reduced|"
+    r"qualified|qualifies|pass(?:ed)?|route|routing|claim|proved|shows)\b"
+)
+EXACT_MODEL_EFFORT_BINDING_PATTERN = re.compile(
+    r"\b(exact (model|effort|session|prompt/session) binding|model_effort_binding\s*[:=]\s*(exact|bound|true|passed)|"
+    r"prompt/session binding\s*[:=]\s*(exact|bound|true|passed)|"
+    r"session_binding\s*[:=]\s*(exact|bound|true|passed)|"
+    r"bound_candidate_count\s*[:=]\s*1|prompt_sha256|session_log_sha256)\b"
+)
+MODEL_EFFORT_MISSING_BINDING_PATTERN = re.compile(
+    r"\b(model_effort_binding|exact_binding|session_binding|prompt/session binding|"
+    r"model binding|effort binding)\s*[:=]\s*(missing|none|false|no|null|n/a|na|0)\b|"
+    r"\b(missing|no|without)\s+(exact\s+)?(model|effort|session|prompt/session)\s+binding\b"
+)
+
+
+def model_effort_binding_gap(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
+    offenders: list[str] = []
+    bound: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        lowered = text.lower()
+        if not MODEL_EFFORT_CLAIM_PATTERN.search(lowered):
+            continue
+        if not MODEL_EFFORT_OUTCOME_PATTERN.search(lowered):
+            continue
+        if MODEL_EFFORT_MISSING_BINDING_PATTERN.search(lowered):
+            offenders.append(path)
+        elif EXACT_MODEL_EFFORT_BINDING_PATTERN.search(lowered):
+            bound.append(path)
+        else:
+            offenders.append(path)
+
+    details = [
+        f"missing_binding=>{','.join(offenders[:4]) or 'none'}",
+        f"bound=>{','.join(bound[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "model_effort_claim_file_count": len(offenders) + len(bound),
+            "model_effort_binding_gap_count": len(offenders),
+            "model_effort_bound_count": len(bound),
+        },
+        "evidence": evidence_join(details),
+        "reason": "model/effort outcome claims lack exact prompt/session binding" if offenders else "model/effort claims carry exact binding or are absent",
+    }
+
+
+COPILOT_REPORT_REUSE_PATTERN = re.compile(
+    r"\b(copilot (report|reporting|summary|scorecard)|reporting (reuse|reused)|"
+    r"reuse(?:d)? (copilot )?(report|summary|scorecard)|stale (copilot )?(report|summary|scorecard))\b"
+)
+CELL_AXIS_PATTERN = re.compile(r"\b(model|version|copilot_version|effort|reasoning_effort|cell|matrix)\b")
+PER_CELL_REPORTING_PATTERN = re.compile(
+    r"\b(per[-_ ]?cell (receipt|report|reporting|evidence)|cell_binding\s*[:=]\s*(exact|bound|true|passed)|"
+    r"current_copilot_version|copilot_version\s*[:=]\s*github copilot cli|"
+    r"regenerated per cell|fresh per-cell|no reuse across (model|version|effort) cells)\b"
+)
+STALE_COPILOT_REUSE_MISSING_PATTERN = re.compile(
+    r"\b(stale|reused|copied|same)\b.{0,80}\b(copilot )?(report|summary|scorecard)\b|"
+    r"\b(current_copilot_version|per_cell_receipts?|cell_binding)\s*[:=]\s*(missing|none|false|no|null|n/a|na|0|\[\])\b"
+)
+
+
+def stale_copilot_reporting_reuse(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
+    offenders: list[str] = []
+    per_cell: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        lowered = text.lower()
+        if not COPILOT_REPORT_REUSE_PATTERN.search(lowered):
+            continue
+        cell_axis_count = len(set(CELL_AXIS_PATTERN.findall(lowered)))
+        if cell_axis_count < 2:
+            continue
+        if STALE_COPILOT_REUSE_MISSING_PATTERN.search(lowered):
+            offenders.append(path)
+        elif PER_CELL_REPORTING_PATTERN.search(lowered):
+            per_cell.append(path)
+
+    details = [
+        f"stale_reuse=>{','.join(offenders[:4]) or 'none'}",
+        f"per_cell=>{','.join(per_cell[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "copilot_reporting_reuse_file_count": len(offenders) + len(per_cell),
+            "stale_copilot_reporting_reuse_count": len(offenders),
+            "per_cell_reporting_count": len(per_cell),
+        },
+        "evidence": evidence_join(details),
+        "reason": "Copilot reporting appears reused across model/version/effort cells without current per-cell binding" if offenders else "Copilot reporting is per-cell/current or absent",
+    }
+
+
+PROMOTION_CLAIM_PATTERN = re.compile(
+    r"\b(promote|promoted|promotion|admit|admitted|adoption|adopt|ship|shipping|"
+    r"enable|enabled|default|recommend(?:ed|ation)?|ready for production|production ready)\b"
+)
+CONTROL_NOISE_CONTEXT_PATTERN = re.compile(r"\b(control noise|noise floor|control_floor|control[_ -]?baseline)\b")
+NOISE_FLOOR_VALUE_PATTERN = re.compile(
+    r"\b(?:control[_ -]?noise[_ -]?floor[_ -]?n|noise[_ -]?floor[_ -]?n|control[_ -]?n)\s*(?:>=|:|=)\s*([0-9]+)\b"
+)
+CURRENT_NOISE_FLOOR_PATTERN = re.compile(
+    r"\b(current|fresh|as_of|as-of|generated_at|measured_at|control_noise_floor_current|current_noise_floor)\b"
+)
+MISSING_NOISE_FLOOR_PATTERN = re.compile(
+    r"\b(no|missing|without)\s+(current\s+)?(n\s*>=?\s*3\s+)?control noise floor\b|"
+    r"\b(current_noise_floor|control_noise_floor|control_noise_floor_n|noise_floor_n)\s*[:=]\s*(missing|none|false|no|null|n/a|na|0|1|2)\b"
+)
+
+
+def promotion_without_control_noise_floor(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
+    offenders: list[str] = []
+    grounded: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        lowered = text.lower()
+        if not PROMOTION_CLAIM_PATTERN.search(lowered):
+            continue
+        if not CONTROL_NOISE_CONTEXT_PATTERN.search(lowered):
+            offenders.append(path)
+            continue
+        values = [int(match.group(1)) for match in NOISE_FLOOR_VALUE_PATTERN.finditer(lowered)]
+        has_n3 = any(value >= 3 for value in values)
+        has_current_marker = CURRENT_NOISE_FLOOR_PATTERN.search(lowered) is not None
+        if MISSING_NOISE_FLOOR_PATTERN.search(lowered) or not (has_n3 and has_current_marker):
+            offenders.append(path)
+        else:
+            grounded.append(path)
+
+    details = [
+        f"missing_noise_floor=>{','.join(offenders[:4]) or 'none'}",
+        f"grounded_noise_floor=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "promotion_noise_floor_file_count": len(offenders) + len(grounded),
+            "promotion_without_current_n3_noise_floor_count": len(offenders),
+            "promotion_with_current_n3_noise_floor_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "promotion/adoption claim lacks a current n>=3 control noise floor" if offenders else "promotion claims carry current n>=3 control noise floor or are absent",
+    }
+
+
+MODEL_RECOMMENDATION_PATTERN = re.compile(
+    r"\b(recommended model|model recommendation|best model|preferred model|model choice|use\s+(?:gpt|claude|gemini|sonnet|haiku|opus)|"
+    r"switch to\s+(?:gpt|claude|gemini|sonnet|haiku|opus)|standardize on\s+(?:gpt|claude|gemini|sonnet|haiku|opus))\b"
+)
+MODEL_RECOMMENDATION_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|without|non[- ]claim:?)\s+(model\s+)?recommendation\b|"
+    r"\bnot a model recommendation\b|\bmodel recommendation\s*[:=]\s*(false|no|none|null|n/a|na)\b"
+)
+PRODUCTION_CONFIRMATION_PATTERN = re.compile(
+    r"\b(production_confirmation_receipt|production confirmation receipt|production confirmation|"
+    r"production_confirmed|confirmed in production|private production confirmation|"
+    r"production row passed|production proof passed)\b"
+)
+PRODUCTION_CONFIRMATION_PASS_PATTERN = re.compile(
+    r"\b(production_confirmation_receipt|production confirmation|production_confirmed|confirmed in production|"
+    r"production row|production proof)\b.{0,120}\b(retained|passed|pass|true|yes|qualified|confirmed|exists)\b"
+)
+PRODUCTION_CONFIRMATION_MISSING_PATTERN = re.compile(
+    r"\b(production_confirmation_receipt|production confirmation|production_confirmed|production proof)\s*[:=]\s*"
+    r"(missing|none|false|no|null|n/a|na|0|not run|absent)\b|"
+    r"\b(no|missing|without)\s+production confirmation\b|"
+    r"\bproduction confirmation\s+(missing|not run|absent|blocked)\b"
+)
+
+
+def model_recommendation_before_production_confirmation(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
+    offenders: list[str] = []
+    confirmed: list[str] = []
+    guarded: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        lowered = text.lower()
+        recommendation_lines = [
+            line for line in lowered.splitlines() if MODEL_RECOMMENDATION_PATTERN.search(line)
+        ]
+        if not recommendation_lines:
+            continue
+        active_recommendations = [
+            line for line in recommendation_lines if not MODEL_RECOMMENDATION_NEGATION_PATTERN.search(line)
+        ]
+        if not active_recommendations:
+            guarded.append(path)
+            continue
+        if PRODUCTION_CONFIRMATION_MISSING_PATTERN.search(lowered):
+            offenders.append(path)
+        elif PRODUCTION_CONFIRMATION_PASS_PATTERN.search(lowered):
+            confirmed.append(path)
+        elif PRODUCTION_CONFIRMATION_PATTERN.search(lowered):
+            offenders.append(path)
+        else:
+            offenders.append(path)
+
+    details = [
+        f"recommendation_before_confirmation=>{','.join(offenders[:4]) or 'none'}",
+        f"confirmed=>{','.join(confirmed[:4]) or 'none'}",
+        f"guarded_non_claim=>{','.join(guarded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "model_recommendation_file_count": len(offenders) + len(confirmed) + len(guarded),
+            "model_recommendation_before_confirmation_count": len(offenders),
+            "production_confirmed_recommendation_count": len(confirmed),
+            "guarded_model_recommendation_non_claim_count": len(guarded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "model recommendation appears before production confirmation" if offenders else "model recommendations are production-confirmed, guarded, or absent",
+    }
+
+
 COPIED_EVIDENCE_PATTERN = re.compile(r"\b(copied evidence|copied-evidence|evidence payload|review payload|verbatim evidence)\b")
 AUTHOR_BOUNDARY_PATTERN = re.compile(
     r"\b(authored claims?|author claims?|claims boundary|copied evidence boundary|"
@@ -1032,6 +1288,10 @@ EVALUATORS = {
     "AS-16": aggregate_only_readiness,
     "AS-17": stale_direct_token_evidence,
     "AS-18": forbidden_public_customernewsletter_mutation,
+    "AS-19": model_effort_binding_gap,
+    "AS-20": stale_copilot_reporting_reuse,
+    "AS-21": promotion_without_control_noise_floor,
+    "AS-22": model_recommendation_before_production_confirmation,
 }
 
 

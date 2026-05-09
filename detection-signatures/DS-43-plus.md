@@ -162,3 +162,43 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-forbidden-public-customernewsletter-mutation.sh`
+
+### AS-19: Model/Effort Claim Binding Gap
+- **Detects:** Model or reasoning-effort outcome claims that lack exact prompt/session binding
+- **Signal:** A model/effort cell is credited with cost, token, quality, pass, routing, or qualification evidence without same-surface exact binding
+- **Phase range:** Model comparison, reasoning-effort, benchmark, and cost evidence surfaces
+- **Check:** Scan model/effort outcome claims and require exact model/effort, prompt/session, or bound-candidate binding markers on the same surface
+- **Fire condition:** `model_effort_binding_gap_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-model-effort-binding-gap.sh`
+
+### AS-20: Stale Copilot Reporting Reuse
+- **Detects:** Copilot report, summary, or scorecard reuse across model/version/effort cells without current per-cell binding
+- **Signal:** A stale or reused Copilot reporting surface is carried across matrix cells that differ by model, Copilot version, or effort setting
+- **Phase range:** Copilot CLI benchmark, matrix, model-routing, and reasoning-effort evidence surfaces
+- **Check:** Scan Copilot reporting reuse language with model/version/effort cell terms and require current per-cell receipts, current Copilot version, or exact cell binding
+- **Fire condition:** `stale_copilot_reporting_reuse_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-stale-copilot-reporting-reuse.sh`
+
+### AS-21: Promotion Without Current Control Noise Floor
+- **Detects:** Promotion, adoption, readiness, or recommendation claims without a current `n>=3` control noise floor
+- **Signal:** A benchmark route is promoted from single-row or stale control evidence instead of a current three-or-more-run control baseline
+- **Phase range:** Promotion, adoption, production-readiness, model-routing, and benchmark evidence surfaces
+- **Check:** Scan promotion/noise-floor surfaces and require both a current/fresh marker and a control noise-floor count of at least three on the same surface
+- **Fire condition:** `promotion_without_current_n3_noise_floor_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-promotion-without-control-noise-floor.sh`
+
+### AS-22: Model Recommendation Before Production Confirmation
+- **Detects:** Model recommendations that appear before retained production confirmation
+- **Signal:** A surface recommends or standardizes on a model while production confirmation is missing, blocked, or absent
+- **Phase range:** Model-routing, recommendation, production confirmation, and publication evidence surfaces
+- **Check:** Scan recommendation language and require a retained/passed production confirmation marker on the same surface; explicit non-claims suppress the signature
+- **Fire condition:** `model_recommendation_before_confirmation_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-model-recommendation-before-production-confirmation.sh`

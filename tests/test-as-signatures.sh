@@ -156,6 +156,40 @@ Modified /Users/briancl/repos/CustomerNewsletter/content/index.md for production
 Pushes /Users/briancl/repos/CustomerNewsletter/content/index.md to production.
 EOF
 
+cat > "$TEST_REPO/docs/model-effort-binding-gap.md" <<'EOF'
+# Model/Effort Binding Gap
+
+The gpt-5.5 high reasoning effort cell proves lower token cost and better quality.
+model_effort_binding: missing
+session_binding: missing
+EOF
+
+cat > "$TEST_REPO/docs/stale-copilot-reporting-reuse.md" <<'EOF'
+# Stale Copilot Reporting Reuse
+
+The same Copilot report was reused across model/version/effort cells in the matrix.
+model cells: gpt-5.5, gpt-5.4
+copilot_version cells: 1.0.44, 1.0.45
+reasoning_effort cells: low, high
+current_copilot_version: missing
+per_cell_receipts: missing
+EOF
+
+cat > "$TEST_REPO/docs/promotion-noise-floor-gap.md" <<'EOF'
+# Promotion Noise Floor Gap
+
+Promoted the model route to production readiness from control noise floor evidence.
+control_noise_floor_n: 1
+current_noise_floor: missing
+EOF
+
+cat > "$TEST_REPO/docs/model-recommendation-leakage.md" <<'EOF'
+# Model Recommendation Leakage
+
+Recommended model: claude-sonnet-4.6 for the next production route.
+production_confirmation_receipt: missing
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -169,8 +203,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 18
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 18
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 22
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 22
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -192,6 +226,10 @@ assert as_ids == {
     "AS-16",
     "AS-17",
     "AS-18",
+    "AS-19",
+    "AS-20",
+    "AS-21",
+    "AS-22",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -259,6 +297,29 @@ The public CustomerNewsletter repo is downstream-only and read-only; do not muta
 Edited private CustomerNewsletter source notes for internal authoring.
 EOF
 
+cat > "$CLEAN_REPO/docs/model-reasoning-guardrails.md" <<EOF
+# Model Reasoning Guardrails
+
+The gpt-5.5 high reasoning effort cell has an exact model_effort_binding: exact.
+prompt/session binding: exact
+bound_candidate_count: 1
+prompt_sha256: abc123
+session_log_sha256: def456
+
+Copilot reporting is regenerated per cell with current_copilot_version: GitHub Copilot CLI 1.0.44.
+per_cell_receipts: cell-a, cell-b, cell-c
+No reuse across model/version/effort cells.
+
+Promotion is allowed only with a current control noise floor.
+current control_noise_floor_n: 3
+as_of: $(date +%F)
+
+No model recommendation is made from this evidence.
+production_confirmation_receipt: retained pass
+
+Recommendation: update the docs after the evidence packet is retained.
+EOF
+
 python3 - "$REPO_ROOT" "$CLEAN_REPO" <<'PY'
 import json
 import subprocess
@@ -276,6 +337,10 @@ scripts = {
     "AS-16": "detect-as-aggregate-only-readiness.sh",
     "AS-17": "detect-as-stale-direct-token-evidence.sh",
     "AS-18": "detect-as-forbidden-public-customernewsletter-mutation.sh",
+    "AS-19": "detect-as-model-effort-binding-gap.sh",
+    "AS-20": "detect-as-stale-copilot-reporting-reuse.sh",
+    "AS-21": "detect-as-promotion-without-control-noise-floor.sh",
+    "AS-22": "detect-as-model-recommendation-before-production-confirmation.sh",
 }
 
 for signature_id, script in scripts.items():
