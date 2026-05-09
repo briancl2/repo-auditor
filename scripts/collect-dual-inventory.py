@@ -7,6 +7,7 @@ import argparse
 import fnmatch
 import json
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from typing import Any
 RECEIPT_VERSION = "1.0.0"
 PATH_LIMIT = 50
 DEFAULT_MAX_FILES_SCANNED = 200
+DENOMINATOR_ENV = "REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR"
 DEFAULT_PRUNED_DIRS = {
     ".git",
     ".venv",
@@ -169,7 +171,76 @@ def classify_fact(rel: str) -> str:
     return "other"
 
 
-def scan_target(root: Path, output_dir: Path, max_files_scanned: int) -> tuple[dict[str, Any], dict[str, Any]]:
+def count_denominator(root: Path, output_dir_resolved: Path, auditorignore_entries: list[str]) -> dict[str, int]:
+    total_files = 0
+    skipped_files = 0
+    for current, dirs, files in os.walk(root):
+        current_path = Path(current)
+        if current_path.resolve() == output_dir_resolved:
+            dirs[:] = []
+            continue
+        rel_current = "" if current_path == root else relpath(current_path, root)
+        dirs.sort()
+        files.sort()
+        kept_dirs = []
+        for dirname in dirs:
+            if (current_path / dirname).resolve() == output_dir_resolved:
+                continue
+            dir_rel = f"{rel_current}/{dirname}".strip("/")
+            if should_skip_dir(dir_rel, auditorignore_entries):
+                continue
+            kept_dirs.append(dirname)
+        dirs[:] = kept_dirs
+
+        for filename in files:
+            rel = f"{rel_current}/{filename}".strip("/")
+            if should_skip_file(rel, auditorignore_entries):
+                skipped_files += 1
+                continue
+            total_files += 1
+    return {
+        "auditor_pruned_total_files": total_files,
+        "auditor_pruned_skipped_files_count": skipped_files,
+    }
+
+
+def git_tracked_file_count(root: Path) -> int | None:
+    try:
+        toplevel = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if toplevel.returncode != 0 or Path(toplevel.stdout.strip()).resolve() != root.resolve():
+            return None
+        proc = subprocess.run(
+            ["git", "-C", str(root), "ls-files"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if proc.returncode != 0:
+        return None
+    return len([line for line in proc.stdout.splitlines() if line.strip()])
+
+
+def coverage_ratio(scanned_files: int, total_files: int | None) -> float | None:
+    if total_files is None:
+        return None
+    if total_files == 0:
+        return 1.0
+    return round(scanned_files / total_files, 6)
+
+
+def scan_target(
+    root: Path,
+    output_dir: Path,
+    max_files_scanned: int,
+    measure_denominator: bool,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     auditorignore_entries = load_auditorignore(root)
     output_dir_resolved = output_dir.resolve()
     primary: dict[str, list[str]] = {name: [] for name in PRIMARY_PATTERNS}
@@ -222,6 +293,14 @@ def scan_target(root: Path, output_dir: Path, max_files_scanned: int) -> tuple[d
     else:
         primary_status = "available" if unique_primary else "available_empty"
     full_status = "available_limited" if limit_reached else "available"
+    denominator = None
+    if measure_denominator:
+        denominator = count_denominator(root, output_dir_resolved, auditorignore_entries)
+    auditor_pruned_total_files = None if denominator is None else denominator["auditor_pruned_total_files"]
+    auditor_pruned_skipped_files_count = (
+        None if denominator is None else denominator["auditor_pruned_skipped_files_count"]
+    )
+    tracked_file_count = git_tracked_file_count(root) if measure_denominator else None
     primary_inventory = {
         "version": RECEIPT_VERSION,
         "status": primary_status,
@@ -250,6 +329,11 @@ def scan_target(root: Path, output_dir: Path, max_files_scanned: int) -> tuple[d
             "entries_emitted": False,
         },
         "skipped_files_count": skipped_files,
+        "denominator_mode": "full_walk" if measure_denominator else "not_measured",
+        "auditor_pruned_total_files": auditor_pruned_total_files,
+        "auditor_pruned_skipped_files_count": auditor_pruned_skipped_files_count,
+        "scan_coverage_ratio": coverage_ratio(scanned_files, auditor_pruned_total_files),
+        "git_tracked_file_count": tracked_file_count,
         "non_authorization_statement": "Full-facts inventory is evidence context only; it does not authorize deleting, archiving, compressing, or rewriting target files.",
     }
     return primary_inventory, full_inventory
@@ -283,6 +367,11 @@ def unavailable_inventory(reason: str) -> tuple[dict[str, Any], dict[str, Any]]:
             "entries_emitted": False,
         },
         "skipped_files_count": 0,
+        "denominator_mode": "unavailable",
+        "auditor_pruned_total_files": None,
+        "auditor_pruned_skipped_files_count": None,
+        "scan_coverage_ratio": None,
+        "git_tracked_file_count": None,
         "unavailable_reason": reason,
         "non_authorization_statement": "Full-facts inventory is evidence context only; it does not authorize deleting, archiving, compressing, or rewriting target files.",
     }
@@ -300,15 +389,25 @@ def parse_scan_limit() -> int:
     return value
 
 
+def parse_measure_denominator() -> bool:
+    raw = os.environ.get(DENOMINATOR_ENV, "0").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off", ""}:
+        return False
+    raise ValueError(f"{DENOMINATOR_ENV} must be a boolean value")
+
+
 def update_outputs(target: Path, output_dir: Path) -> None:
     scorecard_path = output_dir / "SCORECARD.json"
     receipts_path = output_dir / "SCORECARD_RECEIPTS.json"
     scorecard = load_json(scorecard_path)
     receipts = load_json(receipts_path)
     max_files_scanned = parse_scan_limit()
+    measure_denominator = parse_measure_denominator()
 
     if target.is_dir():
-        primary, full = scan_target(target, output_dir, max_files_scanned)
+        primary, full = scan_target(target, output_dir, max_files_scanned, measure_denominator)
     else:
         primary, full = unavailable_inventory(f"target not found or not a directory: {target}")
         primary["scan_limit"] = max_files_scanned
@@ -325,6 +424,12 @@ def update_outputs(target: Path, output_dir: Path) -> None:
         "primary_surface_count": primary["total_unique_paths"],
         "full_facts_inventory_status": full["status"],
         "full_facts_total_files_scanned": full["total_files_scanned"],
+        "full_facts_scan_limit": full["scan_limit"],
+        "full_facts_scan_limit_reached": full["scan_limit_reached"],
+        "full_facts_denominator_mode": full["denominator_mode"],
+        "full_facts_auditor_pruned_total_files": full["auditor_pruned_total_files"],
+        "full_facts_scan_coverage_ratio": full["scan_coverage_ratio"],
+        "git_tracked_file_count": full["git_tracked_file_count"],
         "non_authorization": True,
     }
 

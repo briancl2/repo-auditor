@@ -86,6 +86,11 @@ scorecard = json.load(open(out / "SCORECARD.json"))
 assert receipt["status"] == "completed", receipt
 assert receipt["artifact_status"] == "completed", receipt
 assert receipt["exit_code"] == 0, receipt
+assert receipt["started_at"], receipt
+assert receipt["completed_at"], receipt
+assert receipt["timestamp"] == receipt["completed_at"], receipt
+assert isinstance(receipt["elapsed_seconds"], int), receipt
+assert receipt["elapsed_seconds"] >= 0, receipt
 assert receipt["missing_required_artifacts"] == [], receipt
 assert scorecard["meta"]["audit_status"] == "completed", scorecard["meta"]
 assert scorecard["meta"]["artifact_status"] == "completed", scorecard["meta"]
@@ -112,6 +117,11 @@ scorecard = json.load(open(out / "SCORECARD.json"))
 assert receipt["status"] == "partial", receipt
 assert receipt["artifact_status"] == "partial", receipt
 assert receipt["exit_code"] == 3, receipt
+assert receipt["started_at"], receipt
+assert receipt["completed_at"], receipt
+assert receipt["timestamp"] == receipt["completed_at"], receipt
+assert isinstance(receipt["elapsed_seconds"], int), receipt
+assert receipt["elapsed_seconds"] >= 0, receipt
 assert receipt["reason"] and "report generation failed" in receipt["reason"], receipt
 assert "AUDIT_REPORT.md" in receipt["missing_required_artifacts"], receipt
 assert "report-generation" in receipt["failed_tools"], receipt
@@ -137,6 +147,11 @@ receipt = json.load(open(out / "AUDIT_RUN_RECEIPT.json"))
 
 assert receipt["status"] == "failed", receipt
 assert receipt["exit_code"] == 2, receipt
+assert receipt["started_at"], receipt
+assert receipt["completed_at"], receipt
+assert receipt["timestamp"] == receipt["completed_at"], receipt
+assert isinstance(receipt["elapsed_seconds"], int), receipt
+assert receipt["elapsed_seconds"] >= 0, receipt
 assert receipt["reason"], receipt
 assert "target not found" in receipt["reason"], receipt
 assert "target" in receipt["failed_tools"], receipt
@@ -156,6 +171,11 @@ receipt = json.load(open(out / "AUDIT_RUN_RECEIPT.json"))
 
 assert receipt["status"] == "failed", receipt
 assert receipt["exit_code"] == 3, receipt
+assert receipt["started_at"], receipt
+assert receipt["completed_at"], receipt
+assert receipt["timestamp"] == receipt["completed_at"], receipt
+assert isinstance(receipt["elapsed_seconds"], int), receipt
+assert receipt["elapsed_seconds"] >= 0, receipt
 assert "operation guard failed" in receipt["reason"], receipt
 assert "operation-guard" in receipt["failed_tools"], receipt
 PY

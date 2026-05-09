@@ -88,6 +88,10 @@ Required artifacts for completeness are `SCORECARD.json`,
 required artifact under `required_artifacts` and lists missing files in
 `missing_required_artifacts`.
 
+Run receipts also include `started_at`, `completed_at`, and integer
+`elapsed_seconds` fields. `timestamp` remains present for compatibility and is
+the same value as `completed_at`.
+
 ## Scorecard Receipts and Count Reconciliation
 
 `SCORECARD_RECEIPTS.json.count_reconciliation` records the file-count surface
@@ -156,12 +160,23 @@ auditor-pruned fact surface by coarse class counts. It includes:
 - `class_counts`
 - `.auditorignore` active/count state without ignored path values
 - `paths_emitted=false`
+- `git_tracked_file_count` when the target path is its own git worktree root
+- `denominator_mode`, `auditor_pruned_total_files`, and
+  `scan_coverage_ratio` when the caller opts in to full denominator measurement
 - `non_authorization_statement`
 
 Inventory receipts are evidence context only. Missing, empty, limited, or
 unavailable inventory means insufficient evidence for stronger downstream claims;
 it never authorizes deletion, archiving, compression, or rewriting of target
 files. The default inventory scan limit is 200 auditor-pruned files per target.
+
+By default, dual inventory keeps denominator fields unmeasured to preserve the
+bounded scan contract. Operators that need cap-curve evidence may set
+`REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR=1` to add a full auditor-pruned
+file denominator and coverage ratio. Operators may set
+`REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES=<n>` to choose the bounded inventory cap.
+These fields are descriptive evidence only and do not change scoring, scan
+status, or non-authorization semantics.
 
 ## Target-Native Quality Gates
 
