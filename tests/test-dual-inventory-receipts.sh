@@ -104,14 +104,14 @@ pointer = scorecard["receipts"]["dual_inventory"]
 
 assert scorecard["composite"] == 42
 assert primary["status"] == "available", primary
-assert primary["scan_limit"] == 200, primary
+assert primary["scan_limit"] == 1000, primary
 assert primary["scan_limit_reached"] is False, primary
 assert primary["total_unique_paths"] >= 4, primary
 assert "AGENTS.md" in primary["categories"]["instruction_roots"]["paths"], primary
 assert ".agents/reviewer.agent.md" in primary["categories"]["agent_definitions"]["paths"], primary
 assert ".agents/skills/example/SKILL.md" in primary["categories"]["skill_definitions"]["paths"], primary
 assert full["status"] == "available", full
-assert full["scan_limit"] == 200, full
+assert full["scan_limit"] == 1000, full
 assert full["scan_limit_reached"] is False, full
 assert full["denominator_mode"] == "not_measured", full
 assert full["auditor_pruned_total_files"] is None, full
@@ -200,7 +200,7 @@ cat > "$LIMITED_TARGET/AGENTS.md" <<'EOF'
 # Fixture instructions
 EOF
 idx=0
-while [ "$idx" -lt 205 ]; do
+while [ "$idx" -lt 1005 ]; do
     printf 'file %s\n' "$idx" > "$LIMITED_TARGET/many/file-$idx.txt"
     idx=$((idx + 1))
 done
@@ -221,12 +221,43 @@ assert primary["status"] == "available_limited", primary
 assert primary["scan_limit_reached"] is True, primary
 assert full["status"] == "available_limited", full
 assert full["scan_limit_reached"] is True, full
-assert full["total_files_scanned"] == 200, full
+assert full["total_files_scanned"] == 1000, full
 assert scorecard["receipts"]["dual_inventory"]["primary_surface_inventory_status"] == "available_limited"
 assert scorecard["receipts"]["dual_inventory"]["full_facts_inventory_status"] == "available_limited"
 assert scorecard["composite"] == 42
 PY
 echo "  ✓ scan-limited inventory is explicit insufficient evidence"
+
+HIGH_CAP_OUT="$TMP_ROOT/high-cap-output"
+make_score_output "$HIGH_CAP_OUT"
+REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES=1100 \
+    python3 "$REPO_ROOT/scripts/collect-dual-inventory.py" "$LIMITED_TARGET" "$HIGH_CAP_OUT"
+python3 - "$HIGH_CAP_OUT" <<'PY'
+import json
+import pathlib
+import sys
+
+out = pathlib.Path(sys.argv[1])
+receipts = json.load(open(out / "SCORECARD_RECEIPTS.json"))
+scorecard = json.load(open(out / "SCORECARD.json"))
+primary = receipts["primary_surface_inventory"]
+full = receipts["full_facts_inventory"]
+pointer = scorecard["receipts"]["dual_inventory"]
+
+assert primary["status"] == "available", primary
+assert primary["scan_limit"] == 1100, primary
+assert primary["scan_limit_reached"] is False, primary
+assert full["status"] == "available", full
+assert full["scan_limit"] == 1100, full
+assert full["scan_limit_reached"] is False, full
+assert full["total_files_scanned"] == 1006, full
+assert full["denominator_mode"] == "not_measured", full
+assert full["auditor_pruned_total_files"] is None, full
+assert pointer["full_facts_scan_limit"] == 1100, pointer
+assert pointer["full_facts_inventory_status"] == "available", pointer
+assert scorecard["composite"] == 42
+PY
+echo "  ✓ high-cap inventory is explicit opt-in via max-files environment override"
 
 DENOMINATOR_OUT="$TMP_ROOT/denominator-output"
 make_score_output "$DENOMINATOR_OUT"
@@ -248,12 +279,12 @@ assert full["status"] == "available_limited", full
 assert full["scan_limit"] == 50, full
 assert full["total_files_scanned"] == 50, full
 assert full["denominator_mode"] == "full_walk", full
-assert full["auditor_pruned_total_files"] == 206, full
-assert full["scan_coverage_ratio"] == round(50 / 206, 6), full
+assert full["auditor_pruned_total_files"] == 1006, full
+assert full["scan_coverage_ratio"] == round(50 / 1006, 6), full
 assert full["git_tracked_file_count"] is None, full
 assert pointer["full_facts_denominator_mode"] == "full_walk", pointer
-assert pointer["full_facts_auditor_pruned_total_files"] == 206, pointer
-assert pointer["full_facts_scan_coverage_ratio"] == round(50 / 206, 6), pointer
+assert pointer["full_facts_auditor_pruned_total_files"] == 1006, pointer
+assert pointer["full_facts_scan_coverage_ratio"] == round(50 / 1006, 6), pointer
 assert pointer["non_authorization"] is True, pointer
 PY
 echo "  ✓ opt-in denominator mode reports coverage without changing score"
