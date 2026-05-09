@@ -90,6 +90,36 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T2",
         "script": "detect-as-copied-evidence-boundary-gap.sh",
     },
+    "AS-14": {
+        "name": "Unauthorized production default enablement",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-unauthorized-production-default-enablement.sh",
+    },
+    "AS-15": {
+        "name": "Missing rollback/control proof",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-missing-rollback-control-proof.sh",
+    },
+    "AS-16": {
+        "name": "Aggregate-only readiness",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-aggregate-only-readiness.sh",
+    },
+    "AS-17": {
+        "name": "Stale direct-token evidence",
+        "severity": "MEDIUM",
+        "prevention_tier": "T2",
+        "script": "detect-as-stale-direct-token-evidence.sh",
+    },
+    "AS-18": {
+        "name": "Forbidden public CustomerNewsletter mutation",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-forbidden-public-customernewsletter-mutation.sh",
+    },
 }
 
 
@@ -620,6 +650,329 @@ def pricing_provenance_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+PRODUCTION_DEFAULT_PATTERN = re.compile(
+    r"\b(production_default|production default|default_enablement|default enablement|"
+    r"enabled_by_default|enabled by default|default enabled|auto_enable|auto-enabled|"
+    r"enable_by_default|enable by default)\b"
+)
+ENABLEMENT_TRUE_PATTERN = re.compile(r"\b(true|yes|enabled|on|active|shipping|rollout|production)\b")
+ENABLEMENT_AUTH_PATTERN = re.compile(
+    r"\b(operator approved|human sign[- ]?off|explicit approval|owner approval|approval:\s*approved)\b"
+)
+MISSING_ENABLEMENT_AUTH_PATTERN = re.compile(
+    r"\b(no (operator |owner |human )?approval|missing (operator |owner |human )?approval|"
+    r"without (operator |owner |human )?approval|"
+    r"[\"']?(approval_receipt|approved_by|authorized_by|owner approval|explicit approval|human sign[- ]?off)[\"']?"
+    r"\s*[:=]\s*[\"']?(missing|none|false|no|null|n/a|na|0)[\"']?)\b"
+)
+AUTH_FIELD_VALUE_PATTERN = re.compile(
+    r"[\"']?(approved_by|approval_receipt|enablement_authority|authorized_by)[\"']?"
+    r"\s*[:=]\s*[\"']?([^\"'\n,}]+)[\"']?",
+    re.IGNORECASE,
+)
+
+
+def has_affirmative_enablement_auth(text: str) -> bool:
+    lowered = text.lower()
+    if ENABLEMENT_AUTH_PATTERN.search(lowered):
+        return True
+    for match in AUTH_FIELD_VALUE_PATTERN.finditer(text):
+        value = match.group(2).strip().strip("\"'").lower()
+        if value and value not in {"missing", "none", "false", "no", "null", "n/a", "na", "0"}:
+            return True
+    return False
+
+
+def unauthorized_production_default_enablement(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
+    offenders: list[str] = []
+    authorized: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        lowered_text = text.lower()
+        candidate_lines = []
+        for line in text.splitlines():
+            lowered = line.lower()
+            if (
+                PRODUCTION_DEFAULT_PATTERN.search(lowered)
+                and ENABLEMENT_TRUE_PATTERN.search(lowered)
+            ):
+                candidate_lines.append(line.strip()[:120])
+        if not candidate_lines:
+            continue
+        if MISSING_ENABLEMENT_AUTH_PATTERN.search(lowered_text):
+            offenders.append(f"{path}=>{candidate_lines[0]}")
+        elif has_affirmative_enablement_auth(text):
+            authorized.append(path)
+        else:
+            offenders.append(f"{path}=>{candidate_lines[0]}")
+
+    details = [
+        f"unauthorized_default=>{';'.join(offenders[:3]) or 'none'}",
+        f"authorized_default=>{','.join(authorized[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "production_default_enablement_count": len(offenders) + len(authorized),
+            "unauthorized_default_enablement_count": len(offenders),
+            "authorized_default_enablement_count": len(authorized),
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": "production/default enablement lacks explicit operator or owner approval" if offenders else "production/default enablement is authorized or absent",
+    }
+
+
+ENABLEMENT_CLAIM_PATTERN = re.compile(
+    r"\b(production_default|production default|default_enablement|default enablement|"
+    r"enabled_by_default|enabled by default|default enabled|production rollout|"
+    r"enabled in production|public launch|shipping default|live default)\b"
+)
+CONTROL_PROOF_PATTERN = re.compile(
+    r"\b(rollback_receipt|rollback receipt|rollback tested|rollback plan|rollback proof|"
+    r"control_receipt|control receipt|control proof|kill switch|disable path|"
+    r"feature flag|revert plan|recovery proof)\b"
+)
+AFFIRMATIVE_CONTROL_PROOF_PATTERN = re.compile(
+    r"\b(rollback_receipt|rollback receipt|rollback proof|control_receipt|control receipt|"
+    r"control proof|kill switch|disable path|feature flag|revert plan|recovery proof)\b"
+    r".{0,80}\b(retained|tested|verified|present|true|yes|available|approved|exists|documented)\b|"
+    r"\b(rollback tested|kill switch tested|disable path verified)\b"
+)
+MISSING_CONTROL_PATTERN = re.compile(
+    r"\b(no rollback|missing rollback|rollback: none|rollback none|without rollback|"
+    r"no control proof|control proof: missing|missing control proof|no disable path|"
+    r"rollback/control proof missing|rollback_receipt:\s*(missing|none|false|no|null)|"
+    r"control_receipt:\s*(missing|none|false|no|null)|rollback proof:\s*(missing|none|false|no|null)|"
+    r"control proof:\s*(missing|none|false|no|null))\b"
+)
+
+
+def missing_rollback_control_proof(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
+    offenders: list[str] = []
+    controlled: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        lowered = text.lower()
+        if not ENABLEMENT_CLAIM_PATTERN.search(lowered):
+            continue
+        has_control = AFFIRMATIVE_CONTROL_PROOF_PATTERN.search(lowered) is not None
+        missing_control = MISSING_CONTROL_PATTERN.search(lowered) is not None
+        if missing_control or not has_control:
+            offenders.append(path)
+        else:
+            controlled.append(path)
+
+    details = [
+        f"missing_control=>{','.join(offenders[:4]) or 'none'}",
+        f"controlled=>{','.join(controlled[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "enablement_claim_file_count": len(offenders) + len(controlled),
+            "missing_rollback_control_count": len(offenders),
+            "rollback_control_proven_count": len(controlled),
+        },
+        "evidence": evidence_join(details),
+        "reason": "production/default enablement lacks rollback or control proof" if offenders else "enablement claims carry rollback/control proof or are absent",
+    }
+
+
+READINESS_CLAIM_PATTERN = re.compile(
+    r"\b(production ready|ready for production|readiness:\s*ready|release ready|"
+    r"publication ready|rollout ready|admitted for production|"
+    r"[\"']?readiness_status[\"']?\s*:\s*[\"']?(ready|pass|passed)[\"']?|"
+    r"[\"']?production_readiness[\"']?\s*:\s*[\"']?(ready|pass|passed)[\"']?)\b"
+)
+AGGREGATE_READINESS_PATTERN = re.compile(
+    r"\b(aggregate[_ -]?only|summary[_ -]?only|overall|aggregate pass rate|"
+    r"aggregate_pass_rate|fleet average|composite score|mean score|rollup|summary readiness)\b"
+)
+PER_CASE_EVIDENCE_PATTERN = re.compile(
+    r"\b(per[-_ ]?case|case receipts?|fixture receipts?|row[-_ ]?level|per[-_ ]?repo|"
+    r"drilldown|evidence packets?|individual runs?|sample ids?|case_ids?|case_ids|"
+    r"per_case_receipts)\b"
+)
+MISSING_PER_CASE_EVIDENCE_PATTERN = re.compile(
+    r"\b(no per[-_ ]?case|missing per[-_ ]?case|without per[-_ ]?case|"
+    r"no case receipts?|missing case receipts?|"
+    r"[\"']?(case receipts?|per_case_receipts|fixture_receipts|evidence_packets|"
+    r"individual_runs|case_ids?|sample_ids?|row[-_ ]?level)[\"']?"
+    r"\s*[:=]\s*[\"']?(missing|none|false|no|null|n/a|na|0|\[\])[\"']?|"
+    r"no row[-_ ]?level)\b"
+)
+PER_CASE_FIELD_VALUE_PATTERN = re.compile(
+    r"[\"']?(per_case_receipts|case_ids?|sample_ids?|fixture_receipts|evidence_packets|individual_runs)[\"']?"
+    r"\s*[:=]\s*(\[[^\]\n]*\]|[\"']?[^\"'\n,}]+[\"']?)",
+    re.IGNORECASE,
+)
+POSITIVE_PER_CASE_TEXT_PATTERN = re.compile(
+    r"\b(per[-_ ]?case receipts? retained|case[-_ ]?level receipts? retained|"
+    r"row[-_ ]?level receipts? retained|evidence packets? retained|individual runs? retained)\b"
+)
+
+
+def has_affirmative_per_case_evidence(text: str) -> bool:
+    lowered = text.lower()
+    if POSITIVE_PER_CASE_TEXT_PATTERN.search(lowered):
+        return True
+    for match in PER_CASE_FIELD_VALUE_PATTERN.finditer(text):
+        value = match.group(2).strip().strip("\"'").lower()
+        if value.startswith("[") and value.endswith("]"):
+            inner = value[1:-1].strip()
+            if inner and inner not in {"missing", "none", "false", "no", "null"}:
+                return True
+        elif value and value not in {"missing", "none", "false", "no", "null", "n/a", "na", "0", "[]"}:
+            return True
+    return False
+
+
+def aggregate_only_readiness(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
+    offenders: list[str] = []
+    grounded: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        lowered = text.lower()
+        if not READINESS_CLAIM_PATTERN.search(lowered):
+            continue
+        if not AGGREGATE_READINESS_PATTERN.search(lowered):
+            continue
+        if MISSING_PER_CASE_EVIDENCE_PATTERN.search(lowered):
+            offenders.append(path)
+        elif has_affirmative_per_case_evidence(text):
+            grounded.append(path)
+        else:
+            offenders.append(path)
+
+    details = [
+        f"aggregate_only=>{','.join(offenders[:4]) or 'none'}",
+        f"case_grounded=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "aggregate_readiness_file_count": len(offenders) + len(grounded),
+            "aggregate_only_readiness_count": len(offenders),
+            "case_grounded_readiness_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "readiness is claimed from aggregate-only evidence" if offenders else "readiness claims include case-level evidence or are absent",
+    }
+
+
+TOKEN_EVIDENCE_CONTEXT_PATTERN = re.compile(
+    r"\b(direct token|token evidence|token telemetry|input_tokens|output_tokens|"
+    r"total_tokens|live_tokens|cached_tokens|cache_read_tokens|cache_write_tokens|token_count)\b"
+)
+
+
+def stale_direct_token_evidence(texts: dict[str, str]) -> dict[str, Any]:
+    from datetime import date
+
+    detector_path = "scripts/as_signature_scan.py"
+    today = date.today()
+    stale_threshold_days = 30
+    stale: list[str] = []
+    current: list[str] = []
+    undated: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        lowered = text.lower()
+        if not TOKEN_FIELD_PATTERN.search(lowered) or not TOKEN_EVIDENCE_CONTEXT_PATTERN.search(lowered):
+            continue
+        dates = []
+        for match in DATE_PATTERN.finditer(lowered):
+            try:
+                dates.append(date(int(match.group(1)), int(match.group(2)), int(match.group(3))))
+            except ValueError:
+                continue
+        if not dates:
+            undated.append(path)
+            continue
+        newest_age_days = (today - max(dates)).days
+        if newest_age_days > stale_threshold_days:
+            stale.append(f"{path}=>{newest_age_days}d")
+        else:
+            current.append(path)
+
+    details = [
+        f"stale_token_evidence=>{','.join(stale[:4]) or 'none'}",
+        f"current_token_evidence=>{','.join(current[:4]) or 'none'}",
+        f"undated_token_evidence=>{','.join(undated[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(stale),
+        "signals": {
+            "direct_token_evidence_file_count": len(stale) + len(current) + len(undated),
+            "stale_direct_token_evidence_count": len(stale),
+            "current_direct_token_evidence_count": len(current),
+            "undated_direct_token_evidence_count": len(undated),
+            "stale_threshold_days": stale_threshold_days,
+        },
+        "evidence": evidence_join(details),
+        "reason": "direct token evidence is older than the freshness threshold" if stale else "direct token evidence is current, undated, or absent",
+    }
+
+
+CUSTOMER_NEWSLETTER_PATTERN = re.compile(r"\bcustomernewsletter\b")
+PUBLIC_CUSTOMER_NEWSLETTER_PATTERN = re.compile(
+    r"(/users/\S+/repos/customernewsletter|github\.com/\S+/customernewsletter|"
+    r"\bpublic\s+customernewsletter\b|\bcustomernewsletter\s+public\b|"
+    r"\bpublic\s+repo:\s*customernewsletter\b)"
+)
+MUTATION_ACTION_PATTERN = re.compile(
+    r"\b(modify|modifies|modified|editing|edits|edited|write|writes|wrote|written|"
+    r"commit|commits|committed|push|pushes|pushed|land|lands|landed|"
+    r"applied|apply changes|changed|opened pr|open pr|prs?|pull request|production authoring)\b"
+)
+CUSTOMER_NEWSLETTER_GUARDRAIL_PATTERN = re.compile(
+    r"\b(forbidden|do not mutate|read-only|read only|downstream-only|downstream only|"
+    r"blocked|not allowed|no mutation|would violate|should not|landing zone)\b"
+)
+
+
+def forbidden_public_customernewsletter_mutation(texts: dict[str, str]) -> dict[str, Any]:
+    detector_path = "scripts/as_signature_scan.py"
+    offenders: list[str] = []
+    guarded: list[str] = []
+    for path, text in texts.items():
+        if path == detector_path:
+            continue
+        for line in text.splitlines():
+            lowered = line.lower()
+            if not CUSTOMER_NEWSLETTER_PATTERN.search(lowered):
+                continue
+            if not PUBLIC_CUSTOMER_NEWSLETTER_PATTERN.search(lowered):
+                continue
+            if not MUTATION_ACTION_PATTERN.search(lowered):
+                continue
+            if CUSTOMER_NEWSLETTER_GUARDRAIL_PATTERN.search(lowered):
+                guarded.append(path)
+            else:
+                offenders.append(f"{path}=>{line.strip()[:120]}")
+
+    details = [
+        f"forbidden_mutation=>{';'.join(offenders[:3]) or 'none'}",
+        f"guarded_mentions=>{','.join(sorted(set(guarded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "public_customernewsletter_mutation_count": len(offenders),
+            "guarded_customernewsletter_mention_count": len(set(guarded)),
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": "public CustomerNewsletter mutation is claimed without a guardrail boundary" if offenders else "public CustomerNewsletter mutation is absent or explicitly blocked",
+    }
+
+
 COPIED_EVIDENCE_PATTERN = re.compile(r"\b(copied evidence|copied-evidence|evidence payload|review payload|verbatim evidence)\b")
 AUTHOR_BOUNDARY_PATTERN = re.compile(
     r"\b(authored claims?|author claims?|claims boundary|copied evidence boundary|"
@@ -674,6 +1027,11 @@ EVALUATORS = {
     "AS-11": request_tool_amplification_gap,
     "AS-12": pricing_provenance_gap,
     "AS-13": copied_evidence_boundary_gap,
+    "AS-14": unauthorized_production_default_enablement,
+    "AS-15": missing_rollback_control_proof,
+    "AS-16": aggregate_only_readiness,
+    "AS-17": stale_direct_token_evidence,
+    "AS-18": forbidden_public_customernewsletter_mutation,
 }
 
 

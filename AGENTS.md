@@ -45,7 +45,7 @@ maturity phase classification.
 | 3 | detection-signatures | Detection signature runner (DS-34 through DS-47 + AS-*) |
 | 4 | scoring | 5-dimension scoring pipeline + stall risk + maturity |
 
-## Scripts (60 total = 50 shell + 10 Python helpers)
+## Scripts (65 total = 55 shell + 10 Python helpers)
 
 ### Core Pipeline
 
@@ -99,6 +99,11 @@ maturity phase classification.
 | `scripts/detect-as-request-tool-amplification-gap.sh` | AS-11 | Request/tool amplification gap detection |
 | `scripts/detect-as-pricing-provenance-gap.sh` | AS-12 | Pricing provenance gap detection |
 | `scripts/detect-as-copied-evidence-boundary-gap.sh` | AS-13 | Copied evidence boundary gap detection |
+| `scripts/detect-as-unauthorized-production-default-enablement.sh` | AS-14 | Unauthorized production default enablement detection |
+| `scripts/detect-as-missing-rollback-control-proof.sh` | AS-15 | Missing rollback/control proof detection |
+| `scripts/detect-as-aggregate-only-readiness.sh` | AS-16 | Aggregate-only readiness detection |
+| `scripts/detect-as-stale-direct-token-evidence.sh` | AS-17 | Stale direct-token evidence detection |
+| `scripts/detect-as-forbidden-public-customernewsletter-mutation.sh` | AS-18 | Forbidden public CustomerNewsletter mutation detection |
 
 ### Helpers
 

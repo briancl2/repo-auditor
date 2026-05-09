@@ -112,3 +112,53 @@
 - **Prevention tier:** T2
 - **Severity:** MEDIUM
 - **Script:** `scripts/detect-as-copied-evidence-boundary-gap.sh`
+
+### AS-14: Unauthorized Production Default Enablement
+- **Detects:** Production or default enablement claims without explicit operator or owner approval
+- **Signal:** A file marks a production/default route as enabled but carries no approval, authorization, or human signoff marker on the same surface
+- **Phase range:** Enablement, rollout, benchmark promotion, and production-default control surfaces
+- **Check:** Scan text and JSON-like surfaces for production/default enablement lines, then require approval markers such as `authorized_by`, `approval_receipt`, `operator approved`, or owner/human signoff language in the same file
+- **Fire condition:** `unauthorized_default_enablement_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-unauthorized-production-default-enablement.sh`
+
+### AS-15: Missing Rollback/Control Proof
+- **Detects:** Production/default enablement claims without rollback or control proof
+- **Signal:** A production/default rollout is described, but no rollback receipt, control proof, kill switch, feature flag, disable path, or recovery proof is retained on the same surface
+- **Phase range:** Enablement, rollout, and production-default control surfaces
+- **Check:** Scan enablement-claim surfaces and require rollback/control proof markers; explicit missing-control wording is an automatic fire
+- **Fire condition:** `missing_rollback_control_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-missing-rollback-control-proof.sh`
+
+### AS-16: Aggregate-Only Readiness
+- **Detects:** Readiness claims based only on aggregate or rollup evidence
+- **Signal:** A repo claims production/release/publication readiness from an aggregate pass rate, composite score, rollup, or summary-only metric without case-level receipts
+- **Phase range:** Readiness, promotion, release, benchmark, and publication evidence surfaces
+- **Check:** Scan readiness claims that cite aggregate evidence, then require per-case, row-level, fixture, per-repo, evidence-packet, or individual-run support on the same surface
+- **Fire condition:** `aggregate_only_readiness_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-aggregate-only-readiness.sh`
+
+### AS-17: Stale Direct-Token Evidence
+- **Detects:** Dated direct-token evidence older than the freshness threshold
+- **Signal:** Direct token fields such as `input_tokens`, `output_tokens`, `live_tokens`, or cache-token fields are used with a stale evidence date
+- **Phase range:** Token, cost, benchmark, and model-comparison evidence surfaces
+- **Check:** Scan direct-token evidence surfaces for ISO dates and flag the newest retained date when it is more than 30 days old
+- **Fire condition:** `stale_direct_token_evidence_count > 0`
+- **Prevention tier:** T2
+- **Severity:** MEDIUM
+- **Script:** `scripts/detect-as-stale-direct-token-evidence.sh`
+
+### AS-18: Forbidden Public CustomerNewsletter Mutation
+- **Detects:** Mutation claims against the public `CustomerNewsletter` surface without an explicit guardrail boundary
+- **Signal:** A surface claims edits, writes, commits, pushes, PRs, or production-authoring activity against public `CustomerNewsletter` instead of treating it as downstream-only/read-only
+- **Phase range:** Cross-repo routing, newsletter production, and public/private owner-surface boundary evidence
+- **Check:** Scan line-level public `CustomerNewsletter` mentions for mutation actions and suppress only lines that explicitly mark the public repo as forbidden, read-only, downstream-only, blocked, or not allowed
+- **Fire condition:** `public_customernewsletter_mutation_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-forbidden-public-customernewsletter-mutation.sh`

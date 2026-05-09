@@ -45,6 +45,11 @@ scripts=(
     "detect-as-request-tool-amplification-gap.sh"
     "detect-as-pricing-provenance-gap.sh"
     "detect-as-copied-evidence-boundary-gap.sh"
+    "detect-as-unauthorized-production-default-enablement.sh"
+    "detect-as-missing-rollback-control-proof.sh"
+    "detect-as-aggregate-only-readiness.sh"
+    "detect-as-stale-direct-token-evidence.sh"
+    "detect-as-forbidden-public-customernewsletter-mutation.sh"
 )
 
 idx=0

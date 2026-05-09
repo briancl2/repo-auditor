@@ -110,6 +110,52 @@ cat > "$TEST_REPO/docs/model-metrics.json" <<'EOF'
 }
 EOF
 
+cat > "$TEST_REPO/docs/enablement-boundary.md" <<'EOF'
+# Enablement Boundary
+
+production_default: true
+enabled_by_default: true
+approval_receipt: missing
+authorized_by: none
+"approval_receipt": null
+EOF
+
+cat > "$TEST_REPO/docs/rollback-gap.md" <<'EOF'
+# Rollback Gap
+
+Production rollout is enabled in production for the default route.
+control proof: missing
+rollback_receipt: missing
+control_receipt: false
+EOF
+
+cat > "$TEST_REPO/docs/readiness.md" <<'EOF'
+# Readiness
+
+"production_readiness": "ready"
+aggregate_pass_rate: 94%
+aggregate_only: true
+summary readiness is the only retained evidence.
+per_case_receipts: missing
+"per_case_receipts": null
+EOF
+
+cat > "$TEST_REPO/docs/direct-token-evidence.md" <<'EOF'
+# Direct Token Evidence
+
+generated_at: 2024-01-01
+input_tokens: 100000
+output_tokens: 20000
+live_tokens: 120000
+EOF
+
+cat > "$TEST_REPO/docs/customer-newsletter-mutation.md" <<'EOF'
+# CustomerNewsletter Mutation
+
+Modified /Users/briancl/repos/CustomerNewsletter/content/index.md for production authoring.
+Pushes /Users/briancl/repos/CustomerNewsletter/content/index.md to production.
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -123,8 +169,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 13
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 13
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 18
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 18
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -141,6 +187,11 @@ assert as_ids == {
     "AS-11",
     "AS-12",
     "AS-13",
+    "AS-14",
+    "AS-15",
+    "AS-16",
+    "AS-17",
+    "AS-18",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -186,6 +237,28 @@ cat > "$CLEAN_REPO/docs/model-metrics.json" <<'EOF'
 }
 EOF
 
+cat > "$CLEAN_REPO/docs/enablement-control.md" <<EOF
+# Enablement Control
+
+production_default: true
+authorized_by: operator approved
+rollback_receipt: retained
+control_receipt: retained
+kill switch tested
+disable path verified
+
+production_readiness: ready
+aggregate_pass_rate: 94%
+per_case_receipts: case-a, case-b, case-c
+
+token_evidence_date: $(date +%F)
+input_tokens: 100000
+output_tokens: 20000
+
+The public CustomerNewsletter repo is downstream-only and read-only; do not mutate it.
+Edited private CustomerNewsletter source notes for internal authoring.
+EOF
+
 python3 - "$REPO_ROOT" "$CLEAN_REPO" <<'PY'
 import json
 import subprocess
@@ -198,6 +271,11 @@ scripts = {
     "AS-11": "detect-as-request-tool-amplification-gap.sh",
     "AS-12": "detect-as-pricing-provenance-gap.sh",
     "AS-13": "detect-as-copied-evidence-boundary-gap.sh",
+    "AS-14": "detect-as-unauthorized-production-default-enablement.sh",
+    "AS-15": "detect-as-missing-rollback-control-proof.sh",
+    "AS-16": "detect-as-aggregate-only-readiness.sh",
+    "AS-17": "detect-as-stale-direct-token-evidence.sh",
+    "AS-18": "detect-as-forbidden-public-customernewsletter-mutation.sh",
 }
 
 for signature_id, script in scripts.items():
