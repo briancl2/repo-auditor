@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import math
 import os
 import subprocess
 from pathlib import Path
@@ -16,6 +17,7 @@ RECEIPT_VERSION = "1.0.0"
 PATH_LIMIT = 50
 DEFAULT_MAX_FILES_SCANNED = 1000
 DENOMINATOR_ENV = "REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR"
+RERUN_CAP_BUFFER_RATIO = 1.1
 DEFAULT_PRUNED_DIRS = {
     ".git",
     ".venv",
@@ -235,6 +237,65 @@ def coverage_ratio(scanned_files: int, total_files: int | None) -> float | None:
     return round(scanned_files / total_files, 6)
 
 
+def buffered_rerun_cap(auditor_pruned_total_files: int) -> int:
+    return max(auditor_pruned_total_files, math.ceil(auditor_pruned_total_files * RERUN_CAP_BUFFER_RATIO))
+
+
+def build_scan_limit_guidance(
+    *,
+    status: str,
+    scan_limit_reached: bool,
+    scan_limit: int,
+    denominator_mode: str,
+    auditor_pruned_total_files: int | None,
+) -> dict[str, Any]:
+    guidance: dict[str, Any] = {
+        "version": RECEIPT_VERSION,
+        "status": "not_needed",
+        "reason": "inventory scan completed within the configured cap",
+        "minimum_complete_cap": None,
+        "recommended_rerun_cap": None,
+        "recommended_rerun_cap_basis": None,
+        "trusted_local_override": None,
+        "denominator_measurement_override": None,
+        "cap_curve_hint": None,
+        "non_authorization": True,
+    }
+    if status == "unavailable":
+        guidance["status"] = "not_applicable"
+        guidance["reason"] = "inventory was unavailable, so scan-cap guidance cannot be computed"
+        return guidance
+    if not scan_limit_reached and status != "available_limited":
+        return guidance
+
+    if denominator_mode == "full_walk" and auditor_pruned_total_files is not None:
+        if auditor_pruned_total_files >= scan_limit:
+            recommended_cap = buffered_rerun_cap(auditor_pruned_total_files)
+            guidance.update(
+                {
+                    "status": "rerun_with_higher_cap",
+                    "reason": "scan limit reached and denominator measurement found more auditor-pruned files than the configured cap",
+                    "minimum_complete_cap": auditor_pruned_total_files,
+                    "recommended_rerun_cap": recommended_cap,
+                    "recommended_rerun_cap_basis": "ceil(auditor_pruned_total_files * 1.10)",
+                    "trusted_local_override": f"REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES={recommended_cap}",
+                    "denominator_measurement_override": f"{DENOMINATOR_ENV}=1",
+                }
+            )
+            return guidance
+        return guidance
+
+    guidance.update(
+        {
+            "status": "measure_denominator",
+            "reason": "scan limit reached before denominator measurement was enabled; rerun with denominator measurement or the cap-curve helper before claiming complete inventory",
+            "denominator_measurement_override": f"{DENOMINATOR_ENV}=1",
+            "cap_curve_hint": "make measure-dual-inventory-cap-curve TARGET=<target> OUTPUT_DIR=<output> CAPS=<cap1>,<cap2>,<cap3>",
+        }
+    )
+    return guidance
+
+
 def scan_target(
     root: Path,
     output_dir: Path,
@@ -336,6 +397,13 @@ def scan_target(
         "git_tracked_file_count": tracked_file_count,
         "non_authorization_statement": "Full-facts inventory is evidence context only; it does not authorize deleting, archiving, compressing, or rewriting target files.",
     }
+    full_inventory["scan_limit_guidance"] = build_scan_limit_guidance(
+        status=full_status,
+        scan_limit_reached=limit_reached,
+        scan_limit=max_files_scanned,
+        denominator_mode=full_inventory["denominator_mode"],
+        auditor_pruned_total_files=auditor_pruned_total_files,
+    )
     return primary_inventory, full_inventory
 
 
@@ -375,6 +443,13 @@ def unavailable_inventory(reason: str) -> tuple[dict[str, Any], dict[str, Any]]:
         "unavailable_reason": reason,
         "non_authorization_statement": "Full-facts inventory is evidence context only; it does not authorize deleting, archiving, compressing, or rewriting target files.",
     }
+    full["scan_limit_guidance"] = build_scan_limit_guidance(
+        status=full["status"],
+        scan_limit_reached=full["scan_limit_reached"],
+        scan_limit=full["scan_limit"],
+        denominator_mode=full["denominator_mode"],
+        auditor_pruned_total_files=full["auditor_pruned_total_files"],
+    )
     return primary, full
 
 
@@ -429,6 +504,10 @@ def update_outputs(target: Path, output_dir: Path) -> None:
         "full_facts_denominator_mode": full["denominator_mode"],
         "full_facts_auditor_pruned_total_files": full["auditor_pruned_total_files"],
         "full_facts_scan_coverage_ratio": full["scan_coverage_ratio"],
+        "full_facts_scan_limit_guidance_status": full["scan_limit_guidance"]["status"],
+        "full_facts_minimum_complete_cap": full["scan_limit_guidance"]["minimum_complete_cap"],
+        "full_facts_recommended_rerun_cap": full["scan_limit_guidance"]["recommended_rerun_cap"],
+        "full_facts_trusted_local_override": full["scan_limit_guidance"]["trusted_local_override"],
         "git_tracked_file_count": full["git_tracked_file_count"],
         "non_authorization": True,
     }

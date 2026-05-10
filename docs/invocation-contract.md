@@ -163,6 +163,7 @@ auditor-pruned fact surface by coarse class counts. It includes:
 - `git_tracked_file_count` when the target path is its own git worktree root
 - `denominator_mode`, `auditor_pruned_total_files`, and
   `scan_coverage_ratio` when the caller opts in to full denominator measurement
+- `scan_limit_guidance`, an additive action receipt for scan-limited runs
 - `non_authorization_statement`
 
 Inventory receipts are evidence context only. Missing, empty, limited, or
@@ -179,6 +180,24 @@ Caps above the default are trusted-local measurement policy: they require that
 explicit environment override and do not weaken dirty-target guards, mutate the
 target, or authorize downstream cleanup. These fields are descriptive evidence
 only and do not change scoring, scan status, or non-authorization semantics.
+
+When `scan_limit_reached=true`, `scan_limit_guidance.status` tells consumers the
+next safe action without changing score semantics:
+
+- `measure_denominator`: denominator measurement was not enabled, so consumers
+  should rerun with `REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR=1` or use
+  `make measure-dual-inventory-cap-curve` before claiming complete inventory.
+- `rerun_with_higher_cap`: denominator measurement found the auditor-pruned
+  total. `minimum_complete_cap` records that exact measured floor, and
+  `recommended_rerun_cap` adds a small churn buffer. The corresponding
+  `trusted_local_override` is still explicit trusted-local policy and does not
+  authorize unbounded scans.
+- `not_needed`: the inventory completed within the configured cap.
+- `not_applicable`: the inventory was unavailable.
+
+`SCORECARD.json.receipts.dual_inventory` mirrors the compact guidance status,
+minimum measured complete cap, recommended rerun cap, and trusted-local override
+for consumers that do not read the full receipt.
 
 ## Target-Native Quality Gates
 

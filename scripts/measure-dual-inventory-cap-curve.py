@@ -147,6 +147,7 @@ def main() -> int:
         (cap_dir / "stderr.txt").write_text(proc.stderr)
         after = git_snapshot(target)
         primary, full = read_receipt(cap_dir)
+        guidance = full.get("scan_limit_guidance", {})
         rows.append(
             {
                 "cap": cap,
@@ -159,6 +160,13 @@ def main() -> int:
                 "full_status": full.get("status"),
                 "full_total_files_scanned": full.get("total_files_scanned"),
                 "full_scan_limit_reached": full.get("scan_limit_reached"),
+                "full_denominator_mode": full.get("denominator_mode"),
+                "full_auditor_pruned_total_files": full.get("auditor_pruned_total_files"),
+                "full_scan_coverage_ratio": full.get("scan_coverage_ratio"),
+                "full_scan_limit_guidance_status": guidance.get("status"),
+                "full_minimum_complete_cap": guidance.get("minimum_complete_cap"),
+                "full_recommended_rerun_cap": guidance.get("recommended_rerun_cap"),
+                "full_trusted_local_override": guidance.get("trusted_local_override"),
                 "tracked_files": tracked_file_count(target),
                 "dirty_before": before.get("dirty"),
                 "dirty_after": after.get("dirty"),

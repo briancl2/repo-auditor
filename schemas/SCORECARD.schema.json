@@ -112,6 +112,21 @@
               "enum": ["available", "available_limited", "unavailable"]
             },
             "full_facts_total_files_scanned": { "type": "integer", "minimum": 0 },
+            "full_facts_scan_limit_guidance_status": {
+              "type": "string",
+              "enum": ["not_needed", "measure_denominator", "rerun_with_higher_cap", "not_applicable"]
+            },
+            "full_facts_minimum_complete_cap": {
+              "type": ["integer", "null"],
+              "minimum": 1
+            },
+            "full_facts_recommended_rerun_cap": {
+              "type": ["integer", "null"],
+              "minimum": 1
+            },
+            "full_facts_trusted_local_override": {
+              "type": ["string", "null"]
+            },
             "non_authorization": { "type": "boolean", "const": true }
           }
         }
