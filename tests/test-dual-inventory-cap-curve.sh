@@ -24,6 +24,7 @@ REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR=1 \
 python3 - "$OUTPUT/dual-inventory-cap-curve.json" "$OUTPUT/dual-inventory-cap-curve.csv" <<'PY'
 import csv
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -41,6 +42,7 @@ assert rows[0]["full_scan_limit_guidance_status"] == "rerun_with_higher_cap", ro
 assert rows[0]["full_minimum_complete_cap"] == 81, rows[0]
 assert rows[0]["full_recommended_rerun_cap"] == 90, rows[0]
 assert rows[0]["full_trusted_local_override"] == "REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES=90", rows[0]
+assert rows[0]["full_recommended_rerun_cap"] == math.ceil(rows[0]["full_minimum_complete_cap"] * 1.10), rows[0]
 assert rows[1]["full_status"] == "available", rows[1]
 assert rows[1]["full_scan_limit_reached"] is False, rows[1]
 assert rows[1]["full_scan_limit_guidance_status"] == "not_needed", rows[1]

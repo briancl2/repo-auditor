@@ -189,9 +189,9 @@ next safe action without changing score semantics:
   `make measure-dual-inventory-cap-curve` before claiming complete inventory.
 - `rerun_with_higher_cap`: denominator measurement found the auditor-pruned
   total. `minimum_complete_cap` records that exact measured floor, and
-  `recommended_rerun_cap` adds a small churn buffer. The corresponding
-  `trusted_local_override` is still explicit trusted-local policy and does not
-  authorize unbounded scans.
+  `recommended_rerun_cap=ceil(minimum_complete_cap * 1.10)` adds a small churn
+  buffer. The corresponding `trusted_local_override` is still explicit
+  trusted-local policy and does not authorize unbounded scans.
 - `not_needed`: the inventory completed within the configured cap.
 - `not_applicable`: the inventory was unavailable.
 
