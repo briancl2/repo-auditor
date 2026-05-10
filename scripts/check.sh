@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/check.sh — Gate 2 pre-commit check for repo-auditor
 #
-# Runs: shellcheck, inventory match, trailer check.
+# Runs: shellcheck, inventory match, co-evolution guard, trailer check.
 # Deterministic. macOS bash 3.2 compatible.
 #
 # Usage: bash scripts/check.sh
@@ -38,13 +38,19 @@ fi
 
 # ── Inventory match ───────────────────────────────────────────────────
 echo "── inventory ──"
-EXPECTED=55  # shell scripts only; AGENTS.md lists 66 total (55 shell + 11 Python helpers)
+EXPECTED=56  # shell scripts only; AGENTS.md lists 67 total (56 shell + 11 Python helpers)
 COUNTED=$(find scripts -maxdepth 1 -name '*.sh' -type f | wc -l | tr -d ' ')
 if [ "$COUNTED" != "$EXPECTED" ]; then
     echo "  FAIL: expected $EXPECTED scripts, found $COUNTED"
     FAIL=1
 else
     echo "  PASS: inventory ($COUNTED scripts)"
+fi
+
+# ── Co-evolution guard ──────────────────────────────────────────────────
+echo "── co-evolution ──"
+if ! bash scripts/check-coevolution.sh; then
+    FAIL=1
 fi
 
 # ── Trailer check ─────────────────────────────────────────────────────

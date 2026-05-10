@@ -55,7 +55,7 @@ Shared primitives from [repo-agent-core](https://github.com/briancl2/repo-agent-
 
 ## Self-Management
 
-- `make check` — shellcheck + inventory + trailer validation
+- `make check` — shellcheck + inventory + co-evolution + trailer validation
 - `make work DESC="..."` — open work contract with baseline
 - `make work-close WORK=work/<dir>` — close with post-audit + learnings gate
 
