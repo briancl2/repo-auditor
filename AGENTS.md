@@ -14,13 +14,16 @@ maturity phase classification.
 
 - **Standard mode** (default) — deterministic, bash scripts only
 - **Deep mode** (`--mode deep`) — LLM-powered domain auditors for richer analysis
-- Pre-commit hook runs `make check` (shellcheck + inventory + trailer)
+- Pre-commit hook runs `make check` (shellcheck + inventory + co-evolution + trailer)
 - `make review` recommended before committing large changes
 - `--no-verify` is NEVER permitted (L102)
 - AGENTS.md is the canonical instruction surface (L104)
 - Target repos are NEVER modified
 - Governed audit artifacts summarize command evidence instead of copying raw
   command transcripts; raw stdout/stderr stays in receipt or log artifacts.
+- Governed surface edits under `.agents/`, `.github/agents/`,
+  `scripts/detect-*.sh`, or `schemas/*.json` must land with a paired
+  `tests/` or `fixtures/` delta in the same change set.
 
 ## Agents (9)
 
@@ -45,7 +48,7 @@ maturity phase classification.
 | 3 | detection-signatures | Detection signature runner (DS-34 through DS-47 + AS-*) |
 | 4 | scoring | 5-dimension scoring pipeline + stall risk + maturity |
 
-## Scripts (66 total = 55 shell + 11 Python helpers)
+## Scripts (67 total = 56 shell + 11 Python helpers)
 
 ### Core Pipeline
 
@@ -125,7 +128,8 @@ maturity phase classification.
 
 | Script | Purpose |
 |---|---|
-| `scripts/check.sh` | Gate 2 -- shellcheck + inventory + trailer validation |
+| `scripts/check.sh` | Gate 2 -- shellcheck + inventory + co-evolution + trailer validation |
+| `scripts/check-coevolution.sh` | Co-evolution guard for governed surface edits |
 | `scripts/work-init.sh` | Gate 1 -- work contract init with baseline SCORECARD |
 | `scripts/work-close.sh` | Gate 3 -- post-audit + delta + learnings gate |
 | `scripts/pre-commit-hook.sh` | Pre-commit hook -- runs make check |
@@ -154,7 +158,7 @@ make validate
 make test
 
 # Self-management
-make check                         # Gate 2 -- shellcheck + inventory + trailer
+make check                         # Gate 2 -- shellcheck + inventory + co-evolution + trailer
 make review                        # Code review of staged changes
 make work DESC="what you're doing" # Gate 1 -- open work contract
 make work-close WORK=work/<dir>    # Gate 3 -- close with post-audit + learnings
