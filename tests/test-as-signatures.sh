@@ -290,6 +290,51 @@ for signature_id, script in scripts.items():
     assert payload["fired"] is False, payload
 PY
 
+FINAL_ON_REPO="$TMPDIR/as-final-default-on-repo"
+mkdir -p "$FINAL_ON_REPO/docs"
+cat > "$FINAL_ON_REPO/docs/final-default-left-on.md" <<'EOF'
+# Final Default Left On
+
+production_default: true
+rollback_receipt: retained
+control_receipt: retained
+The canary completed, but final_feature_config_mode: default.
+EOF
+
+FINAL_OFF_REPO="$TMPDIR/as-final-default-off-repo"
+mkdir -p "$FINAL_OFF_REPO/docs"
+cat > "$FINAL_OFF_REPO/docs/final-default-off.md" <<'EOF'
+# Final Default Rolled Back
+
+production_default: true
+rollback_receipt: retained
+control_receipt: retained
+kill switch tested
+disable path verified
+final_feature_config_mode: off
+EOF
+
+python3 - "$REPO_ROOT" "$FINAL_ON_REPO" "$FINAL_OFF_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, final_on_repo, final_off_repo = sys.argv[1:4]
+script = f"{repo_root}/scripts/detect-as-missing-rollback-control-proof.sh"
+
+final_on = subprocess.run(["bash", script, final_on_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(final_on.stdout)
+assert payload["ds_id"] == "AS-15", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["missing_rollback_control_count"] == 1, payload
+
+final_off = subprocess.run(["bash", script, final_off_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(final_off.stdout)
+assert payload["ds_id"] == "AS-15", payload
+assert payload["fired"] is False, payload
+assert payload["signals"]["rollback_control_proven_count"] == 1, payload
+PY
+
 NOISE_REPO="$TMPDIR/as-noise-only-repo"
 mkdir -p \
     "$NOISE_REPO/.venv/docs" \
