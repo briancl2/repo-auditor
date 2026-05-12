@@ -771,7 +771,10 @@ MISSING_CONTROL_PATTERN = re.compile(
     r"no control proof|control proof: missing|missing control proof|no disable path|"
     r"rollback/control proof missing|rollback_receipt:\s*(missing|none|false|no|null)|"
     r"control_receipt:\s*(missing|none|false|no|null)|rollback proof:\s*(missing|none|false|no|null)|"
-    r"control proof:\s*(missing|none|false|no|null))\b"
+    r"control proof:\s*(missing|none|false|no|null)|"
+    r"final[_ -]?(feature[_ -]?)?config(?:ured)?[_ -]?mode\s*:\s*(default|enabled|true)|"
+    r"final (feature )?config (remained|stayed|is) (default|enabled)|"
+    r"after canary.{0,120}configured[_ -]?mode\s*:\s*default)\b"
 )
 
 
