@@ -31,6 +31,7 @@ scripts=(
     "detect-closeout-control-drift.sh"
     "detect-workflow-contract-drift.sh"
     "detect-llm-validation-gap.sh"
+    "detect-risk-review-gap.sh"
     "detect-summary-source-parity-gap.sh"
     "detect-as-instruction-root-drift.sh"
     "detect-as-docs-vs-observed-host-drift.sh"

@@ -48,7 +48,7 @@ maturity phase classification.
 | 3 | detection-signatures | Detection signature runner (DS-34 through DS-47 + AS-*) |
 | 4 | scoring | 5-dimension scoring pipeline + stall risk + maturity |
 
-## Scripts (67 total = 56 shell + 11 Python helpers)
+## Scripts (68 total = 57 shell + 11 Python helpers)
 
 ### Core Pipeline
 
@@ -87,6 +87,7 @@ maturity phase classification.
 | `scripts/detect-closeout-control-drift.sh` | DS-44 | Stage 15 closeout-control drift detection |
 | `scripts/detect-workflow-contract-drift.sh` | DS-45 | Helper vs agent/prompt/skill workflow-contract drift |
 | `scripts/detect-llm-validation-gap.sh` | DS-46 | Validation coverage misses live LLM workflow path |
+| `scripts/detect-risk-review-gap.sh` | DS-48 | Broad review requirement without repo-defined risk routing |
 | `scripts/detect-summary-source-parity-gap.sh` | DS-47 | Summary-source parity gap on `total events` / `tool calls` / `tool distribution` |
 | `scripts/detect-new-signatures.sh` | -- | Unified runner for DS-34+ and AS-* |
 | `scripts/detect-as-instruction-root-drift.sh` | AS-01 | Instruction-root drift detection |
