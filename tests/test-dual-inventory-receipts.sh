@@ -223,6 +223,10 @@ assert primary["scan_limit_reached"] is True, primary
 assert full["status"] == "available_limited", full
 assert full["scan_limit_reached"] is True, full
 assert full["total_files_scanned"] == 1000, full
+assert full["scan_limit_guidance"]["status"] == "measure_denominator", full
+assert full["scan_limit_guidance"]["denominator_measurement_override"] == "REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR=1", full
+assert full["scan_limit_guidance"]["cap_curve_hint"].startswith("make measure-dual-inventory-cap-curve"), full
+assert full["scan_limit_guidance"]["non_authorization"] is True, full
 hint = full["scan_limited_rerun_hint"]
 assert hint["reason"] == "scan_limit_reached", hint
 assert hint["suggested_max_files"] == 10000, hint
@@ -231,6 +235,7 @@ assert hint["suggested_env"]["REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR"] 
 assert hint["basis"] == "heuristic_10x_current_limit_without_denominator", hint
 assert scorecard["receipts"]["dual_inventory"]["primary_surface_inventory_status"] == "available_limited"
 assert scorecard["receipts"]["dual_inventory"]["full_facts_inventory_status"] == "available_limited"
+assert scorecard["receipts"]["dual_inventory"]["full_facts_scan_limit_guidance_status"] == "measure_denominator"
 assert scorecard["composite"] == 42
 PY
 echo "  ✓ scan-limited inventory is explicit insufficient evidence"
@@ -260,9 +265,11 @@ assert full["scan_limit_reached"] is False, full
 assert full["total_files_scanned"] == 1006, full
 assert full["denominator_mode"] == "not_measured", full
 assert full["auditor_pruned_total_files"] is None, full
+assert full["scan_limit_guidance"]["status"] == "not_needed", full
 assert full["scan_limited_rerun_hint"] is None, full
 assert pointer["full_facts_scan_limit"] == 1100, pointer
 assert pointer["full_facts_inventory_status"] == "available", pointer
+assert pointer["full_facts_recommended_rerun_cap"] is None, pointer
 assert scorecard["composite"] == 42
 PY
 echo "  ✓ high-cap inventory is explicit opt-in via max-files environment override"
@@ -290,6 +297,14 @@ assert full["denominator_mode"] == "full_walk", full
 assert full["auditor_pruned_total_files"] == 1006, full
 assert full["scan_coverage_ratio"] == round(50 / 1006, 6), full
 assert full["git_tracked_file_count"] is None, full
+guidance = full["scan_limit_guidance"]
+assert guidance["status"] == "rerun_with_higher_cap", guidance
+assert guidance["minimum_complete_cap"] == 1006, guidance
+assert guidance["recommended_rerun_cap"] == 1107, guidance
+assert guidance["trusted_local_override"] == "REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES=1107", guidance
+assert guidance["denominator_measurement_override"] == "REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR=1", guidance
+assert guidance["recommended_rerun_cap_basis"] == "ceil(auditor_pruned_total_files * 1.10)", guidance
+assert guidance["non_authorization"] is True, guidance
 hint = full["scan_limited_rerun_hint"]
 assert hint["suggested_max_files"] == 1006, hint
 assert hint["basis"] == "measured_auditor_pruned_total_files", hint
@@ -297,6 +312,9 @@ assert hint["suggested_env"]["REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES"] == "1006",
 assert pointer["full_facts_denominator_mode"] == "full_walk", pointer
 assert pointer["full_facts_auditor_pruned_total_files"] == 1006, pointer
 assert pointer["full_facts_scan_coverage_ratio"] == round(50 / 1006, 6), pointer
+assert pointer["full_facts_scan_limit_guidance_status"] == "rerun_with_higher_cap", pointer
+assert pointer["full_facts_minimum_complete_cap"] == 1006, pointer
+assert pointer["full_facts_recommended_rerun_cap"] == 1107, pointer
 assert pointer["non_authorization"] is True, pointer
 PY
 echo "  ✓ opt-in denominator mode reports coverage without changing score"
