@@ -116,6 +116,7 @@ assert full["scan_limit_reached"] is False, full
 assert full["denominator_mode"] == "not_measured", full
 assert full["auditor_pruned_total_files"] is None, full
 assert full["scan_coverage_ratio"] is None, full
+assert full["scan_limited_rerun_hint"] is None, full
 assert full["paths_emitted"] is False, full
 assert full["auditorignore"]["active"] is True, full
 assert full["auditorignore"]["entries_emitted"] is False, full
@@ -226,6 +227,12 @@ assert full["scan_limit_guidance"]["status"] == "measure_denominator", full
 assert full["scan_limit_guidance"]["denominator_measurement_override"] == "REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR=1", full
 assert full["scan_limit_guidance"]["cap_curve_hint"].startswith("make measure-dual-inventory-cap-curve"), full
 assert full["scan_limit_guidance"]["non_authorization"] is True, full
+hint = full["scan_limited_rerun_hint"]
+assert hint["reason"] == "scan_limit_reached", hint
+assert hint["suggested_max_files"] == 10000, hint
+assert hint["suggested_env"]["REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES"] == "10000", hint
+assert hint["suggested_env"]["REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR"] == "1", hint
+assert hint["basis"] == "heuristic_10x_current_limit_without_denominator", hint
 assert scorecard["receipts"]["dual_inventory"]["primary_surface_inventory_status"] == "available_limited"
 assert scorecard["receipts"]["dual_inventory"]["full_facts_inventory_status"] == "available_limited"
 assert scorecard["receipts"]["dual_inventory"]["full_facts_scan_limit_guidance_status"] == "measure_denominator"
@@ -259,6 +266,7 @@ assert full["total_files_scanned"] == 1006, full
 assert full["denominator_mode"] == "not_measured", full
 assert full["auditor_pruned_total_files"] is None, full
 assert full["scan_limit_guidance"]["status"] == "not_needed", full
+assert full["scan_limited_rerun_hint"] is None, full
 assert pointer["full_facts_scan_limit"] == 1100, pointer
 assert pointer["full_facts_inventory_status"] == "available", pointer
 assert pointer["full_facts_recommended_rerun_cap"] is None, pointer
@@ -297,6 +305,10 @@ assert guidance["trusted_local_override"] == "REPO_AUDITOR_DUAL_INVENTORY_MAX_FI
 assert guidance["denominator_measurement_override"] == "REPO_AUDITOR_DUAL_INVENTORY_MEASURE_DENOMINATOR=1", guidance
 assert guidance["recommended_rerun_cap_basis"] == "ceil(auditor_pruned_total_files * 1.10)", guidance
 assert guidance["non_authorization"] is True, guidance
+hint = full["scan_limited_rerun_hint"]
+assert hint["suggested_max_files"] == 1006, hint
+assert hint["basis"] == "measured_auditor_pruned_total_files", hint
+assert hint["suggested_env"]["REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES"] == "1006", hint
 assert pointer["full_facts_denominator_mode"] == "full_walk", pointer
 assert pointer["full_facts_auditor_pruned_total_files"] == 1006, pointer
 assert pointer["full_facts_scan_coverage_ratio"] == round(50 / 1006, 6), pointer
@@ -323,6 +335,7 @@ full = receipts["full_facts_inventory"]
 
 assert primary["status"] == "unavailable", primary
 assert full["status"] == "unavailable", full
+assert full["scan_limited_rerun_hint"] is None, full
 assert "not found" in primary["unavailable_reason"], primary
 assert scorecard["receipts"]["dual_inventory"]["primary_surface_inventory_status"] == "unavailable"
 assert scorecard["receipts"]["dual_inventory"]["full_facts_inventory_status"] == "unavailable"

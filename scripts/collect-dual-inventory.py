@@ -30,6 +30,7 @@ DEFAULT_PRUNED_DIRS = {
     ".eggs",
 }
 DEFAULT_EXCLUDED_FILES = {".DS_Store"}
+RERUN_HINT_MULTIPLIER = 10
 
 PRIMARY_PATTERNS: dict[str, tuple[str, ...]] = {
     "instruction_roots": (
@@ -296,6 +297,36 @@ def build_scan_limit_guidance(
     return guidance
 
 
+def scan_limited_rerun_hint(
+    limit_reached: bool,
+    max_files_scanned: int,
+    auditor_pruned_total_files: int | None,
+) -> dict[str, Any] | None:
+    if not limit_reached:
+        return None
+    if auditor_pruned_total_files is not None and auditor_pruned_total_files > max_files_scanned:
+        suggested_cap = auditor_pruned_total_files
+        basis = "measured_auditor_pruned_total_files"
+    else:
+        suggested_cap = max_files_scanned * RERUN_HINT_MULTIPLIER
+        basis = "heuristic_10x_current_limit_without_denominator"
+    return {
+        "reason": "scan_limit_reached",
+        "suggested_max_files": suggested_cap,
+        "suggested_env": {
+            "REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES": str(suggested_cap),
+            DENOMINATOR_ENV: "1",
+        },
+        "basis": basis,
+        "message": (
+            "Dual inventory scan stopped at "
+            f"{max_files_scanned} files; rerun with "
+            f"REPO_AUDITOR_DUAL_INVENTORY_MAX_FILES={suggested_cap} "
+            f"and {DENOMINATOR_ENV}=1 for complete-vs-limited evidence."
+        ),
+    }
+
+
 def scan_target(
     root: Path,
     output_dir: Path,
@@ -395,6 +426,11 @@ def scan_target(
         "auditor_pruned_skipped_files_count": auditor_pruned_skipped_files_count,
         "scan_coverage_ratio": coverage_ratio(scanned_files, auditor_pruned_total_files),
         "git_tracked_file_count": tracked_file_count,
+        "scan_limited_rerun_hint": scan_limited_rerun_hint(
+            limit_reached,
+            max_files_scanned,
+            auditor_pruned_total_files,
+        ),
         "non_authorization_statement": "Full-facts inventory is evidence context only; it does not authorize deleting, archiving, compressing, or rewriting target files.",
     }
     full_inventory["scan_limit_guidance"] = build_scan_limit_guidance(
@@ -440,6 +476,7 @@ def unavailable_inventory(reason: str) -> tuple[dict[str, Any], dict[str, Any]]:
         "auditor_pruned_skipped_files_count": None,
         "scan_coverage_ratio": None,
         "git_tracked_file_count": None,
+        "scan_limited_rerun_hint": None,
         "unavailable_reason": reason,
         "non_authorization_statement": "Full-facts inventory is evidence context only; it does not authorize deleting, archiving, compressing, or rewriting target files.",
     }
