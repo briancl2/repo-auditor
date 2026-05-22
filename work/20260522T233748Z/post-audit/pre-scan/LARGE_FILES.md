@@ -1,0 +1,46 @@
+# Large Files (>200 lines)
+
+| file | lines | type |
+|---|---|---|
+| work/20260418T150604Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| tests/fixtures/token-efficiency-transfer/token-allocation-report-summary-production-2026-03-17.json | 2246 | json |
+| tests/fixtures/token-efficiency-transfer/token-allocation-report-summary-baseline-2026-03-17.json | 2243 | json |
+| work/20260224T024716Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2186 | md |
+| work/20260224T024716Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2185 | md |
+| scripts/as_signature_scan.py | 1086 | py |
+| .specify/scripts/bash/update-agent-context.sh | 808 | sh |
+| scripts/repo-auditor.sh | 772 | sh |
+| scripts/score-audit-dimensions.sh | 756 | sh |
+| scripts/deep-audit.py | 628 | py |
+| scripts/token-efficiency-measure.py | 619 | py |
+| scripts/collect-dual-inventory.py | 567 | py |
+| scripts/score-operation.sh | 558 | sh |
+| tests/test-token-efficiency-transfer.sh | 435 | sh |
+| tests/test-as-signatures.sh | 395 | sh |
+| scripts/collect-target-native-quality-gates.py | 365 | py |
+| .agents/skills/pre-scanning/scripts/pre-scan-target.sh | 361 | sh |
+| tests/test-dual-inventory-receipts.sh | 347 | sh |
+| scripts/score-session.sh | 347 | sh |
+| tests/fixtures/token-efficiency-transfer/benchmark-labels-v1.json | 328 | json |
+| .specify/scripts/bash/create-new-feature.sh | 297 | sh |
+| scripts/detect-ceremony-ratio.sh | 294 | sh |
+| .agents/speckit.checklist.agent.md | 294 | md |
+| scripts/work-close.sh | 285 | sh |
+| scripts/stall-risk-score.sh | 284 | sh |
+| scripts/write_context_score_manifest.py | 269 | py |
+| docs/invocation-contract.md | 263 | md |
+| scripts/detect-content-staleness.sh | 259 | sh |
+| .agents/speckit.specify.agent.md | 258 | md |
+| scripts/extract-repo-dna.sh | 253 | sh |
+| .specify/templates/tasks-template.md | 251 | md |
+| detection-signatures/DS-1-through-DS-33.md | 250 | md |
+| tests/test-audit-run-receipt.sh | 249 | sh |
+| scripts/detect-closeout-control-drift.sh | 249 | sh |
+| scripts/detect-capability-drift.sh | 237 | sh |
+| scripts/audit-clean-head-snapshot.py | 234 | py |
+| scripts/prepare-clean-audit-snapshot.py | 232 | py |
+| scripts/measure-dual-inventory-cap-curve.py | 227 | py |
+| tests/fixtures/token-efficiency-measurement-pilot/hotspot-evidence-packets.json | 226 | json |
+| scripts/detect-automation-theater.sh | 221 | sh |
+| tests/test-deep-audit.sh | 213 | sh |
+

@@ -1,0 +1,42 @@
+{
+  "schema_version": "burst174_action_tuple_decision.v1",
+  "generated_at_utc": "2026-05-22T23:40:06Z",
+  "owner_repo": "/Users/briancl/repos/repo-auditor",
+  "owner_repo_head": "c50cdb7562ca9246457259ffd8dfc2042373641a",
+  "decision": "schema_patch_needed",
+  "decision_summary": "The existing `verification` field is useful but insufficient by itself. It can carry a retest command, but retained traces show missing edit_surface, patch_shape, and owner_blocker signals caused zero patch-ready findings, wrong-surface recommendations, or downgraded findings with non-testing verification commands.",
+  "field_names": [
+    "edit_surface",
+    "patch_shape",
+    "owner_blocker"
+  ],
+  "existing_field_to_reuse": "verification",
+  "field_name_rationale": {
+    "edit_surface": "Names the likely owner file, directory, or surface class the next worker should inspect or patch.",
+    "patch_shape": "Names the bounded edit class, such as split module, extract helper, redirect generated mirror recommendation, or stop.",
+    "owner_blocker": "Names why the finding cannot be patched directly, such as generated mirror, insufficient evidence, destructive cleanup, missing keep-set, or authorization required.",
+    "verification": "Keep the existing field for the command that proves the observation or later repair; do not add a duplicate verify_command in the first patch."
+  },
+  "schema_diff_summary": [
+    "In a separately approved implementation burst, add optional `edit_surface`, `patch_shape`, and `owner_blocker` properties under `schemas/FINDINGS.schema.json` item properties.",
+    "Keep the existing required list unchanged in the first schema patch so old findings remain valid.",
+    "Do not add a new `verify_command` property in the first patch; reuse the existing `verification` field and tighten its description if needed.",
+    "Update the repo-auditor worker prompts that currently say only to include a verification command so high-confidence actionable findings also emit the new tuple fields.",
+    "Add focused schema and fixture tests that validate a finding with the new fields while preserving backward compatibility for old seven-column findings."
+  ],
+  "validation_commands": [
+    "python3 -m json.tool work/20260522T233748Z/failure-trace-ledger.json",
+    "python3 -m json.tool work/20260522T233748Z/action-tuple-decision.json",
+    "python3 -m json.tool schemas/FINDINGS.schema.json",
+    "bash tests/test-auditor-schemas.sh",
+    "bash tests/test-deep-audit.sh",
+    "make check"
+  ],
+  "next_action": "Fresh-approve Burst 175 as a narrow repo-auditor schema, prompt, and fixture patch that adds optional edit_surface, patch_shape, and owner_blocker fields while retaining the existing verification field.",
+  "stop_or_pivot_rules": [
+    "Stop if current files later show equivalent action-tuple fields already implemented.",
+    "Stop if fresh traces are invalidated by owner evidence.",
+    "Pivot to the next owner-surface candidate if Burst 175 approval is not granted."
+  ],
+  "approval_boundary": "This decision packet does not authorize the schema patch, PR, push, merge, public or fleet adoption, live model spend, or target repository mutation."
+}
