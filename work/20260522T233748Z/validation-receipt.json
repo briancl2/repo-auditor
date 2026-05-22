@@ -1,0 +1,70 @@
+{
+  "schema_version": "burst174_validation_receipt.v1",
+  "generated_at_utc": "2026-05-22T23:40:06Z",
+  "work_dir": "work/20260522T233748Z",
+  "commands": [
+    {
+      "command": "python3 -m json.tool work/20260522T233748Z/failure-trace-ledger.json",
+      "status": "pass"
+    },
+    {
+      "command": "python3 -m json.tool work/20260522T233748Z/action-tuple-decision.json",
+      "status": "pass"
+    },
+    {
+      "command": "python3 -m json.tool schemas/FINDINGS.schema.json",
+      "status": "pass"
+    },
+    {
+      "command": "bash tests/test-auditor-schemas.sh",
+      "status": "pass"
+    },
+    {
+      "command": "bash tests/test-deep-audit.sh",
+      "status": "pass",
+      "summary": "Detected 5 of 6 known defects, above the minimum of 3."
+    },
+    {
+      "command": "make check",
+      "status": "pass",
+      "summary": "shellcheck 56 pass, inventory pass, co-evolution guard pass, trailer pass."
+    },
+    {
+      "command": "make work-close WORK=work/20260522T233748Z -- --no-novel-findings \"Burst 174 retained its decision evidence inside the work package and made no reusable repo-auditor mechanism change.\"",
+      "status": "fail",
+      "summary": "The Makefile target did not forward the no-novel-findings flag to scripts/work-close.sh, so the learning gate rejected the close."
+    },
+    {
+      "command": "bash scripts/work-close.sh work/20260522T233748Z --no-novel-findings \"Burst 174 retained its decision evidence inside the work package and made no reusable repo-auditor mechanism change.\"",
+      "status": "pass",
+      "summary": "work-close completed; pre-score 56, post-score 60, delta 4, learnings 0 with no-novel-findings rationale."
+    }
+  ],
+  "static_scan": {
+    "scope": [
+      "work/20260522T233748Z/WORK.md",
+      "work/20260522T233748Z/failure-trace-ledger.json",
+      "work/20260522T233748Z/action-tuple-decision.json",
+      "work/20260522T233748Z/wave22-continuity-refresh.md"
+    ],
+    "status": "pass",
+    "allowed_hits": [
+      "newsletter appears only in closed-workstream or no-reopening context.",
+      "schema write and schema patch appear only in no-authority or fresh-approval-needed context.",
+      "public/fleet adoption, live model spend, billing proof, durable savings proof, model recommendation, controller, scheduler, lane registry, PR, push, and merge appear only in forbidden-boundary context."
+    ]
+  },
+  "coverage": {
+    "last_burst_result_answered": true,
+    "current_wave_answered": true,
+    "next_four_bursts_answered": true,
+    "fresh_approval_needed_answered": true,
+    "burst174_decision": "schema_patch_needed"
+  },
+  "non_claims": [
+    "No schema files were edited.",
+    "No reusable repo-auditor mechanism was changed.",
+    "No target repository was mutated.",
+    "No PR, push, merge, public/fleet adoption, live model spend, billing proof, durable savings proof, model recommendation, controller, scheduler, or lane registry was produced."
+  ]
+}
