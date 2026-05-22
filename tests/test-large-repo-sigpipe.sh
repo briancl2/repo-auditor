@@ -3,16 +3,22 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TEST_ROOT="$REPO_ROOT/tests/test-output-large-repo-sigpipe"
+TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/repo-auditor-large-repo-sigpipe.XXXXXX")"
 TARGET="$TEST_ROOT/target"
 OUT="$TEST_ROOT/out"
 
 cleanup() {
+    chmod -R u+w "$TEST_ROOT" 2>/dev/null || true
+    attempt=1
+    while [ "$attempt" -le 5 ]; do
+        rm -rf "$TEST_ROOT" 2>/dev/null && return 0
+        sleep 1
+        attempt=$((attempt + 1))
+    done
     rm -rf "$TEST_ROOT"
 }
 trap cleanup EXIT
 
-rm -rf "$TEST_ROOT"
 mkdir -p "$TARGET/plans" "$TARGET/scripts" "$TARGET/tests" "$TARGET/.github/workflows" "$OUT"
 
 printf '%s\n' '# Fixture Agents' > "$TARGET/AGENTS.md"
@@ -34,6 +40,8 @@ done
     git init -q
     git config user.name "Fixture"
     git config user.email "fixture@example.com"
+    git config gc.auto 0
+    git config maintenance.auto false
     git add .
     git commit -qm "fixture"
 )
