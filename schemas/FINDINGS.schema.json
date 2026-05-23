@@ -38,6 +38,18 @@
       "verification": {
         "type": "string",
         "description": "Command to verify the finding or its resolution"
+      },
+      "edit_surface": {
+        "type": "string",
+        "description": "Optional likely owner file, directory, or surface class to inspect or patch"
+      },
+      "patch_shape": {
+        "type": "string",
+        "description": "Optional bounded edit class or patch shape for actionable findings"
+      },
+      "owner_blocker": {
+        "type": "string",
+        "description": "Optional reason the finding cannot be patched directly, such as generated surface, insufficient evidence, destructive cleanup, missing keep-set, or authorization required"
       }
     }
   }

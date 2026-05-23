@@ -1,0 +1,55 @@
+# Large Files (>200 lines)
+
+| file | lines | type |
+|---|---|---|
+| work/20260320T000559Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260318T003312Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260318T003312Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260317T232936Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260317T232936Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260317T152849Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260317T152849Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260317T041737Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260317T041737Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260317T035934Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260317T035934Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260316T235641Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260316T235641Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260316T233348Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260316T233348Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260316T030443Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260315T234601Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260315T234601Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260315T225825Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260315T225825Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260315T215414Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260315T215414Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260315T205849Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2584 | md |
+| work/20260429T122040Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2382 | md |
+| work/20260429T122040Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2382 | md |
+| work/20260426T212046Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2382 | md |
+| work/20260426T212046Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2380 | md |
+| work/20260419T125925Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2371 | md |
+| work/20260418T150604Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260416T010828Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260416T010828Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260416T010616Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260416T010616Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260415T234216Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260415T200149Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260415T152434Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260415T121633Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260415T121633Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2370 | md |
+| work/20260522T235758Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2278 | md |
+| work/20260522T233748Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2278 | md |
+| work/20260522T233748Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2278 | md |
+| tests/fixtures/token-efficiency-transfer/token-allocation-report-summary-production-2026-03-17.json | 2246 | json |
+| tests/fixtures/token-efficiency-transfer/token-allocation-report-summary-baseline-2026-03-17.json | 2243 | json |
+| work/20260224T024716Z/post-audit/pre-scan/AI_SURFACES_FULL.md | 2186 | md |
+| work/20260224T024716Z/pre-audit/pre-scan/AI_SURFACES_FULL.md | 2185 | md |
+| scripts/as_signature_scan.py | 1086 | py |
+| .specify/scripts/bash/update-agent-context.sh | 808 | sh |
+| scripts/repo-auditor.sh | 772 | sh |
+| scripts/score-audit-dimensions.sh | 756 | sh |
+| scripts/deep-audit.py | 628 | py |
+

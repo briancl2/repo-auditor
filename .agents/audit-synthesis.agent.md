@@ -44,3 +44,8 @@ Write AUDIT_REPORT.md with:
 6. **Domain Deep Dives** — Per-domain findings (from payloads)
 7. **Recommendations** — Top 5 prioritized actions
 8. **Metadata** — Timestamp, auditor version, mode used
+
+When domain payloads include optional action tuple fields (`edit_surface`,
+`patch_shape`, or `owner_blocker`, or their table-heading equivalents), preserve
+that information in recommendations instead of collapsing it into generic prose.
+Keep verification commands distinct from patch-shape guidance.

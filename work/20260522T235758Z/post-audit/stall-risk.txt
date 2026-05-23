@@ -1,0 +1,20 @@
+================================================================
+Stall Risk Score: 20260522T235758Z.post-audit.snapshot.X5uv9b
+================================================================
+
+  SCORE: 17 / 100   🟢 LOW
+
+--- Signal Breakdown ---
+
+  S1 Refactor Ratio:        0/25  (ratio=0.02 , 1/45 commits)
+  S2 Add/Delete Ratio:      0/20  (adr=62.48, +17056/-273 lines)
+  S3 Skill Velocity:        2/20  (rate=4.00  skills/mo, 4 skills, 1.0 months)
+  S4 Commit Freq Decay:     5/15  (slope=-0.7 , weeks: 5→9→26→3)
+  S5 Plan Infrastructure:   8/10  (infra=2/10)
+  S6 Surface Diversity:     2/10  (types=4/5)
+
+--- Thresholds ---
+  0-20  🟢 Low       21-40 🟡 Watch
+  41-60 🟠 Warning   61-80 🔴 High
+  81-100 🚨 Critical
+================================================================

@@ -1,0 +1,580 @@
+{
+  "repo": "20260522T235758Z.post-audit.snapshot.X5uv9b",
+  "repo_path": "/var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.snapshot.X5uv9b",
+  "total_ds": 32,
+  "fired_count": 17,
+  "detection_rate_pct": 53.1,
+  "results": [
+    {
+      "ds_id": "DS-34",
+      "name": "Stale TODO/FIXME",
+      "severity": "LOW",
+      "prevention_tier": "T3",
+      "fired": true,
+      "count": 60,
+      "threshold": 10,
+      "evidence": "/var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.snapshot.X5uv9b/detect|/var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.snapshot.X5uv9b/detect|/var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.snapshot.X5uv9b/detect|/var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.snapshot.X5uv9b/det"
+    },
+    {
+      "ds_id": "DS-35",
+      "name": "Unused dependencies",
+      "severity": "MEDIUM",
+      "prevention_tier": "T2",
+      "fired": false,
+      "total_deps": 0,
+      "unused_count": 0,
+      "manifest_type": "none",
+      "evidence": ""
+    },
+    {
+      "ds_id": "DS-36",
+      "name": "Green-only CI",
+      "severity": "MEDIUM",
+      "prevention_tier": "T3",
+      "fired": true,
+      "has_ci": true,
+      "ci_type": "github-actions",
+      "failure_handling": 0,
+      "test_commands": 1,
+      "evidence": "CI (github-actions) has test commands but 0 failure handlers"
+    },
+    {
+      "ds_id": "DS-37",
+      "name": "README capability drift",
+      "severity": "MEDIUM",
+      "prevention_tier": "T3",
+      "fired": false,
+      "total_claims": 7,
+      "broken_claims": 0,
+      "evidence": ""
+    },
+    {
+      "ds_id": "DS-38",
+      "name": "Config format proliferation",
+      "severity": "LOW",
+      "prevention_tier": "T3",
+      "fired": false,
+      "formats_found": 2,
+      "threshold": 2,
+      "evidence": "formats: json(60), yaml(4)"
+    },
+    {
+      "ds_id": "DS-39",
+      "name": "Silent error handling",
+      "severity": "MEDIUM",
+      "prevention_tier": "T3",
+      "fired": true,
+      "count": 62,
+      "threshold": 5,
+      "evidence": "/var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.sn|/var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.sn|/var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.sn|"
+    },
+    {
+      "ds_id": "DS-40",
+      "name": "Commit message entropy",
+      "severity": "LOW",
+      "prevention_tier": "T3",
+      "fired": false,
+      "has_git": true,
+      "conventional_pct": 12,
+      "trailer_pct": 112,
+      "issue_ref_pct": 22,
+      "evidence": ""
+    },
+    {
+      "ds_id": "DS-41",
+      "name": "Test theater",
+      "severity": "HIGH",
+      "prevention_tier": "T2",
+      "fired": false,
+      "has_tests": true,
+      "test_file_count": 36,
+      "has_runner_ci": true,
+      "has_runner_make": true,
+      "evidence": ""
+    },
+    {
+      "ds_id": "DS-42",
+      "name": "Broken internal links",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "fired": true,
+      "total_links": 3,
+      "broken_count": 3,
+      "evidence": "detection-signatures/DS-34-through-DS-42.md -> path; docs/current-program-status.md -> ../../build-meta-analysis/docs/handoffs/HANDOFF-SESSION-v483.md; docs/current-program-status.md -> ../../build-meta-analysis/research/reports/shared-external-critique-owner-surface-critique-refresh-2026-04-20.md; "
+    },
+    {
+      "ds_id": "DS-43",
+      "name": "Autonomous velocity bypass",
+      "severity": "HIGH",
+      "prevention_tier": "T2",
+      "fired": true,
+      "bypass_count": 5,
+      "total_work_contracts": 5,
+      "evidence": "5/5 code-change contracts with velocity bypass: 20260224T024716Z: review=false critique=false hypothesis=true; 20260418T150604Z: review=false critique=false hypothesis=true; 20260429T122040Z: review=false critique=false hypothesis=true; 20260509T114820Z: review=false critique=false hypothesis=true; 20260522T233748Z: review=false critique=false hypothesis=true; "
+    },
+    {
+      "ds_id": "DS-44",
+      "name": "Closeout control drift",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "fired": false,
+      "work_dirs_scanned": 0,
+      "disposition_gap_count": 0,
+      "helper_drift_count": 0,
+      "telemetry_anomaly_count": 0,
+      "evidence": "No Stage 15 closeout-control surfaces found in work/"
+    },
+    {
+      "ds_id": "DS-45",
+      "name": "Workflow contract drift",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "fired": true,
+      "helper_files_scanned": 2,
+      "surface_files_scanned": 31,
+      "helper_signal_count": 4,
+      "missing_surface_signal_count": 2,
+      "missing_surface_signals": "working_set,edit_in_place",
+      "evidence": "helper signals: edit_in_place=>scripts/detect-workflow-contract-drift.sh; scaffold_init=>scripts/detect-workflow-contract-drift.sh; todo_replacement=>scripts/detect-workflow-contract-drift.sh; working_set=>scripts/detect-workflow-contract-drift.sh | missing surface signals: working_set,edit_in_place | reasons: helper contract exposes 4 compact-path signals but higher-precedence surfaces miss 2 of them"
+    },
+    {
+      "ds_id": "DS-46",
+      "name": "LLM-path validation gap",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "fired": false,
+      "workflow_surfaces_count": 9,
+      "validation_files_count": 28,
+      "llm_execution_reference_count": 1,
+      "validator_reference_count": 1,
+      "explicit_gap_text": false,
+      "evidence": "workflow surfaces: .github/prompts/speckit.plan.prompt.md,.github/prompts/speckit.taskstoissues.prompt.md,.github/prompts/speckit.specify.prompt.md,.github/prompts/speckit.constitution.prompt.md,.github/prompts/speckit.tasks.prompt.md,.github/prompts/speckit.checklist.prompt.md | validation files: .github/workflows/ci.yml,tests/test-audit-run-receipt.sh,tests/test-deep-audit.sh,tests/test-detect-summary-source-parity-gap.sh,tests/test-denominator-metadata.sh,tests/test-grader-golden.sh | validat"
+    },
+    {
+      "ds_id": "DS-47",
+      "name": "Summary-source parity gap",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "fired": false,
+      "files_scanned": 6,
+      "in_scope_file_count": 0,
+      "gap_count": 0,
+      "out_of_scope_count": 0,
+      "evidence": "no summary-source parity surfaces found"
+    },
+    {
+      "ds_id": "AS-01",
+      "family": "AS",
+      "name": "Instruction root drift",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-instruction-root-drift.sh",
+      "fired": false,
+      "signals": {
+        "claim_file_count": 1,
+        "distinct_root_count": 1,
+        "claimed_roots": [
+          ".agents/repo-auditor.agent.md"
+        ]
+      },
+      "evidence": "docs/invocation-contract.md=>.agents/repo-auditor.agent.md",
+      "reason": "no conflicting instruction root claims found",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-02",
+      "family": "AS",
+      "name": "Docs-vs-observed host drift",
+      "severity": "MEDIUM",
+      "prevention_tier": "T2",
+      "script": "detect-as-docs-vs-observed-host-drift.sh",
+      "fired": true,
+      "signals": {
+        "distinct_host_count": 2,
+        "hosts": [
+          "copilot cli",
+          "vs code"
+        ]
+      },
+      "evidence": "copilot cli=>.agents/skills/reviewing-code-locally/SKILL.md,.agents/skills/reviewing-code-locally/scripts/local_review.sh,docs/agent-operations.md | vs code=>.agents/speckit.implement.agent.md",
+      "reason": "docs disagree about the active host",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-03",
+      "family": "AS",
+      "name": "Missing runtime heartbeat",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-missing-runtime-heartbeat.sh",
+      "fired": false,
+      "signals": {
+        "runtime_file_count": 156,
+        "heartbeat_file_count": 5
+      },
+      "evidence": "runtime=>.agents/audit-synthesis.agent.md,.agents/governance-auditor.agent.md,.agents/improvement-auditor.agent.md,.agents/measurement-auditor.agent.md | heartbeat=>LEARNINGS.md,docs/agent-operations.md,scripts/as_signature_scan.py,scripts/detect-as-missing-runtime-heartbeat.sh",
+      "reason": "runtime heartbeat is present or runtime surfaces are absent",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-04",
+      "family": "AS",
+      "name": "Validator live path gap",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-validator-live-path-gap.sh",
+      "fired": false,
+      "signals": {
+        "validation_file_count": 124,
+        "live_path_file_count": 44
+      },
+      "evidence": "validation=>.agents/audit-synthesis.agent.md,.agents/governance-auditor.agent.md,.agents/measurement-auditor.agent.md,.agents/repo-auditor-inbound.agent.md | live_path=>.agents/audit-synthesis.agent.md,.agents/governance-auditor.agent.md,.agents/improvement-auditor.agent.md,.agents/measurement-auditor.agent.md",
+      "reason": "live path coverage exists or validation surfaces are absent",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-05",
+      "family": "AS",
+      "name": "Memory authority confusion",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-memory-authority-confusion.sh",
+      "fired": true,
+      "signals": {
+        "canonical": 3,
+        "memory": 1,
+        "conflicting_memory_claims": 3
+      },
+      "evidence": "canonical=>.agents/skills/scoring/SKILL.md,.agents/speckit.checklist.agent.md,.agents/speckit.clarify.agent.md | memory=>.specify/templates/constitution-template.md | memory_authority=>.specify/scripts/bash/update-agent-context.sh,.specify/templates/plan-template.md,.specify/templates/spec-template.md",
+      "reason": "memory-only surfaces also claim authority",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-06",
+      "family": "AS",
+      "name": "Prompt-only optimization surface",
+      "severity": "MEDIUM",
+      "prevention_tier": "T2",
+      "script": "detect-as-prompt-only-optimization-surface.sh",
+      "fired": false,
+      "signals": {
+        "prompt_surface_count": 3,
+        "executed_surface_count": 29
+      },
+      "evidence": "prompt=>.agents/improvement-auditor.agent.md,.agents/speckit.analyze.agent.md,.agents/speckit.implement.agent.md | exec=>.agents/skills/pre-scanning/scripts/pre-scan-target.sh,.specify/scripts/bash/check-prerequisites.sh,.specify/scripts/bash/create-new-feature.sh,.specify/scripts/bash/update-agent-context.sh",
+      "reason": "optimization language also appears on executable surfaces",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-07",
+      "family": "AS",
+      "name": "Unused platform surface",
+      "severity": "MEDIUM",
+      "prevention_tier": "T2",
+      "script": "detect-as-unused-platform-surface.sh",
+      "fired": true,
+      "signals": {
+        "unreferenced_platform_surface_count": 2,
+        "unreferenced_platform_surfaces": [
+          ".github/prompts",
+          ".github/workflows"
+        ]
+      },
+      "evidence": ".github/prompts=>unreferenced | .github/workflows=>unreferenced",
+      "reason": "platform surface exists without registry or invocation documentation",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-08",
+      "family": "AS",
+      "name": "External critique health",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-external-critique-health.sh",
+      "fired": true,
+      "signals": {
+        "responder_truth_file_count": 0,
+        "receipt_output_file_count": 8,
+        "helper_only_file_count": 1,
+        "bounded_calibration_file_count": 0,
+        "validation_file_count": 83
+      },
+      "evidence": "responder_truth=>none | receipt_output=>LEARNINGS.md,detection-signatures/DS-43-plus.md,docs/invocation-contract.md,scripts/audit-clean-head-snapshot.py | helper_only=>docs/current-program-status.md | bounded_calibration=>none | validation=>.agents/governance-auditor.agent.md,.agents/measurement-auditor.agent.md,.agents/repo-auditor.agent.md,.agents/skills/detection-signatures/SKILL.md",
+      "reason": "repo exposes two or more critique-health evidence classes with validation support",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-09",
+      "family": "AS",
+      "name": "Cost estimate without token fields",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-cost-without-token-fields.sh",
+      "fired": true,
+      "signals": {
+        "cost_claim_file_count": 62,
+        "cost_without_token_field_count": 62,
+        "grounded_cost_file_count": 0
+      },
+      "evidence": "cost_without_tokens=>.agents/skills/pre-scanning/scripts/pre-scan-target.sh,.agents/skills/reviewing-code-locally/scripts/local_review.sh,.specify/scripts/bash/common.sh,.specify/scripts/bash/create-new-feature.sh | grounded_cost=>none",
+      "reason": "dollar/cost claims lack direct token fields",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-10",
+      "family": "AS",
+      "name": "Cost model mismatch",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-cost-model-mismatch.sh",
+      "fired": false,
+      "signals": {
+        "model_comparison_file_count": 0,
+        "model_mismatch_count": 0,
+        "model_match_count": 0
+      },
+      "evidence": "mismatch=>none | matched=>none",
+      "reason": "model comparison fields match or are absent",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-11",
+      "family": "AS",
+      "name": "Uncalled request/tool amplification",
+      "severity": "MEDIUM",
+      "prevention_tier": "T2",
+      "script": "detect-as-request-tool-amplification-gap.sh",
+      "fired": true,
+      "signals": {
+        "request_tool_cost_file_count": 2,
+        "uncalled_amplification_count": 1,
+        "called_out_amplification_count": 1
+      },
+      "evidence": "uncalled=>scripts/detect-summary-source-parity-gap.sh | called_out=>detection-signatures/DS-43-plus.md",
+      "reason": "request/tool volume appears in cost evidence without an amplification callout",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-12",
+      "family": "AS",
+      "name": "Pricing provenance gap",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-pricing-provenance-gap.sh",
+      "fired": true,
+      "signals": {
+        "api_pricing_file_count": 1,
+        "missing_pricing_provenance_count": 1,
+        "stale_pricing_reference_count": 0,
+        "current_pricing_reference_count": 0
+      },
+      "evidence": "missing_provenance=>detection-signatures/DS-43-plus.md | stale_pricing=>none | current_pricing=>none",
+      "reason": "API-equivalent pricing references are stale or missing fetched/source timestamps",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-13",
+      "family": "AS",
+      "name": "Copied evidence boundary gap",
+      "severity": "MEDIUM",
+      "prevention_tier": "T2",
+      "script": "detect-as-copied-evidence-boundary-gap.sh",
+      "fired": true,
+      "signals": {
+        "copied_evidence_payload_count": 4,
+        "unclear_boundary_count": 1,
+        "bounded_payload_count": 3
+      },
+      "evidence": "unclear_boundary=>docs/agent-operations.md=>quoted_lines:51 | bounded_payload=>detection-signatures/DS-43-plus.md,scripts/detect-as-copied-evidence-boundary-gap.sh,scripts/detect-new-signatures.sh",
+      "reason": "copied evidence payloads blur copied text and authored claims",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-14",
+      "family": "AS",
+      "name": "Unauthorized production default enablement",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-unauthorized-production-default-enablement.sh",
+      "fired": true,
+      "signals": {
+        "production_default_enablement_count": 2,
+        "unauthorized_default_enablement_count": 2,
+        "authorized_default_enablement_count": 0
+      },
+      "evidence": "unauthorized_default=>detection-signatures/DS-43-plus.md=>### AS-14: Unauthorized Production Default Enablement;scripts/detect-as-unauthorized-production-default-enablement.sh=># detect-as-unauthorized-production-default-enablement.sh - AS-14: unauthorized production default enablement | authorized_default=>none",
+      "reason": "production/default enablement lacks explicit operator or owner approval",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-15",
+      "family": "AS",
+      "name": "Missing rollback/control proof",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-missing-rollback-control-proof.sh",
+      "fired": true,
+      "signals": {
+        "enablement_claim_file_count": 3,
+        "missing_rollback_control_count": 3,
+        "rollback_control_proven_count": 0
+      },
+      "evidence": "missing_control=>detection-signatures/DS-43-plus.md,docs/agent-operations.md,scripts/detect-as-unauthorized-production-default-enablement.sh | controlled=>none",
+      "reason": "production/default enablement lacks rollback or control proof",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-16",
+      "family": "AS",
+      "name": "Aggregate-only readiness",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-aggregate-only-readiness.sh",
+      "fired": false,
+      "signals": {
+        "aggregate_readiness_file_count": 0,
+        "aggregate_only_readiness_count": 0,
+        "case_grounded_readiness_count": 0
+      },
+      "evidence": "aggregate_only=>none | case_grounded=>none",
+      "reason": "readiness claims include case-level evidence or are absent",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-17",
+      "family": "AS",
+      "name": "Stale direct-token evidence",
+      "severity": "MEDIUM",
+      "prevention_tier": "T2",
+      "script": "detect-as-stale-direct-token-evidence.sh",
+      "fired": true,
+      "signals": {
+        "direct_token_evidence_file_count": 2,
+        "stale_direct_token_evidence_count": 1,
+        "current_direct_token_evidence_count": 0,
+        "undated_direct_token_evidence_count": 1,
+        "stale_threshold_days": 30
+      },
+      "evidence": "stale_token_evidence=>detection-signatures/DS-43-plus.md=>34d | current_token_evidence=>none | undated_token_evidence=>scripts/token-efficiency-measure.py",
+      "reason": "direct token evidence is older than the freshness threshold",
+      "scanned_files": 200
+    },
+    {
+      "ds_id": "AS-18",
+      "family": "AS",
+      "name": "Forbidden public CustomerNewsletter mutation",
+      "severity": "HIGH",
+      "prevention_tier": "T1",
+      "script": "detect-as-forbidden-public-customernewsletter-mutation.sh",
+      "fired": false,
+      "signals": {
+        "public_customernewsletter_mutation_count": 0,
+        "guarded_customernewsletter_mention_count": 0
+      },
+      "evidence": "forbidden_mutation=>none | guarded_mentions=>none",
+      "reason": "public CustomerNewsletter mutation is absent or explicitly blocked",
+      "scanned_files": 200
+    }
+  ],
+  "capability_metadata": {
+    "family_totals": {
+      "DS": {
+        "total": 14,
+        "fired": 6,
+        "signatures": [
+          "DS-34",
+          "DS-35",
+          "DS-36",
+          "DS-37",
+          "DS-38",
+          "DS-39",
+          "DS-40",
+          "DS-41",
+          "DS-42",
+          "DS-43",
+          "DS-44",
+          "DS-45",
+          "DS-46",
+          "DS-47"
+        ]
+      },
+      "AS": {
+        "total": 18,
+        "fired": 11,
+        "signatures": [
+          "AS-01",
+          "AS-02",
+          "AS-03",
+          "AS-04",
+          "AS-05",
+          "AS-06",
+          "AS-07",
+          "AS-08",
+          "AS-09",
+          "AS-10",
+          "AS-11",
+          "AS-12",
+          "AS-13",
+          "AS-14",
+          "AS-15",
+          "AS-16",
+          "AS-17",
+          "AS-18"
+        ]
+      }
+    },
+    "fired_signatures": [
+      "DS-34",
+      "DS-36",
+      "DS-39",
+      "DS-42",
+      "DS-43",
+      "DS-45",
+      "AS-02",
+      "AS-05",
+      "AS-07",
+      "AS-08",
+      "AS-09",
+      "AS-11",
+      "AS-12",
+      "AS-13",
+      "AS-14",
+      "AS-15",
+      "AS-17"
+    ],
+    "signature_order": [
+      "DS-34",
+      "DS-35",
+      "DS-36",
+      "DS-37",
+      "DS-38",
+      "DS-39",
+      "DS-40",
+      "DS-41",
+      "DS-42",
+      "DS-43",
+      "DS-44",
+      "DS-45",
+      "DS-46",
+      "DS-47",
+      "AS-01",
+      "AS-02",
+      "AS-03",
+      "AS-04",
+      "AS-05",
+      "AS-06",
+      "AS-07",
+      "AS-08",
+      "AS-09",
+      "AS-10",
+      "AS-11",
+      "AS-12",
+      "AS-13",
+      "AS-14",
+      "AS-15",
+      "AS-16",
+      "AS-17",
+      "AS-18"
+    ]
+  }
+}
