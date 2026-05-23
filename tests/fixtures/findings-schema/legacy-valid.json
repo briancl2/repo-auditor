@@ -1,0 +1,11 @@
+[
+  {
+    "rank": 1,
+    "severity": "High",
+    "finding": "Workflow check is missing a failure-path assertion",
+    "file": ".github/workflows/ci.yml",
+    "token_impact": "Low",
+    "evidence_quote": "run: make test and make check",
+    "verification": "grep -n 'make test' .github/workflows/ci.yml"
+  }
+]

@@ -34,3 +34,8 @@ Detect automation theater — capabilities that exist but are never used.
 ## Output Format
 
 Return a 7-column findings table. For each signal that fires, include the signal ID in the finding.
+
+For actionable findings, you may add optional action tuple columns:
+`Edit Surface`, `Patch Shape`, and `Owner Blocker`. Use them to identify the
+likely owner surface, bounded edit class, and any blocker that prevents a direct
+patch. Keep `Verification` for the command that proves the observation or fix.

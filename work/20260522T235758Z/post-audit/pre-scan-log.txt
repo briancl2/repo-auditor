@@ -1,0 +1,17 @@
+================================================================
+Pre-Scan Complete: 20260522T235758Z.post-audit.snapshot.X5uv9b
+================================================================
+Total files:        362
+Auditorignore:      no
+AI surfaces:        32 (18a, 4s, 1i, 9p)
+Co-Evolution Ratio: 0.22
+Large files (>200L): 49
+Tier:               medium → single session, budget 300
+AI dump size:       2313 lines, 99990 bytes
+
+Outputs:
+  /var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.run.okUbGJ/pre-scan/PRE_SCAN.md            (repo structure)
+  /var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.run.okUbGJ/pre-scan/AI_SURFACES_FULL.md    (full AI surface text)
+  /var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.run.okUbGJ/pre-scan/LARGE_FILES.md         (files >200L)
+  /var/folders/z6/9qtjbknd5zs4cnjh5psjb5680000gn/T//20260522T235758Z.post-audit.run.okUbGJ/pre-scan/GITIGNORE_ANALYSIS.md  (.gitignore analysis)
+================================================================

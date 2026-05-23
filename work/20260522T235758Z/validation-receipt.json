@@ -1,0 +1,54 @@
+{
+  "schema_version": "burst175_validation_receipt.v1",
+  "generated_at_utc": "2026-05-23T00:02:05Z",
+  "work_dir": "work/20260522T235758Z",
+  "commands": [
+    {
+      "command": "python3 -m json.tool schemas/FINDINGS.schema.json",
+      "status": "pass"
+    },
+    {
+      "command": "bash tests/test-auditor-schemas.sh",
+      "status": "pass",
+      "summary": "Validated all schemas plus legacy, action-tuple-valid, and invalid-type FINDINGS fixtures."
+    },
+    {
+      "command": "bash tests/test-check-coevolution.sh",
+      "status": "pass"
+    },
+    {
+      "command": "bash tests/test-deep-audit.sh",
+      "status": "pass",
+      "summary": "Detected 5 of 6 BMA known defects, above the minimum of 3."
+    },
+    {
+      "command": "make test",
+      "status": "pass"
+    },
+    {
+      "command": "make check",
+      "status": "pass"
+    },
+    {
+      "command": "make work-close WORK=work/20260522T235758Z",
+      "status": "pass",
+      "summary": "Pre-score 54, post-score 60, delta 6, learnings 1."
+    }
+  ],
+  "static_scan": {
+    "command": "rg -n \"newsletter|target mutation|public/fleet|fleet adoption|live spend|billing|durable savings|model recommendation|controller|scheduler|lane registry|verify_command\" schemas/FINDINGS.schema.json .agents tests work/20260522T235758Z/WORK.md LEARNINGS.md",
+    "status": "pass",
+    "allowed_hits": [
+      "Forbidden-boundary wording appears only in the work contract.",
+      "`verify_command` appears only in the explicit no-new-field boundary.",
+      "Newsletter mentions outside the work contract are pre-existing detector fixture names, not Burst 175 scope."
+    ]
+  },
+  "non_claims": [
+    "No deterministic emitters were changed.",
+    "No target repository was mutated.",
+    "No public or fleet adoption was claimed.",
+    "No newsletter workstream was reopened.",
+    "No live spend, billing proof, durable savings proof, model recommendation, controller, scheduler, or lane registry was produced."
+  ]
+}

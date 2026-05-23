@@ -1,0 +1,15 @@
+[
+  {
+    "rank": 1,
+    "severity": "High",
+    "finding": "Generated mirror recommendation targets the wrong owner surface",
+    "file": ".claude/skills/example/SKILL.md",
+    "evidence_quote": "DO NOT EDIT; generated from .github/skills",
+    "verification": "grep -n 'DO NOT EDIT' .claude/skills/example/SKILL.md",
+    "edit_surface": [
+      ".github/skills/example/SKILL.md"
+    ],
+    "patch_shape": "redirect generated mirror recommendation to canonical skill source",
+    "owner_blocker": "generated mirror path cannot be patched directly"
+  }
+]
