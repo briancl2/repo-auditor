@@ -4,6 +4,7 @@
 #   1. disposition retention (review/critique receipt present, disposition missing)
 #   2. helper authority binding (helper metadata mismatches reconciliation artifact)
 #   3. telemetry structural sanity (negative values or inconsistent totals)
+#   4. pointer closure duplication (GitHub pointer closure coexists with duplicate local closeout truth)
 #
 # Usage: bash scripts/detect-closeout-control-drift.sh <repo_path>
 #
@@ -18,10 +19,23 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 fired=false
 work_dirs_scanned=0
+pointer_closure_dirs_scanned=0
 disposition_gap_count=0
 helper_drift_count=0
 telemetry_anomaly_count=0
+pointer_duplicate_truth_count=0
 evidence=""
+
+declare -a POINTER_DUPLICATE_SURFACES=(
+    "completion-manifest.json"
+    "completion-manifest.md"
+    "handoff-sync-facts.json"
+    "closeout-disposition.json"
+    "closeout-reconciliation.json"
+    "closeout-telemetry.json"
+    "session-end-review.md"
+    "ask-reconciliation.md"
+)
 
 append_evidence() {
     local fragment="$1"
@@ -161,9 +175,11 @@ if [ ! -d "$REPO/work" ]; then
         '{"ds_id":"DS-44","name":"Closeout control drift","severity":"HIGH","prevention_tier":"T1"}' \
         "fired=false" \
         "work_dirs_scanned=0" \
+        "pointer_closure_dirs_scanned=0" \
         "disposition_gap_count=0" \
         "helper_drift_count=0" \
         "telemetry_anomaly_count=0" \
+        "pointer_duplicate_truth_count=0" \
         "evidence=No work/ directory found - DS not applicable"
     exit 0
 fi
@@ -177,6 +193,7 @@ for work_dir in "$REPO"/work/*/; do
     has_disposition=false
     has_reconciliation=false
     has_telemetry=false
+    has_pointer_closure=false
     has_stage15_surface=false
 
     [ -f "$work_dir/review-receipt.json" ] && has_review=true
@@ -184,16 +201,35 @@ for work_dir in "$REPO"/work/*/; do
     [ -f "$work_dir/closeout-disposition.json" ] && has_disposition=true
     [ -f "$work_dir/closeout-reconciliation.json" ] && has_reconciliation=true
     [ -f "$work_dir/closeout-telemetry.json" ] && has_telemetry=true
+    [ -f "$work_dir/github-campaign-pointer.json" ] && has_pointer_closure=true
 
     if [ "$has_review" = true ] || [ "$has_critique" = true ] || [ "$has_disposition" = true ] || [ "$has_reconciliation" = true ] || [ "$has_telemetry" = true ]; then
         has_stage15_surface=true
     fi
 
-    if [ "$has_stage15_surface" = false ]; then
+    if [ "$has_stage15_surface" = false ] && [ "$has_pointer_closure" = false ]; then
         continue
     fi
 
     work_dirs_scanned=$((work_dirs_scanned + 1))
+
+    if [ "$has_pointer_closure" = true ]; then
+        pointer_closure_dirs_scanned=$((pointer_closure_dirs_scanned + 1))
+        duplicate_surfaces=()
+        for duplicate_surface in "${POINTER_DUPLICATE_SURFACES[@]}"; do
+            if [ -f "$work_dir/$duplicate_surface" ]; then
+                duplicate_surfaces+=("$duplicate_surface")
+            fi
+        done
+        if [ "${#duplicate_surfaces[@]}" -gt 0 ]; then
+            pointer_duplicate_truth_count=$((pointer_duplicate_truth_count + 1))
+            append_evidence "${dir_name}: github-campaign-pointer.json present with duplicate local closeout truth (${duplicate_surfaces[*]})"
+        fi
+    fi
+
+    if [ "$has_stage15_surface" = false ]; then
+        continue
+    fi
 
     if [ "$has_disposition" = false ] && { [ "$has_review" = true ] || [ "$has_critique" = true ]; }; then
         disposition_gap_count=$((disposition_gap_count + 1))
@@ -232,10 +268,10 @@ for work_dir in "$REPO"/work/*/; do
 done
 
 if [ "$work_dirs_scanned" -eq 0 ]; then
-    append_evidence "No Stage 15 closeout-control surfaces found in work/"
+    append_evidence "No Stage 15 closeout-control surfaces or pointer-closed work found in work/"
 fi
 
-if [ "$disposition_gap_count" -gt 0 ] || [ "$helper_drift_count" -gt 0 ] || [ "$telemetry_anomaly_count" -gt 0 ]; then
+if [ "$disposition_gap_count" -gt 0 ] || [ "$helper_drift_count" -gt 0 ] || [ "$telemetry_anomaly_count" -gt 0 ] || [ "$pointer_duplicate_truth_count" -gt 0 ]; then
     fired=true
 fi
 
@@ -243,7 +279,9 @@ python3 "$SCRIPT_DIR/ds_json_helper.py" \
     '{"ds_id":"DS-44","name":"Closeout control drift","severity":"HIGH","prevention_tier":"T1"}' \
     "fired=$fired" \
     "work_dirs_scanned=$work_dirs_scanned" \
+    "pointer_closure_dirs_scanned=$pointer_closure_dirs_scanned" \
     "disposition_gap_count=$disposition_gap_count" \
     "helper_drift_count=$helper_drift_count" \
     "telemetry_anomaly_count=$telemetry_anomaly_count" \
+    "pointer_duplicate_truth_count=$pointer_duplicate_truth_count" \
     "evidence=$evidence"
