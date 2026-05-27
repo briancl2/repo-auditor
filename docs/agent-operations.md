@@ -36,7 +36,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 | `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
 | `scripts/stall-risk-score.sh` | Six-signal stall risk predictor |
 | `scripts/extract-repo-dna.sh` | Repo DNA fingerprint |
-| `scripts/score-session.sh` | Session grader |
+| `scripts/score-session.sh` | Operating-model scorecard for ordinary session-local work |
 
 ## Detection Signatures
 
@@ -77,7 +77,7 @@ mutation.
 | `scripts/check.sh` | Gate 2: shellcheck, inventory, co-evolution, trailers |
 | `scripts/check-coevolution.sh` | Governed-surface co-evolution guard |
 | `scripts/work-init.sh` | Gate 1 work-contract init |
-| `scripts/work-close.sh` | Gate 3 post-audit, delta, learnings |
+| `scripts/work-close.sh` | Gate 3 post-audit, delta, and learnings; runs the session grader by default and writes `score-session-bypass.json` for explicit GitHub-native issue/PR closeout |
 | `scripts/pre-commit-hook.sh` | Runs `make check` |
 | `scripts/pre-push-hook.sh` | Additional validation |
 

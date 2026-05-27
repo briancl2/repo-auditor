@@ -21,6 +21,10 @@ agent, skill, script, output, and token-budget inventories live in
   larger or governed changes.
 - Raw command output stays in receipts/logs. Governed artifacts summarize
   command, outcome, and retained path instead of copying transcripts.
+- `score-session.sh` remains the default local closeout scorer. For explicit
+  GitHub issue/PR-backed work, use `scripts/work-close.sh
+  --github-native-closeout` so GitHub closure truth is not re-graded as local
+  session ceremony.
 - Governed surface edits under `.agents/`, `.github/agents/`,
   `scripts/detect-*.sh`, or `schemas/*.json` require paired `tests/` or
   `fixtures/` changes in the same change set.
@@ -40,6 +44,7 @@ make validate
 make review
 make work DESC="..."
 make work-close WORK=work/<dir>
+bash scripts/work-close.sh work/<dir> --github-native-closeout "rationale"
 make install-hooks
 ```
 
