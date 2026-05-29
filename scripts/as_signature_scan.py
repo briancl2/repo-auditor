@@ -137,7 +137,18 @@ INSTRUCTION_FILES = {
     ".specify/memory/constitution.md",
 }
 
-TEXT_EXTENSIONS = {".md", ".txt", ".json", ".yml", ".yaml", ".sh", ".py", ".prompt"}
+TEXT_EXTENSIONS = {
+    ".md",
+    ".txt",
+    ".json",
+    ".jsonl",
+    ".csv",
+    ".yml",
+    ".yaml",
+    ".sh",
+    ".py",
+    ".prompt",
+}
 SKIP_PARTS = {
     ".git",
     ".venv",
@@ -1058,20 +1069,39 @@ def source_intelligence_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
     grounded: list[str] = []
     missing_insight = 0
     missing_owner = 0
+    package_signals: dict[str, dict[str, Any]] = defaultdict(
+        lambda: {"files": [], "has_insight": False, "has_owner": False}
+    )
 
     for path, text in owner_evidence_texts(texts).items():
         if not SOURCE_INTELLIGENCE_SURFACE_PATTERN.search(text):
             continue
-        has_insight = SOURCE_INSIGHT_DISPOSITION_PATTERN.search(text) is not None
-        has_owner = SOURCE_OWNER_ROUTING_PATTERN.search(text) is not None
+        package = str(Path(path).parent)
+        if package == ".":
+            package = "<root>"
+        package_signals[package]["files"].append(path)
+        package_signals[package]["has_insight"] = (
+            package_signals[package]["has_insight"]
+            or SOURCE_INSIGHT_DISPOSITION_PATTERN.search(text) is not None
+        )
+        package_signals[package]["has_owner"] = (
+            package_signals[package]["has_owner"]
+            or SOURCE_OWNER_ROUTING_PATTERN.search(text) is not None
+        )
+
+    for package, signals in package_signals.items():
+        has_insight = signals["has_insight"]
+        has_owner = signals["has_owner"]
         if has_insight and has_owner:
-            grounded.append(path)
+            grounded.append(f"{package}=>files:{len(signals['files'])}")
             continue
         if not has_insight:
             missing_insight += 1
         if not has_owner:
             missing_owner += 1
-        offenders.append(f"{path}=>insight:{has_insight};owner:{has_owner}")
+        offenders.append(
+            f"{package}=>insight:{has_insight};owner:{has_owner};files:{len(signals['files'])}"
+        )
 
     details = [
         f"intake_gap=>{';'.join(offenders[:4]) or 'none'}",

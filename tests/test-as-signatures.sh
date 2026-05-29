@@ -277,6 +277,26 @@ github_issue_candidate or roadmap_disposition status, and explicit_no_action
 with no_action_reason when no owner change is warranted.
 EOF
 
+mkdir -p "$CLEAN_REPO/research/evidence/source-package"
+cat > "$CLEAN_REPO/research/evidence/source-package/research-source-manifest.json" <<'EOF'
+{
+  "sources": [
+    {
+      "source_id": "operator-source",
+      "url_or_ref": "https://example.invalid/source",
+      "access_status": "captured"
+    }
+  ]
+}
+EOF
+cat > "$CLEAN_REPO/research/evidence/source-package/equal-insight-ledger.jsonl" <<'EOF'
+{"source_id":"operator-source","insight_disposition":"insight","insight":"Useful source insight."}
+EOF
+cat > "$CLEAN_REPO/research/evidence/source-package/roadmap-owner-candidate-ledger.csv" <<'EOF'
+source_id,disposition,owner_surface
+operator-source,owner_surface_candidate,build-meta-analysis
+EOF
+
 python3 - "$REPO_ROOT" "$CLEAN_REPO" <<'PY'
 import json
 import subprocess
