@@ -63,6 +63,18 @@
 - **Source:** BMA `D-004` row-authority landing on 2026-04-18, which bounded the reusable row to same-bundle summary-provenance, direct-parser, and raw-event parity on the three checked fields only
 - **Script:** `scripts/detect-summary-source-parity-gap.sh`
 
+### DS-48: GitHub Actions Concurrency Gap
+- **Detects:** GitHub Actions workflows triggered by `push` or `pull_request` without usable cancellation protection
+- **Signal:** A repo can run duplicate or stale CI for the same branch/PR because workflows omit `concurrency` with `cancel-in-progress`
+- **Phase range:** Phase 2+ (requires GitHub Actions workflows)
+- **Patterns:** `.github/workflows/*.yml` or `.github/workflows/*.yaml` files with `push` or `pull_request` triggers; suppresses workflows with workflow-level `concurrency` plus `cancel-in-progress`, or job-level `concurrency` plus `cancel-in-progress` on every job
+- **Check:** Scan workflow YAML text deterministically without mutating the target repo. Fire when one or more push/PR workflows lack workflow-level cancellation and at least one job lacks job-level cancellation.
+- **Fire condition:** `gap_count > 0`
+- **Prevention tier:** T2 (deterministic CI waste/stale-check prevention)
+- **Severity:** MEDIUM
+- **Source:** BMA Issue #164 propagation track after the assertive recommendation contract selected repo-auditor owner-surface delivery for repeated CI/concurrency learning
+- **Script:** `scripts/detect-github-actions-concurrency-gap.sh`
+
 ### AS-09: Cost Estimate Without Token Fields
 - **Detects:** Dollar or cost estimates that do not carry direct token fields on the same evidence surface
 - **Signal:** A cost claim appears without fields such as `input_tokens`, `output_tokens`, `total_tokens`, `cache_read_tokens`, `cache_write_tokens`, or equivalent direct token counts

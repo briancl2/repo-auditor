@@ -1,0 +1,10 @@
+name: Manual
+
+on:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - run: make audit
