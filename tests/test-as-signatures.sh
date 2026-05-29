@@ -156,6 +156,14 @@ Modified /Users/briancl/repos/CustomerNewsletter/content/index.md for production
 Pushes /Users/briancl/repos/CustomerNewsletter/content/index.md to production.
 EOF
 
+cat > "$TEST_REPO/docs/source-intelligence-gap.md" <<'EOF'
+# Source Intelligence Gap
+
+This source bundle records source_id rows from operator supplied links and a
+research-source-manifest, but it jumps directly to a recommendation without
+recording equal first-pass treatment or any routed owner action.
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -169,8 +177,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 18
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 18
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 19
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 19
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -192,6 +200,7 @@ assert as_ids == {
     "AS-16",
     "AS-17",
     "AS-18",
+    "AS-19",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -259,6 +268,15 @@ The public CustomerNewsletter repo is downstream-only and read-only; do not muta
 Edited private CustomerNewsletter source notes for internal authoring.
 EOF
 
+cat > "$CLEAN_REPO/docs/source-intelligence.md" <<'EOF'
+# Source Intelligence
+
+SOURCE_INSIGHT_PACKET records source_id entries with insight_disposition for
+each readable source. High-signal findings include owner_surface routing,
+github_issue_candidate or roadmap_disposition status, and explicit_no_action
+with no_action_reason when no owner change is warranted.
+EOF
+
 python3 - "$REPO_ROOT" "$CLEAN_REPO" <<'PY'
 import json
 import subprocess
@@ -276,6 +294,7 @@ scripts = {
     "AS-16": "detect-as-aggregate-only-readiness.sh",
     "AS-17": "detect-as-stale-direct-token-evidence.sh",
     "AS-18": "detect-as-forbidden-public-customernewsletter-mutation.sh",
+    "AS-19": "detect-as-source-intelligence-intake-gap.sh",
 }
 
 for signature_id, script in scripts.items():
