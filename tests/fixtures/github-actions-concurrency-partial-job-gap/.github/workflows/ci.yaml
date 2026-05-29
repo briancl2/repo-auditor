@@ -1,0 +1,17 @@
+name: CI
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    concurrency:
+      group: lint-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - run: make check
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: make test
