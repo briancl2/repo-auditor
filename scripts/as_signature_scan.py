@@ -120,6 +120,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-forbidden-public-customernewsletter-mutation.sh",
     },
+    "AS-19": {
+        "name": "Source intelligence intake gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-source-intelligence-intake-gap.sh",
+    },
 }
 
 
@@ -1030,6 +1036,61 @@ def copied_evidence_boundary_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+SOURCE_INTELLIGENCE_SURFACE_PATTERN = re.compile(
+    r"\b(source[-_ ]?intelligence|source[-_ ]?insight|source bundle|source manifest|"
+    r"research-source-manifest|operator-source-inventory|source_id|SOURCE_INSIGHT_PACKET)\b",
+    re.IGNORECASE,
+)
+SOURCE_INSIGHT_DISPOSITION_PATTERN = re.compile(
+    r"\b(insight_disposition|equal[-_ ]?insight|equal first-pass|first-pass insight|"
+    r"no_insight|contradiction|inaccessible|insight/no-insight)\b",
+    re.IGNORECASE,
+)
+SOURCE_OWNER_ROUTING_PATTERN = re.compile(
+    r"\b(owner_surface|owner[-_ ]?surface|github_issue_candidate|roadmap_disposition|"
+    r"explicit_no_action|no_action_reason|owner/no-action|owner routing|owner-directed)\b",
+    re.IGNORECASE,
+)
+
+
+def source_intelligence_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    missing_insight = 0
+    missing_owner = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if not SOURCE_INTELLIGENCE_SURFACE_PATTERN.search(text):
+            continue
+        has_insight = SOURCE_INSIGHT_DISPOSITION_PATTERN.search(text) is not None
+        has_owner = SOURCE_OWNER_ROUTING_PATTERN.search(text) is not None
+        if has_insight and has_owner:
+            grounded.append(path)
+            continue
+        if not has_insight:
+            missing_insight += 1
+        if not has_owner:
+            missing_owner += 1
+        offenders.append(f"{path}=>insight:{has_insight};owner:{has_owner}")
+
+    details = [
+        f"intake_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"grounded_intake=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "source_intelligence_surface_count": len(offenders) + len(grounded),
+            "source_intelligence_gap_count": len(offenders),
+            "missing_insight_disposition_count": missing_insight,
+            "missing_owner_routing_count": missing_owner,
+            "grounded_source_intelligence_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "source-intelligence surfaces lack equal-insight disposition or owner/no-action routing" if offenders else "source-intelligence surfaces are routed or absent",
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -1049,6 +1110,7 @@ EVALUATORS = {
     "AS-16": aggregate_only_readiness,
     "AS-17": stale_direct_token_evidence,
     "AS-18": forbidden_public_customernewsletter_mutation,
+    "AS-19": source_intelligence_intake_gap,
 }
 
 

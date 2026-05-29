@@ -50,6 +50,7 @@ scripts=(
     "detect-as-aggregate-only-readiness.sh"
     "detect-as-stale-direct-token-evidence.sh"
     "detect-as-forbidden-public-customernewsletter-mutation.sh"
+    "detect-as-source-intelligence-intake-gap.sh"
 )
 
 idx=0

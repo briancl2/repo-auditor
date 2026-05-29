@@ -162,3 +162,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-forbidden-public-customernewsletter-mutation.sh`
+
+### AS-19: Source Intelligence Intake Gap
+- **Detects:** Source-intelligence or source-bundle surfaces that list sources without equal first-pass insight disposition or owner/no-action routing
+- **Signal:** A repo preserves source material but does not say whether each source yielded insight, contradiction, no insight, or inaccessible status, or does not route high-signal findings to an owner surface, GitHub issue candidate, roadmap disposition, or explicit no-action reason
+- **Phase range:** Research/source-intelligence intake, upgrade-advisor source packs, retained campaign evidence, and operator-provided source bundles
+- **Check:** Scan owner evidence text for source-intelligence/source-bundle markers and require both insight disposition language and owner/no-action routing language on the same source-intelligence surface
+- **Fire condition:** `source_intelligence_gap_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-source-intelligence-intake-gap.sh`
