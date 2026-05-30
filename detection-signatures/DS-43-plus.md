@@ -214,3 +214,23 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-github-native-closure-regrowth.sh`
+
+### AS-23: Owner-Surface Ambiguity
+- **Detects:** Repo-star, fleet, or core-five recommendations that route work to a broad area without naming the exact owner surface or first deliverable.
+- **Signal:** A surface says to move work to the fleet, let repo-star handle it, pick an owner later, or use a shared capability without naming the owner repo/action.
+- **Phase range:** Decomposition, distribution, recommendation, campaign selection, and repo-family architecture surfaces.
+- **Check:** Scan owner evidence text for core-five/fleet language plus ambiguous ownership cues while suppressing exact owner-surface statements and AS-20/AS-21/AS-22/AS-23/AS-24 detector-definition or recommendation-template explainers.
+- **Fire condition:** `owner_surface_ambiguity_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-owner-surface-ambiguity.sh`
+
+### AS-24: Reciprocal Proving-Ground Gap
+- **Detects:** Core-five validation or target guidance that does not preserve the read-only reciprocal proving-ground boundary.
+- **Signal:** A surface tells repo-star/core-five repos to validate, scan, audit, or test each other without saying the target use is read-only and mutation still belongs to the named owner repo.
+- **Phase range:** Fleet validation, self-hosted target runs, campaign decomposition, and downstream-readiness surfaces.
+- **Check:** Scan owner evidence text for core-five/fleet validation language and require reciprocal proving-ground or read-only owner-mutation boundary language; suppress AS-20/AS-21/AS-22/AS-23/AS-24 detector-definition or recommendation-template explainers.
+- **Fire condition:** `reciprocal_proving_ground_gap_count > 0`
+- **Prevention tier:** T2
+- **Severity:** MEDIUM
+- **Script:** `scripts/detect-as-reciprocal-proving-ground-gap.sh`

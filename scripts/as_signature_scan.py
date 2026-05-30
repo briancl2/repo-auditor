@@ -144,6 +144,18 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-github-native-closure-regrowth.sh",
     },
+    "AS-23": {
+        "name": "Owner-surface ambiguity",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-owner-surface-ambiguity.sh",
+    },
+    "AS-24": {
+        "name": "Reciprocal proving-ground gap",
+        "severity": "MEDIUM",
+        "prevention_tier": "T2",
+        "script": "detect-as-reciprocal-proving-ground-gap.sh",
+    },
 }
 
 
@@ -1119,9 +1131,41 @@ LOCAL_CLOSEOUT_BYPASS_PATTERN = re.compile(
     r"no local closeout authority|issue/pr truth is closure authority)\b",
     re.IGNORECASE,
 )
+CORE_FIVE_SURFACE_PATTERN = re.compile(
+    r"\b(core[- ]five|repo[- ]star|fleet repos?|repo[- ]family|"
+    r"repo-auditor|repo-upgrade-advisor|repo-optimizer|repo-agent-core)\b",
+    re.IGNORECASE,
+)
+OWNER_SURFACE_EXACT_PATTERN = re.compile(
+    r"\b(owner_surface|owner[- ]surface|owner repo|owner repository|"
+    r"first deliverable|first PR|repo-auditor owns|repo-upgrade-advisor owns|"
+    r"repo-optimizer owns|repo-agent-core owns|BMA owns|"
+    r"own issue, branch, PR, checks, and merge)\b",
+    re.IGNORECASE,
+)
+OWNER_SURFACE_AMBIGUITY_PATTERN = re.compile(
+    r"\b(owner tbd|pick an owner|choose (?:an )?owner|choose repo|"
+    r"some repo|shared capability|move (?:it|this) to (?:the )?fleet|"
+    r"work on repo-star|fleet should handle|repo-star should handle|"
+    r"distribute later|decide later)\b",
+    re.IGNORECASE,
+)
+CORE_FIVE_VALIDATION_PATTERN = re.compile(
+    r"\b(validate|validation|target|scan|audit|test|proving[- ]ground|"
+    r"run repo-auditor|run auditor|self-hosted|against each other)\b",
+    re.IGNORECASE,
+)
+RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
+    r"\b(reciprocal proving grounds?|read-only targets?|validate against each other|"
+    r"against each other read-only|ordinary validation, not downstream adoption|"
+    r"owner issue, branch, PR, checks, and merge|owner-repo mutation boundary)\b",
+    re.IGNORECASE,
+)
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-2]|selection handback|too-small goal|too small goal|"
-    r"github-native closure regrowth|github native closure regrowth)\b",
+    r"\b(AS-2[0-4]|selection handback|too-small goal|too small goal|"
+    r"github-native closure regrowth|github native closure regrowth|"
+    r"owner-surface ambiguity|owner surface ambiguity|"
+    r"reciprocal proving-ground gap|reciprocal proving ground gap)\b",
     re.IGNORECASE,
 )
 SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
@@ -1307,6 +1351,72 @@ def github_native_closure_regrowth(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        for line in text.splitlines():
+            if not CORE_FIVE_SURFACE_PATTERN.search(line):
+                continue
+            if OWNER_SURFACE_EXACT_PATTERN.search(line):
+                grounded.append(path)
+                break
+            if OWNER_SURFACE_AMBIGUITY_PATTERN.search(line):
+                offenders.append(path)
+                break
+
+    details = [
+        f"owner_surface_ambiguity=>{','.join(offenders[:4]) or 'none'}",
+        f"grounded_owner_surface=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "owner_surface_ambiguity_count": len(offenders),
+            "grounded_owner_surface_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "repo-star/core-five recommendation lacks exact owner surface" if offenders else "core-five owner surfaces are exact or absent",
+    }
+
+
+def reciprocal_proving_ground_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        lowered = text.lower()
+        if not CORE_FIVE_SURFACE_PATTERN.search(lowered):
+            continue
+        if not CORE_FIVE_VALIDATION_PATTERN.search(lowered):
+            continue
+        if RECIPROCAL_PROVING_GROUND_PATTERN.search(text):
+            grounded.append(path)
+        else:
+            offenders.append(path)
+
+    details = [
+        f"reciprocal_proving_ground_gap=>{','.join(offenders[:4]) or 'none'}",
+        f"reciprocal_grounded=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "reciprocal_proving_ground_gap_count": len(offenders),
+            "reciprocal_proving_grounded_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "core-five validation guidance lacks read-only reciprocal proving-ground boundary" if offenders else "core-five validation guidance is bounded or absent",
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -1330,6 +1440,8 @@ EVALUATORS = {
     "AS-20": selection_handback_recommendation,
     "AS-21": too_small_goal_mode_episode,
     "AS-22": github_native_closure_regrowth,
+    "AS-23": owner_surface_ambiguity,
+    "AS-24": reciprocal_proving_ground_gap,
 }
 
 

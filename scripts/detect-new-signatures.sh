@@ -55,6 +55,8 @@ scripts=(
     "detect-as-selection-handback-recommendation.sh"
     "detect-as-too-small-goal-mode-episode.sh"
     "detect-as-github-native-closure-regrowth.sh"
+    "detect-as-owner-surface-ambiguity.sh"
+    "detect-as-reciprocal-proving-ground-gap.sh"
 )
 
 idx=0
