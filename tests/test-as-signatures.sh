@@ -178,6 +178,13 @@ Issue #32 is closed and PR #99 is merged on GitHub, but the local completion
 manifest remains the authoritative closeout and work-close is still required as
 the closure authority. This regrows local closeout truth beside GitHub-native
 issue/PR truth.
+
+The repo-star fleet should handle the shared capability and pick an owner
+later, so the destination and initial change are not specified.
+
+Run repo-auditor against repo-optimizer as a validation target for the core
+five, but do not state whether this proving-ground use is read-only or whether
+mutation stays on the named owner repo.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -193,8 +200,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 22
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 22
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 24
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 24
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -220,6 +227,8 @@ assert as_ids == {
     "AS-20",
     "AS-21",
     "AS-22",
+    "AS-23",
+    "AS-24",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -262,6 +271,12 @@ The template recommends a larger batch, not micro-work.
 
 **Triggers:** AS-22 fires when GitHub-native closure coexists with local closeout.
 The template says issue/PR truth should replace work-close authority.
+
+**Triggers:** AS-23 fires when owner-surface ambiguity leaves repo-star work
+without a named owner repo or first deliverable.
+
+**Triggers:** AS-24 fires when reciprocal proving-ground validation lacks the
+read-only owner-mutation boundary.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -279,6 +294,11 @@ micro-work and too small for Goal mode.
 Issue #32 is closed and PR #99 is merged on GitHub, but the local completion
 manifest remains the authoritative closeout and work-close is still required as
 the closure authority.
+
+The repo-star fleet should handle the shared capability and pick an owner later.
+
+Run repo-auditor against repo-optimizer as a validation target, but omit the
+safety boundary for that target use.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -291,6 +311,8 @@ scripts = {
     "AS-20": "detect-as-selection-handback-recommendation.sh",
     "AS-21": "detect-as-too-small-goal-mode-episode.sh",
     "AS-22": "detect-as-github-native-closure-regrowth.sh",
+    "AS-23": "detect-as-owner-surface-ambiguity.sh",
+    "AS-24": "detect-as-reciprocal-proving-ground-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -395,6 +417,12 @@ multiple repos with a retained acceptance contract, not for tiny one-file work.
 GitHub-native closeout is used when issue truth and PR truth are already closed
 or merged; local closeout is explicitly bypassed with a github-native-closeout
 rationale and no local completion authority is retained.
+
+The core five are reciprocal proving grounds: BMA, repo-auditor,
+repo-upgrade-advisor, repo-optimizer, and repo-agent-core may validate against
+each other read-only. Each core-five repo changes only through its own owner
+issue, branch, PR, checks, and merge. The owner_surface is repo-auditor and the
+first deliverable is a focused detector PR.
 EOF
 
 mkdir -p "$CLEAN_REPO/research/evidence/source-package"
@@ -438,6 +466,8 @@ scripts = {
     "AS-20": "detect-as-selection-handback-recommendation.sh",
     "AS-21": "detect-as-too-small-goal-mode-episode.sh",
     "AS-22": "detect-as-github-native-closure-regrowth.sh",
+    "AS-23": "detect-as-owner-surface-ambiguity.sh",
+    "AS-24": "detect-as-reciprocal-proving-ground-gap.sh",
 }
 
 for signature_id, script in scripts.items():
