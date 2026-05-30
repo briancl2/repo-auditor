@@ -423,6 +423,12 @@ repo-upgrade-advisor, repo-optimizer, and repo-agent-core may validate against
 each other read-only. Each core-five repo changes only through its own owner
 issue, branch, PR, checks, and merge. The owner_surface is repo-auditor and the
 first deliverable is a focused detector PR.
+
+| Capability family | Owner surface | First deliverable shape |
+|---|---|---|
+| Audit and signature detection | repo-auditor | Detector signature, fixture, registration, and repo-native test |
+| Recommendation packaging | repo-upgrade-advisor | Recommendation template, scorer rule, prompt/schema update, and packaging fixture |
+| Patch-pack materialization | repo-optimizer | Deterministic patch materializer plus git apply check fixture |
 EOF
 
 mkdir -p "$CLEAN_REPO/research/evidence/source-package"
