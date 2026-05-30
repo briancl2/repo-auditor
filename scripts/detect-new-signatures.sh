@@ -52,6 +52,9 @@ scripts=(
     "detect-as-stale-direct-token-evidence.sh"
     "detect-as-forbidden-public-customernewsletter-mutation.sh"
     "detect-as-source-intelligence-intake-gap.sh"
+    "detect-as-selection-handback-recommendation.sh"
+    "detect-as-too-small-goal-mode-episode.sh"
+    "detect-as-github-native-closure-regrowth.sh"
 )
 
 idx=0

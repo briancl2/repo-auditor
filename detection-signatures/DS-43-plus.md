@@ -184,3 +184,33 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-source-intelligence-intake-gap.sh`
+
+### AS-20: Selection Handback Recommendation
+- **Detects:** Recommendation or planning surfaces that hand next-work selection back to the operator with category-only language.
+- **Signal:** A recommendation says to choose a category, pick an adoption proof, work on a broad area, or do real delivery without naming one exact owner-surface action.
+- **Phase range:** Agent instruction, planning, recommendation, and retained decision surfaces.
+- **Check:** Scan owner evidence text for selection-handback phrases while suppressing explicit no-handback/invalid examples.
+- **Fire condition:** `selection_handback_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-selection-handback-recommendation.sh`
+
+### AS-21: Too-Small Goal-Mode Episode
+- **Detects:** Codex Goal-mode recommendations for tiny, single-file, micro-work, or short cleanup tasks.
+- **Signal:** A surface recommends Goal mode while also describing the work as tiny, single-file, micro-work, or roughly ten-minute work.
+- **Phase range:** Goal-mode planning, campaign selection, and agent operating-model surfaces.
+- **Check:** Scan owner evidence text for Goal-mode language paired with too-small work cues while suppressing bounded larger-batch examples.
+- **Fire condition:** `too_small_goal_episode_count > 0`
+- **Prevention tier:** T2
+- **Severity:** MEDIUM
+- **Script:** `scripts/detect-as-too-small-goal-mode-episode.sh`
+
+### AS-22: GitHub-Native Closure Regrowth
+- **Detects:** GitHub issue/PR closure truth coexisting with local closeout authority.
+- **Signal:** A surface says GitHub issue/PR state is closed or merged while also requiring local completion manifests, work-close, score-session, SER, handoff, or other local closeout authority.
+- **Phase range:** Work-management, closeout, campaign, and agent-operation surfaces.
+- **Check:** Scan owner evidence text for GitHub closure truth plus local closeout authority, suppressing explicit `--github-native-closeout` or local-authority bypass language.
+- **Fire condition:** `github_native_closure_regrowth_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-github-native-closure-regrowth.sh`

@@ -126,6 +126,24 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-source-intelligence-intake-gap.sh",
     },
+    "AS-20": {
+        "name": "Selection handback recommendation",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-selection-handback-recommendation.sh",
+    },
+    "AS-21": {
+        "name": "Too-small Goal-mode episode",
+        "severity": "MEDIUM",
+        "prevention_tier": "T2",
+        "script": "detect-as-too-small-goal-mode-episode.sh",
+    },
+    "AS-22": {
+        "name": "GitHub-native closure regrowth",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-github-native-closure-regrowth.sh",
+    },
 }
 
 
@@ -1063,6 +1081,45 @@ SOURCE_OWNER_ROUTING_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+SELECTION_HANDBACK_PATTERN = re.compile(
+    r"\b(category[- ]?only|hand back selection|selection handback|operator (?:should )?"
+    r"(?:choose|pick|select)|choose a category|pick an adoption proof|do real delivery|"
+    r"work on repo-star|pick adoption/delivery proof)\b",
+    re.IGNORECASE,
+)
+SELECTION_HANDBACK_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|without|rejects?|invalid|forbid(?:s|den)?|prevents?)\b.{0,40}"
+    r"\b(category[- ]?only|selection handback|hand back selection|operator (?:choose|pick|select))\b",
+    re.IGNORECASE,
+)
+GOAL_MODE_PATTERN = re.compile(r"\b(goal[- ]?mode|codex goal|goal episode)\b", re.IGNORECASE)
+TOO_SMALL_GOAL_PATTERN = re.compile(
+    r"\b(tiny|too small|small cleanup|one tiny issue|single[- ]file|one[- ]file|"
+    r"10 minutes?|standalone cleanup|micro[- ]work)\b",
+    re.IGNORECASE,
+)
+TOO_SMALL_GOAL_NEGATION_PATTERN = re.compile(
+    r"\b(not for tiny|not tiny|reserved for (?:a )?batch|larger batch|multi[- ]pr|"
+    r"multiple repos|medium-or-larger|larger episode)\b",
+    re.IGNORECASE,
+)
+GITHUB_CLOSURE_TRUTH_PATTERN = re.compile(
+    r"\b(github[- ]native|github issue|issue #\d+|pr #\d+|pull request|merged|closed)\b",
+    re.IGNORECASE,
+)
+LOCAL_CLOSEOUT_AUTHORITY_PATTERN = re.compile(
+    r"\b(local closeout|completion[- ]manifest|work-close|score-session|handoff|"
+    r"ser\b|session[- ]end[- ]review|closeout authority|authoritative closeout|"
+    r"closure authority)\b",
+    re.IGNORECASE,
+)
+LOCAL_CLOSEOUT_BYPASS_PATTERN = re.compile(
+    r"\b(github-native-closeout|github[- ]native closeout|bypass(?:ed)?|"
+    r"explicitly bypass(?:ed)?|not re-graded|no local completion authority|"
+    r"no local closeout authority|issue/pr truth is closure authority)\b",
+    re.IGNORECASE,
+)
+
 
 def source_intelligence_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
@@ -1121,6 +1178,103 @@ def source_intelligence_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def selection_handback_recommendation(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    clean: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if not (
+            path.endswith(".md")
+            or path.endswith(".txt")
+            or path.endswith(".json")
+            or path.endswith(".jsonl")
+            or path.endswith(".csv")
+        ):
+            continue
+        for line in text.splitlines():
+            lowered = line.lower()
+            if not SELECTION_HANDBACK_PATTERN.search(lowered):
+                continue
+            if SELECTION_HANDBACK_NEGATION_PATTERN.search(lowered):
+                clean.append(path)
+                continue
+            offenders.append(f"{path}=>{line.strip()[:100]}")
+            break
+
+    details = [
+        f"selection_handback=>{';'.join(offenders[:4]) or 'none'}",
+        f"negated_or_clean=>{','.join(sorted(set(clean))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "selection_handback_count": len(offenders),
+            "negated_selection_handback_count": len(set(clean)),
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": "recommendation hands next-work selection back to the operator" if offenders else "selection recommendations name concrete action or are absent",
+    }
+
+
+def too_small_goal_mode_episode(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    bounded: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        lowered_text = text.lower()
+        if not GOAL_MODE_PATTERN.search(lowered_text):
+            continue
+        if TOO_SMALL_GOAL_NEGATION_PATTERN.search(lowered_text):
+            bounded.append(path)
+            continue
+        if TOO_SMALL_GOAL_PATTERN.search(lowered_text):
+            offenders.append(path)
+
+    details = [
+        f"too_small_goal=>{','.join(offenders[:4]) or 'none'}",
+        f"bounded_goal=>{','.join(bounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "too_small_goal_episode_count": len(offenders),
+            "bounded_goal_episode_count": len(bounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "Goal mode is recommended for tiny or single-file work" if offenders else "Goal-mode recommendations are sized or absent",
+    }
+
+
+def github_native_closure_regrowth(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    bypassed: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        lowered = text.lower()
+        if not GITHUB_CLOSURE_TRUTH_PATTERN.search(lowered):
+            continue
+        if not LOCAL_CLOSEOUT_AUTHORITY_PATTERN.search(lowered):
+            continue
+        if LOCAL_CLOSEOUT_BYPASS_PATTERN.search(lowered):
+            bypassed.append(path)
+            continue
+        offenders.append(path)
+
+    details = [
+        f"closure_regrowth=>{','.join(offenders[:4]) or 'none'}",
+        f"bypassed=>{','.join(bypassed[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "github_native_closure_regrowth_count": len(offenders),
+            "github_native_closeout_bypassed_count": len(bypassed),
+        },
+        "evidence": evidence_join(details),
+        "reason": "GitHub issue/PR truth coexists with local closeout authority" if offenders else "GitHub-native closure is not duplicated by local closeout authority",
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -1141,6 +1295,9 @@ EVALUATORS = {
     "AS-17": stale_direct_token_evidence,
     "AS-18": forbidden_public_customernewsletter_mutation,
     "AS-19": source_intelligence_intake_gap,
+    "AS-20": selection_handback_recommendation,
+    "AS-21": too_small_goal_mode_episode,
+    "AS-22": github_native_closure_regrowth,
 }
 
 
