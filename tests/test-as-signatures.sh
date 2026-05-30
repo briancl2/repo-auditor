@@ -228,6 +228,93 @@ fired = {item["ds_id"] for item in output_report["results"] if item.get("family"
 assert fired == as_ids
 PY
 
+EXPLAINER_REPO="$TMPDIR/as-work-management-explainer-repo"
+mkdir -p "$EXPLAINER_REPO/detection-signatures"
+cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
+# Detection Signatures DS-43+
+
+### AS-20: Selection Handback Recommendation
+- **Detects:** Recommendation or planning surfaces that hand next-work selection back to the operator with category-only language.
+- **Signal:** A recommendation says to choose a category, pick an adoption proof, work on repo-star, or do real delivery.
+- **Fire condition:** `selection_handback_count > 0`
+- **Script:** `scripts/detect-as-selection-handback-recommendation.sh`
+
+### AS-21: Too-Small Goal-Mode Episode
+- **Detects:** Codex Goal-mode recommendations for tiny, single-file, micro-work, or short cleanup tasks.
+- **Signal:** A surface recommends Goal mode while also describing the work as one tiny issue.
+- **Fire condition:** `too_small_goal_episode_count > 0`
+- **Script:** `scripts/detect-as-too-small-goal-mode-episode.sh`
+
+### AS-22: GitHub-Native Closure Regrowth
+- **Detects:** GitHub issue/PR closure truth coexisting with local closeout authority.
+- **Signal:** A surface says PR #99 is merged while also requiring a completion manifest, work-close, SER, or handoff.
+- **Fire condition:** `github_native_closure_regrowth_count > 0`
+- **Script:** `scripts/detect-as-github-native-closure-regrowth.sh`
+EOF
+cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
+# Recommendation Templates
+
+**Triggers:** AS-20 fires (selection handback / category-only recommendation).
+The template must tell the agent not to hand selection back to the operator.
+
+**Triggers:** AS-21 fires when Goal mode is proposed for a tiny cleanup.
+The template recommends a larger batch, not micro-work.
+
+**Triggers:** AS-22 fires when GitHub-native closure coexists with local closeout.
+The template says issue/PR truth should replace work-close authority.
+EOF
+
+LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
+mkdir -p "$LIVE_WORK_MANAGEMENT_REPO/docs"
+cat > "$LIVE_WORK_MANAGEMENT_REPO/docs/recommendation.md" <<'EOF'
+# Live Work Recommendation
+
+The recommendation is category-only and says the operator should choose a
+category, pick an adoption proof, or work on repo-star before the agent names
+an exact owner-surface action.
+
+This Goal-mode episode is for one tiny issue touching a single file; it is
+micro-work and too small for Goal mode.
+
+Issue #32 is closed and PR #99 is merged on GitHub, but the local completion
+manifest remains the authoritative closeout and work-close is still required as
+the closure authority.
+EOF
+
+python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, explainer_repo, live_repo = sys.argv[1:4]
+scripts = {
+    "AS-20": "detect-as-selection-handback-recommendation.sh",
+    "AS-21": "detect-as-too-small-goal-mode-episode.sh",
+    "AS-22": "detect-as-github-native-closure-regrowth.sh",
+}
+
+for signature_id, script in scripts.items():
+    explainer = subprocess.run(
+        ["bash", f"{repo_root}/scripts/{script}", explainer_repo],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    )
+    explainer_payload = json.loads(explainer.stdout)
+    assert explainer_payload["ds_id"] == signature_id
+    assert explainer_payload["fired"] is False, explainer_payload
+
+    live = subprocess.run(
+        ["bash", f"{repo_root}/scripts/{script}", live_repo],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    )
+    live_payload = json.loads(live.stdout)
+    assert live_payload["ds_id"] == signature_id
+    assert live_payload["fired"] is True, live_payload
+PY
+
 CLEAN_REPO="$TMPDIR/as-cost-clean-repo"
 mkdir -p "$CLEAN_REPO/docs"
 

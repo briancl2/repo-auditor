@@ -1119,6 +1119,29 @@ LOCAL_CLOSEOUT_BYPASS_PATTERN = re.compile(
     r"no local closeout authority|issue/pr truth is closure authority)\b",
     re.IGNORECASE,
 )
+WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
+    r"\b(AS-2[0-2]|selection handback|too-small goal|too small goal|"
+    r"github-native closure regrowth|github native closure regrowth)\b",
+    re.IGNORECASE,
+)
+SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
+    r"\b(detects:|signal:|fire condition:|prevention tier:|severity:|script:|"
+    r"triggers?:|recommendation template|detection signature)\b",
+    re.IGNORECASE,
+)
+
+
+def is_work_management_signature_explainer(path: str, text: str) -> bool:
+    """Suppress detector docs/templates that define AS-20/21/22 themselves."""
+
+    lowered_path = path.lower()
+    if not WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN.search(text):
+        return False
+    if lowered_path.startswith("detection-signatures/"):
+        return True
+    if "template" in lowered_path and SIGNATURE_DEFINITION_MARKER_PATTERN.search(text):
+        return True
+    return "signature" in lowered_path and SIGNATURE_DEFINITION_MARKER_PATTERN.search(text)
 
 
 def source_intelligence_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
@@ -1183,6 +1206,9 @@ def selection_handback_recommendation(texts: dict[str, str]) -> dict[str, Any]:
     clean: list[str] = []
 
     for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            clean.append(path)
+            continue
         if not (
             path.endswith(".md")
             or path.endswith(".txt")
@@ -1221,6 +1247,9 @@ def too_small_goal_mode_episode(texts: dict[str, str]) -> dict[str, Any]:
     bounded: list[str] = []
 
     for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            bounded.append(path)
+            continue
         lowered_text = text.lower()
         if not GOAL_MODE_PATTERN.search(lowered_text):
             continue
@@ -1250,6 +1279,9 @@ def github_native_closure_regrowth(texts: dict[str, str]) -> dict[str, Any]:
     bypassed: list[str] = []
 
     for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            bypassed.append(path)
+            continue
         lowered = text.lower()
         if not GITHUB_CLOSURE_TRUTH_PATTERN.search(lowered):
             continue
