@@ -164,6 +164,22 @@ research-source-manifest, but it jumps directly to a recommendation without
 recording equal first-pass treatment or any routed owner action.
 EOF
 
+cat > "$TEST_REPO/docs/bma-work-management-gaps.md" <<'EOF'
+# BMA Work Management Gaps
+
+The recommendation is category-only: hand back selection to the operator and
+ask them to choose a category rather than naming an owner_surface,
+github_issue_candidate, roadmap_disposition, or explicit_no_action reason.
+
+The planning note recommends a Goal-mode episode for one tiny issue touching a
+single file and expected to take 10 minutes; this is too small for Goal mode.
+
+Issue #32 is closed and PR #99 is merged on GitHub, but the local completion
+manifest remains the authoritative closeout and work-close is still required as
+the closure authority. This regrows local closeout truth beside GitHub-native
+issue/PR truth.
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -177,8 +193,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 19
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 19
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 22
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 22
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -201,6 +217,9 @@ assert as_ids == {
     "AS-17",
     "AS-18",
     "AS-19",
+    "AS-20",
+    "AS-21",
+    "AS-22",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -277,6 +296,20 @@ github_issue_candidate or roadmap_disposition status, and explicit_no_action
 with no_action_reason when no owner change is warranted.
 EOF
 
+cat > "$CLEAN_REPO/docs/bma-work-management-clean.md" <<'EOF'
+# BMA Work Management Clean
+
+Recommendations name owner_surface and github_issue_candidate disposition
+directly; there is no category-only recommendation or selection handback.
+
+Goal-mode episode recommendation is reserved for a batch of eight issues across
+multiple repos with a retained acceptance contract, not for tiny one-file work.
+
+GitHub-native closeout is used when issue truth and PR truth are already closed
+or merged; local closeout is explicitly bypassed with a github-native-closeout
+rationale and no local completion authority is retained.
+EOF
+
 mkdir -p "$CLEAN_REPO/research/evidence/source-package"
 cat > "$CLEAN_REPO/research/evidence/source-package/research-source-manifest.json" <<'EOF'
 {
@@ -315,6 +348,9 @@ scripts = {
     "AS-17": "detect-as-stale-direct-token-evidence.sh",
     "AS-18": "detect-as-forbidden-public-customernewsletter-mutation.sh",
     "AS-19": "detect-as-source-intelligence-intake-gap.sh",
+    "AS-20": "detect-as-selection-handback-recommendation.sh",
+    "AS-21": "detect-as-too-small-goal-mode-episode.sh",
+    "AS-22": "detect-as-github-native-closure-regrowth.sh",
 }
 
 for signature_id, script in scripts.items():

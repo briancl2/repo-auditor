@@ -95,4 +95,33 @@ assert "closeout-disposition.json" in data["evidence"]
 '
 echo "  ✓ pointer duplicate fixture"
 
+bounded_fixture="$tmpdir/closeout-control-bounded"
+mkdir -p "$bounded_fixture/work"
+for idx in $(seq 1 45); do
+    work_dir="$bounded_fixture/work/20260401T0000${idx}Z"
+    mkdir -p "$work_dir"
+    cat > "$work_dir/review-receipt.json" <<'EOF'
+{
+  "review": "present"
+}
+EOF
+done
+
+bounded_json=$(DS44_WORK_SCAN_LIMIT=10 bash "$SCRIPT" "$bounded_fixture")
+printf '%s' "$bounded_json" | python3 -c '
+import json
+import sys
+
+data = json.load(sys.stdin)
+assert data["ds_id"] == "DS-44"
+assert data["fired"] is True
+assert data["work_dirs_scanned"] == 10
+assert data["work_dir_scan_limited"] is True
+assert data["work_dirs_seen"] == 45
+assert data["work_dir_scan_limit"] == 10
+assert data["disposition_gap_count"] == 10
+assert "scan limited" in data["evidence"]
+'
+echo "  ✓ bounded scan fixture"
+
 echo "  VERDICT: PASS"

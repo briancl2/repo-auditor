@@ -20,11 +20,25 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 fired=false
 work_dirs_scanned=0
 pointer_closure_dirs_scanned=0
+work_dirs_seen=0
+work_dir_scan_limit="${DS44_WORK_SCAN_LIMIT:-200}"
+work_dir_scan_limited=false
 disposition_gap_count=0
 helper_drift_count=0
 telemetry_anomaly_count=0
 pointer_duplicate_truth_count=0
 evidence=""
+
+case "$work_dir_scan_limit" in
+    ''|*[!0-9]*)
+        echo "ERROR: DS44_WORK_SCAN_LIMIT must be a positive integer" >&2
+        exit 2
+        ;;
+esac
+if [ "$work_dir_scan_limit" -lt 1 ]; then
+    echo "ERROR: DS44_WORK_SCAN_LIMIT must be a positive integer" >&2
+    exit 2
+fi
 
 declare -a POINTER_DUPLICATE_SURFACES=(
     "completion-manifest.json"
@@ -46,6 +60,18 @@ append_evidence() {
         evidence="${evidence}; "
     fi
     evidence="${evidence}${fragment}"
+}
+
+prepend_evidence() {
+    local fragment="$1"
+    if [ -z "$fragment" ]; then
+        return 0
+    fi
+    if [ -n "$evidence" ]; then
+        evidence="${fragment}; ${evidence}"
+    else
+        evidence="$fragment"
+    fi
 }
 
 check_helper_binding() {
@@ -175,6 +201,9 @@ if [ ! -d "$REPO/work" ]; then
         '{"ds_id":"DS-44","name":"Closeout control drift","severity":"HIGH","prevention_tier":"T1"}' \
         "fired=false" \
         "work_dirs_scanned=0" \
+        "work_dirs_seen=0" \
+        "work_dir_scan_limit=$work_dir_scan_limit" \
+        "work_dir_scan_limited=false" \
         "pointer_closure_dirs_scanned=0" \
         "disposition_gap_count=0" \
         "helper_drift_count=0" \
@@ -186,6 +215,11 @@ fi
 
 for work_dir in "$REPO"/work/*/; do
     [ -d "$work_dir" ] || continue
+    work_dirs_seen=$((work_dirs_seen + 1))
+    if [ "$work_dirs_seen" -gt "$work_dir_scan_limit" ]; then
+        work_dir_scan_limited=true
+        continue
+    fi
 
     dir_name=$(basename "$work_dir")
     has_review=false
@@ -271,7 +305,11 @@ if [ "$work_dirs_scanned" -eq 0 ]; then
     append_evidence "No Stage 15 closeout-control surfaces or pointer-closed work found in work/"
 fi
 
-if [ "$disposition_gap_count" -gt 0 ] || [ "$helper_drift_count" -gt 0 ] || [ "$telemetry_anomaly_count" -gt 0 ] || [ "$pointer_duplicate_truth_count" -gt 0 ]; then
+if [ "$work_dir_scan_limited" = true ]; then
+    prepend_evidence "work/ scan limited: scanned ${work_dirs_scanned} of ${work_dirs_seen} work dirs (limit ${work_dir_scan_limit})"
+fi
+
+if [ "$disposition_gap_count" -gt 0 ] || [ "$helper_drift_count" -gt 0 ] || [ "$telemetry_anomaly_count" -gt 0 ] || [ "$pointer_duplicate_truth_count" -gt 0 ] || [ "$work_dir_scan_limited" = true ]; then
     fired=true
 fi
 
@@ -279,6 +317,9 @@ python3 "$SCRIPT_DIR/ds_json_helper.py" \
     '{"ds_id":"DS-44","name":"Closeout control drift","severity":"HIGH","prevention_tier":"T1"}' \
     "fired=$fired" \
     "work_dirs_scanned=$work_dirs_scanned" \
+    "work_dirs_seen=$work_dirs_seen" \
+    "work_dir_scan_limit=$work_dir_scan_limit" \
+    "work_dir_scan_limited=$work_dir_scan_limited" \
     "pointer_closure_dirs_scanned=$pointer_closure_dirs_scanned" \
     "disposition_gap_count=$disposition_gap_count" \
     "helper_drift_count=$helper_drift_count" \
