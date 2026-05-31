@@ -60,6 +60,7 @@ scripts=(
     "detect-as-goal-runtime-evidence-gap.sh"
     "detect-as-reactive-self-healing-loop.sh"
     "detect-as-shell-reserved-status-variable.sh"
+    "detect-as-stale-default-capability-guidance.sh"
 )
 
 idx=0

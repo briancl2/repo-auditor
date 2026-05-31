@@ -268,3 +268,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-shell-reserved-status-variable.sh`
+
+### AS-28: Stale/Default Capability Guidance
+- **Detects:** Default-capability guidance that adopts or preserves an upstream/tool default without reconciling upstream-main proof, local same-version proof, owner surface, fallback, and validation.
+- **Signal:** A surface treats fork proof, PR-branch proof, remote-only proof, an open PR, or an unmerged PR as enough for production default adoption, or omits required reconciliation fields.
+- **Phase range:** Capability reconciliation, default-first adoption guidance, Hermes/GBrain/Codex upgrade notes, and campaign implementation snippets.
+- **Check:** Scan owner evidence text for default-capability adoption guidance, suppress detector definitions/templates, allow explicit no-adoption boundaries, and require upstream main, local proof, same-version proof, owner surface, fallback, and validation evidence before a capability becomes the production default.
+- **Fire condition:** `stale_default_capability_guidance_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-stale-default-capability-guidance.sh`
