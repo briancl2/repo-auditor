@@ -156,6 +156,18 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T2",
         "script": "detect-as-reciprocal-proving-ground-gap.sh",
     },
+    "AS-25": {
+        "name": "Goal-mode runtime evidence gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-goal-runtime-evidence-gap.sh",
+    },
+    "AS-26": {
+        "name": "Reactive self-healing loop",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-reactive-self-healing-loop.sh",
+    },
 }
 
 
@@ -1162,10 +1174,12 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-4]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-6]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
-    r"reciprocal proving-ground gap|reciprocal proving ground gap)\b",
+    r"reciprocal proving-ground gap|reciprocal proving ground gap|"
+    r"goal-mode runtime evidence gap|goal mode runtime evidence gap|"
+    r"reactive self-healing loop)\b",
     re.IGNORECASE,
 )
 SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
@@ -1417,6 +1431,123 @@ def reciprocal_proving_ground_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+GOAL_RUNTIME_IMPROVEMENT_PATTERN = re.compile(
+    r"\b(goal[- ]?mode|codex goal|goal episode)\b.{0,160}"
+    r"(?:(?<!self-)\bimprov(?:e|ed|ement|ing|es)?\b|\breduc(?:e|ed|tion)\b|"
+    r"\bincreas(?:e|ed)\b|\bself[- ]?healing\b|\boperator steering\b|"
+    r"\bruntime health\b|\bautonomy\b|\bcontinuity\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+RAW_RUNTIME_EVIDENCE_PATTERN = re.compile(
+    r"\b(raw runtime evidence|session logs?|rollout[-_][A-Za-z0-9_.-]+\\.jsonl|goal receipt|"
+    r"goal metadata|runtime ledger|runtime-behavior ledger|command transcript|ci run|"
+    r"github actions run|check run|replay log)\b",
+    re.IGNORECASE,
+)
+MISSING_RAW_RUNTIME_EVIDENCE_PATTERN = re.compile(
+    r"\b(no|missing|without|lacks?|absent|not retained|unavailable)\b.{0,60}"
+    r"\b(raw runtime evidence|session logs?|goal receipt|goal metadata|runtime ledger|"
+    r"command transcript|ci run|replay log)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+FAILURE_SIGNAL_PATTERN = re.compile(
+    r"\b(fail(?:ed|ure)?|blocker|blocked|broken|hang|hung|timeout|unconfigured|gate failure|"
+    r"provider failure|ci failure)\b",
+    re.IGNORECASE,
+)
+REACTIVE_META_REPAIR_PATTERN = re.compile(
+    r"\b(retrospective|retro|selector|doctrine|principle|planning)\b.{0,120}"
+    r"\b(repair|fix|next step|route|handle|address|primary)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+OWNER_SURFACE_REPAIR_PATTERN = re.compile(
+    r"\b(owner[-_ ]?surface|owner repo|owner repository|first deliverable|github issue truth|"
+    r"failure issue|converted? to (?:github )?issue truth|direct repair|exact owner[-_ ]?surface action|"
+    r"issue, branch, PR, checks, and merge)\b",
+    re.IGNORECASE,
+)
+SELF_HEALING_NEGATION_PATTERN = re.compile(
+    r"\b(do not|not|never|instead of|rather than|invalid|forbid(?:s|den)?|rejects?)\b.{0,80}"
+    r"\b(retrospective|retro|selector|doctrine|planning)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def goal_runtime_evidence_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not GOAL_RUNTIME_IMPROVEMENT_PATTERN.search(text):
+            continue
+        has_evidence = RAW_RUNTIME_EVIDENCE_PATTERN.search(text) is not None
+        missing_evidence = MISSING_RAW_RUNTIME_EVIDENCE_PATTERN.search(text) is not None
+        if has_evidence and not missing_evidence:
+            grounded.append(path)
+        else:
+            offenders.append(path)
+
+    details = [
+        f"goal_runtime_evidence_gap=>{','.join(offenders[:4]) or 'none'}",
+        f"goal_runtime_evidence_grounded=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "goal_runtime_claim_count": len(offenders) + len(grounded),
+            "goal_runtime_evidence_gap_count": len(offenders),
+            "goal_runtime_evidence_grounded_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "Goal-mode runtime improvement claim lacks raw runtime evidence" if offenders else "Goal-mode runtime claims cite raw runtime evidence or are absent",
+    }
+
+
+def reactive_self_healing_loop(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    repaired: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            repaired.append(path)
+            continue
+        path_repaired = False
+        path_offender = False
+        chunks = [chunk.strip() for chunk in re.split(r"\n\s*\n", text) if chunk.strip()]
+        for chunk in chunks:
+            if not FAILURE_SIGNAL_PATTERN.search(chunk):
+                continue
+            if OWNER_SURFACE_REPAIR_PATTERN.search(chunk):
+                path_repaired = True
+                continue
+            if SELF_HEALING_NEGATION_PATTERN.search(chunk):
+                path_repaired = True
+                continue
+            if REACTIVE_META_REPAIR_PATTERN.search(chunk):
+                path_offender = True
+        if path_offender:
+            offenders.append(path)
+        elif path_repaired:
+            repaired.append(path)
+
+    details = [
+        f"reactive_self_healing_loop=>{','.join(offenders[:4]) or 'none'}",
+        f"direct_owner_repair=>{','.join(repaired[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "reactive_self_healing_loop_count": len(offenders),
+            "direct_owner_repair_count": len(repaired),
+        },
+        "evidence": evidence_join(details),
+        "reason": "known failure routes to retrospective/selector/doctrine work instead of owner-surface repair" if offenders else "known failures route to owner-surface repair or are absent",
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -1442,6 +1573,8 @@ EVALUATORS = {
     "AS-22": github_native_closure_regrowth,
     "AS-23": owner_surface_ambiguity,
     "AS-24": reciprocal_proving_ground_gap,
+    "AS-25": goal_runtime_evidence_gap,
+    "AS-26": reactive_self_healing_loop,
 }
 
 
