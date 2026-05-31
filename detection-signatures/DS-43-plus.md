@@ -258,3 +258,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-reactive-self-healing-loop.sh`
+
+### AS-27: Shell Reserved Status-Variable Launch Snippet
+- **Detects:** Hermes, foreground, or zsh-compatible launch snippets that capture a command exit code in the reserved/read-only shell variable `status`.
+- **Signal:** A zsh/Hermes/foreground launch context contains bare lowercase `status=$?`.
+- **Phase range:** Hermes launch guidance, foreground wrapper docs, shell examples, and campaign implementation snippets.
+- **Check:** Scan owner evidence text for bare `status=$?` only in Hermes/foreground/zsh contexts while allowing safe variables such as `hermes_status=$?`, `cmd_status=$?`, or `STATUS=$?`.
+- **Fire condition:** `shell_reserved_status_variable_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-shell-reserved-status-variable.sh`
