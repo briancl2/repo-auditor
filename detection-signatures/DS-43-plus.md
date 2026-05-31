@@ -236,3 +236,25 @@
 - **Prevention tier:** T2
 - **Severity:** MEDIUM
 - **Script:** `scripts/detect-as-reciprocal-proving-ground-gap.sh`
+
+### AS-25: Goal-Mode Runtime Evidence Gap
+- **Detects:** Goal-mode runtime improvement claims that lack raw runtime evidence.
+- **Signal:** A surface claims Goal mode improved runtime health, autonomy, self-healing, continuity, throughput, or operator steering without citing session logs, Goal metadata, command transcripts, CI/check runs, runtime ledgers, or replay logs.
+- **Phase range:** Goal-mode retrospectives, episode evaluations, campaign sync, and runtime-health readouts.
+- **Check:** Scan owner evidence text for Goal-mode improvement claims and require raw runtime evidence; suppress detector definitions, templates, and clean examples.
+- **Shared contract:** `repo-agent-core/docs/goal-episode-evaluation-contract.md` defines the required raw-runtime-evidence field and evidence-class split.
+- **Fire condition:** `goal_runtime_evidence_gap_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-goal-runtime-evidence-gap.sh`
+
+### AS-26: Reactive Self-Healing Loop
+- **Detects:** Known failures that route to retrospectives, selectors, doctrine, or planning as the primary repair instead of direct owner-surface repair or GitHub failure issue truth.
+- **Signal:** A surface describes a failure, blocker, hang, timeout, provider failure, or gate failure and sends the repair to another retrospective/selector/doctrine/planning loop without naming the owner surface, first deliverable, or failure issue.
+- **Phase range:** Goal-mode recovery, self-healing, campaign recommendations, retrospectives, and operator-facing blocker handling.
+- **Check:** Scan owner evidence text for failure signals paired with retrospective/selector/doctrine/planning repair language and require a direct owner-surface repair, first deliverable, or GitHub issue-truth conversion; suppress detector definitions, templates, and clean examples.
+- **Shared contract:** `repo-agent-core/docs/goal-episode-evaluation-contract.md` defines the self-healing rule and next exact owner-surface action field.
+- **Fire condition:** `reactive_self_healing_loop_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-reactive-self-healing-loop.sh`

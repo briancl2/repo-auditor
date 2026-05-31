@@ -57,6 +57,8 @@ scripts=(
     "detect-as-github-native-closure-regrowth.sh"
     "detect-as-owner-surface-ambiguity.sh"
     "detect-as-reciprocal-proving-ground-gap.sh"
+    "detect-as-goal-runtime-evidence-gap.sh"
+    "detect-as-reactive-self-healing-loop.sh"
 )
 
 idx=0

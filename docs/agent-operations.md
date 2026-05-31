@@ -51,8 +51,8 @@ drift, missing runtime heartbeat, validator live-path gaps, memory authority
 confusion, prompt-only optimization, unused platform surfaces, critique health,
 cost/token evidence boundaries, pricing provenance, copied evidence boundaries,
 unauthorized default enablement, rollback proof, aggregate-only readiness,
-stale direct-token evidence, and forbidden public `CustomerNewsletter`
-mutation.
+stale direct-token evidence, forbidden public `CustomerNewsletter` mutation,
+Goal-mode runtime evidence gaps, and reactive self-healing loops.
 
 ## Helper Scripts
 

@@ -185,6 +185,13 @@ later, so the destination and initial change are not specified.
 Run repo-auditor against repo-optimizer as a validation target for the core
 five, but do not state whether this proving-ground use is read-only or whether
 mutation stays on the named owner repo.
+
+Goal mode improved runtime health and reduced operator steering across the
+episode, but no session log, Goal metadata, command transcript, CI run, or raw
+runtime evidence is retained for that claim.
+
+The Hermes provider failed, so the next repair should route to another
+retrospective and selector update as the primary way to handle the blocker.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -200,8 +207,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 24
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 24
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 26
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 26
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -229,6 +236,8 @@ assert as_ids == {
     "AS-22",
     "AS-23",
     "AS-24",
+    "AS-25",
+    "AS-26",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -277,6 +286,13 @@ without a named owner repo or first deliverable.
 
 **Triggers:** AS-24 fires when reciprocal proving-ground validation lacks the
 read-only owner-mutation boundary.
+
+**Triggers:** AS-25 fires when a Goal-mode runtime improvement claim lacks raw
+runtime evidence such as session logs, Goal metadata, command transcripts, or
+CI runs.
+
+**Triggers:** AS-26 fires when a known failure routes to retrospective or
+selector work instead of direct owner-surface repair or GitHub issue truth.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -299,6 +315,13 @@ The repo-star fleet should handle the shared capability and pick an owner later.
 
 Run repo-auditor against repo-optimizer as a validation target, but omit the
 safety boundary for that target use.
+
+Goal mode improved runtime health and reduced operator steering, but the
+episode has no raw runtime evidence, session log, Goal metadata, command
+transcript, or CI run reference.
+
+The provider failure should be handled by another retrospective and selector
+update before any concrete fix is named.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -313,6 +336,8 @@ scripts = {
     "AS-22": "detect-as-github-native-closure-regrowth.sh",
     "AS-23": "detect-as-owner-surface-ambiguity.sh",
     "AS-24": "detect-as-reciprocal-proving-ground-gap.sh",
+    "AS-25": "detect-as-goal-runtime-evidence-gap.sh",
+    "AS-26": "detect-as-reactive-self-healing-loop.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -424,6 +449,20 @@ each other read-only. Each core-five repo changes only through its own owner
 issue, branch, PR, checks, and merge. The owner_surface is repo-auditor and the
 first deliverable is a focused detector PR.
 
+Goal mode improved runtime health and operator steering reduction. Raw runtime
+evidence is retained in rollout-2026-05-29T10-42-49.jsonl, the Goal metadata
+receipt, CI run 26699097560, and the replay log.
+
+The alignment skill catalog mentions Goal-mode leaps and recursive
+self-improvement as risk categories, without claiming that runtime improved.
+
+The provider failure was converted to GitHub issue truth and routed to the
+repo-agent-core owner surface with first deliverable, validation scope, and
+issue, branch, PR, checks, and merge.
+
+Recommendation category ordering is fix-broken > add-new > optimize; that
+schema vocabulary is not a reactive self-healing repair route.
+
 | Capability family | Owner surface | First deliverable shape |
 |---|---|---|
 | Audit and signature detection | repo-auditor | Detector signature, fixture, registration, and repo-native test |
@@ -474,6 +513,8 @@ scripts = {
     "AS-22": "detect-as-github-native-closure-regrowth.sh",
     "AS-23": "detect-as-owner-surface-ambiguity.sh",
     "AS-24": "detect-as-reciprocal-proving-ground-gap.sh",
+    "AS-25": "detect-as-goal-runtime-evidence-gap.sh",
+    "AS-26": "detect-as-reactive-self-healing-loop.sh",
 }
 
 for signature_id, script in scripts.items():
