@@ -52,8 +52,8 @@ confusion, prompt-only optimization, unused platform surfaces, critique health,
 cost/token evidence boundaries, pricing provenance, copied evidence boundaries,
 unauthorized default enablement, rollback proof, aggregate-only readiness,
 stale direct-token evidence, forbidden public `CustomerNewsletter` mutation,
-Goal-mode runtime evidence gaps, reactive self-healing loops, and shell
-reserved status-variable launch snippets.
+Goal-mode runtime evidence gaps, reactive self-healing loops, shell reserved
+status-variable launch snippets, and stale/default capability guidance.
 
 ## Helper Scripts
 

@@ -174,6 +174,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-shell-reserved-status-variable.sh",
     },
+    "AS-28": {
+        "name": "Stale/default capability guidance",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-stale-default-capability-guidance.sh",
+    },
 }
 
 
@@ -1180,13 +1186,15 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-7]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-8]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
     r"goal-mode runtime evidence gap|goal mode runtime evidence gap|"
     r"reactive self-healing loop|shell reserved status-variable|"
-    r"reserved status variable|status-variable launch)\b",
+    r"reserved status variable|status-variable launch|"
+    r"stale/default capability guidance|stale default capability guidance|"
+    r"default capability guidance)\b",
     re.IGNORECASE,
 )
 SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
@@ -1484,6 +1492,57 @@ HERMES_OR_ZSH_CONTEXT_PATTERN = re.compile(
     r"read-only variable|reserved variable|validate-hermes-foreground-output)\b",
     re.IGNORECASE,
 )
+DEFAULT_CAPABILITY_GUIDANCE_PATTERN = re.compile(
+    r"\b(default capability|capability default|default/upstream capability|"
+    r"upstream default|adopt(?:s|ed|ing)? (?:the )?(?:upstream )?default|"
+    r"make (?:this|the) capability default|"
+    r"recommend(?:s|ed|ation)? .{0,80}\bdefault capability\b)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+WEAK_DEFAULT_PROOF_PATTERN = re.compile(
+    r"\b(fork proof|fork-only proof|pr[- ]branch proof|pull request branch proof|"
+    r"branch proof|remote-only proof|remote only proof|remote branch check|"
+    r"remote[- ]only branch check|upstream branch proof|open pr|open pull request|"
+    r"unmerged pr|unmerged pull request)\b",
+    re.IGNORECASE,
+)
+DEFAULT_RECONCILIATION_GATE_PATTERN = re.compile(
+    r"\b(upstream[-_ ]main(?:[-_ ]sha)?|local[-_ ]main(?:[-_ ]sha)?|"
+    r"upstream[-_ ]main/local[-_ ]proof|local[-_ ]proof|source[-_ ]local[-_ ]reconciliation|"
+    r"source/local proof|source proof|local proof|same[-_ ]version(?:[-_ ]proof)?|"
+    r"same version proof|reconciliation gate|"
+    r"validation reconciliation|validation_receipt|validation record|"
+    r"fallback path|fallback_path|rollback path|disable path|owner[-_ ]surface|"
+    r"owner repo|owner repository)\b",
+    re.IGNORECASE,
+)
+DEFAULT_RECONCILIATION_MISSING_PATTERN = re.compile(
+    r"\b(no|missing|without|lacks?|absent|not retained|unavailable|do not block on|"
+    r"skip(?:s|ped)?|omit(?:s|ted)?|remote-only proof is enough)\b.{0,100}"
+    r"\b(upstream[-_ ]main|local[-_ ]proof|local proof|same[-_ ]version|source[-_ ]local|source/local|"
+    r"owner[-_ ]surface|owner surface|fallback|validation reconciliation|validation record|reconciliation gate)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+DEFAULT_OWNER_SURFACE_MISSING_PATTERN = re.compile(
+    r"\b(no|missing|without|lacks?|absent|not retained|unavailable)\b.{0,80}"
+    r"\b(owner[-_ ]surface|owner surface|owner repo|owner repository)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+DEFAULT_WEAK_PROOF_NEGATION_PATTERN = re.compile(
+    r"\b(do not|don't|must not|never|forbid(?:s|den)?|reject(?:s|ed)?|not enough|"
+    r"insufficient|invalid)\b.{0,120}\b(fork proof|fork-only proof|pr[- ]branch proof|"
+    r"pull request branch proof|remote-only proof|remote only proof|remote branch check|"
+    r"open pr|open pull request|unmerged pr|unmerged pull request)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+DEFAULT_REQUIRED_RECONCILIATION_PATTERNS = {
+    "upstream_main": re.compile(r"\b(upstream[-_ ]main(?:[-_ ]sha)?|main branch upstream)\b", re.IGNORECASE),
+    "local_proof": re.compile(r"\b(local[-_ ]proof|local proof|local[-_ ]main(?:[-_ ]sha)?)\b", re.IGNORECASE),
+    "same_version_proof": re.compile(r"\b(same[-_ ]version(?:[-_ ]proof)?|same version proof|same version)\b", re.IGNORECASE),
+    "owner_surface": re.compile(r"\b(owner[-_ ]surface|owner surface|owner repo|owner repository)\b", re.IGNORECASE),
+    "fallback": re.compile(r"\b(fallback path|fallback_path|rollback path|disable path|kill switch)\b", re.IGNORECASE),
+    "validation": re.compile(r"\b(validation reconciliation|validation_receipt|validation record|validation receipt)\b", re.IGNORECASE),
+}
 
 
 def shell_reserved_status_variable(texts: dict[str, str]) -> dict[str, Any]:
@@ -1522,6 +1581,72 @@ def shell_reserved_status_variable(texts: dict[str, str]) -> dict[str, Any]:
         },
         "evidence": evidence_join(details),
         "reason": "Hermes/zsh launch snippet captures exit code in reserved shell variable `status`" if offenders else "Hermes/zsh launch snippets use non-reserved status variables or are absent",
+    }
+
+
+def stale_default_capability_guidance(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    reconciled: list[str] = []
+    weak_proof_count = 0
+    stale_record_count = 0
+    missing_owner_surface_count = 0
+    missing_same_version_count = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            reconciled.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")):
+            continue
+        if not DEFAULT_CAPABILITY_GUIDANCE_PATTERN.search(text):
+            continue
+
+        has_weak_proof = WEAK_DEFAULT_PROOF_PATTERN.search(text) is not None
+        weak_proof_is_negated = DEFAULT_WEAK_PROOF_NEGATION_PATTERN.search(text) is not None
+        missing_reconciliation = DEFAULT_RECONCILIATION_MISSING_PATTERN.search(text) is not None
+        owner_surface_is_missing = DEFAULT_OWNER_SURFACE_MISSING_PATTERN.search(text) is not None
+        required_hits = {
+            name: pattern.search(text) is not None
+            for name, pattern in DEFAULT_REQUIRED_RECONCILIATION_PATTERNS.items()
+        }
+        if owner_surface_is_missing:
+            required_hits["owner_surface"] = False
+        has_reconciliation_record = all(required_hits.values())
+
+        if has_weak_proof and not weak_proof_is_negated:
+            weak_proof_count += 1
+        if not required_hits["owner_surface"]:
+            missing_owner_surface_count += 1
+        if not required_hits["same_version_proof"]:
+            missing_same_version_count += 1
+
+        if weak_proof_is_negated and has_reconciliation_record:
+            reconciled.append(path)
+        elif missing_reconciliation or (has_weak_proof and not weak_proof_is_negated) or not has_reconciliation_record:
+            missing_keys = [name for name, present in required_hits.items() if not present]
+            offenders.append(f"{path}=>missing:{','.join(missing_keys) or 'none'}")
+            if not has_weak_proof and not missing_reconciliation:
+                stale_record_count += 1
+        else:
+            reconciled.append(path)
+
+    details = [
+        f"stale_default_capability_guidance=>{';'.join(offenders[:4]) or 'none'}",
+        f"reconciled_default_capability=>{','.join(sorted(set(reconciled))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "stale_default_capability_guidance_count": len(offenders),
+            "weak_default_proof_count": weak_proof_count,
+            "missing_reconciliation_record_count": len(offenders),
+            "stale_default_record_count": stale_record_count,
+            "missing_owner_surface_count": missing_owner_surface_count,
+            "missing_same_version_proof_count": missing_same_version_count,
+            "reconciled_default_capability_count": len(set(reconciled)),
+        },
+        "evidence": evidence_join(details),
+        "reason": "default capability guidance relies on fork/PR/remote-only/open-PR proof or lacks upstream-main/local/same-version owner/fallback validation reconciliation" if offenders else "default capability guidance is reconciled or absent",
     }
 
 
@@ -1628,6 +1753,7 @@ EVALUATORS = {
     "AS-25": goal_runtime_evidence_gap,
     "AS-26": reactive_self_healing_loop,
     "AS-27": shell_reserved_status_variable,
+    "AS-28": stale_default_capability_guidance,
 }
 
 

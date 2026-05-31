@@ -197,6 +197,11 @@ Hermes foreground wrapper:
 timeout 900 hermes chat --provider copilot -m gpt-5.5 -q prompt -Q
 status=$?
 python3 scripts/validate-hermes-foreground-output.py --status-code "$status"
+
+The recommendation says to adopt the upstream default capability as the new
+default based on fork proof, PR-branch proof, and a remote-only branch check;
+it has no upstream-main/local-proof reconciliation gate, source/local proof,
+fallback path, or validation reconciliation record retained.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -212,8 +217,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 27
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 27
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 28
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 28
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -244,6 +249,7 @@ assert as_ids == {
     "AS-25",
     "AS-26",
     "AS-27",
+    "AS-28",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -302,6 +308,10 @@ selector work instead of direct owner-surface repair or GitHub issue truth.
 
 **Triggers:** AS-27 fires when a Hermes/zsh launch snippet uses status=$?.
 The template says to use hermes_status=$? instead.
+
+**Triggers:** AS-28 fires when stale/default capability guidance adopts an
+upstream default using fork proof, PR-branch proof, or remote-only proof without
+upstream-main/local-proof reconciliation gates.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -336,6 +346,10 @@ Hermes foreground wrapper:
 hermes chat --provider copilot -m gpt-5.5 -q prompt -Q
 status=$?
 python3 scripts/validate-hermes-foreground-output.py --status-code "$status"
+
+Default capability guidance: adopt the upstream default capability from the
+fork proof and PR branch proof. The remote-only proof is enough; do not block on
+local proof or upstream-main reconciliation before recommending the default.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -353,6 +367,7 @@ scripts = {
     "AS-25": "detect-as-goal-runtime-evidence-gap.sh",
     "AS-26": "detect-as-reactive-self-healing-loop.sh",
     "AS-27": "detect-as-shell-reserved-status-variable.sh",
+    "AS-28": "detect-as-stale-default-capability-guidance.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -482,8 +497,19 @@ cmd_status=$?
 STATUS=$?
 python3 scripts/validate-hermes-foreground-output.py --status-code "$hermes_status"
 
+Default capability guidance keeps the capability behind a fallback until
+source proof, local proof, and same-version proof all validate on upstream main.
+The validation reconciliation record names upstream_main_sha, local_main_sha,
+same_version_proof, source_local_reconciliation, fallback_path, and
+validation_receipt.
+
 Recommendation category ordering is fix-broken > add-new > optimize; that
 schema vocabulary is not a reactive self-healing repair route.
+
+Do not adopt a default capability from fork proof, PR-branch proof, remote-only
+proof, open PR proof, or unmerged PR proof. Production adoption requires
+upstream main, local proof, same-version proof, owner_surface, fallback_path,
+and validation_receipt before recommending any default.
 
 | Capability family | Owner surface | First deliverable shape |
 |---|---|---|
@@ -538,6 +564,7 @@ scripts = {
     "AS-25": "detect-as-goal-runtime-evidence-gap.sh",
     "AS-26": "detect-as-reactive-self-healing-loop.sh",
     "AS-27": "detect-as-shell-reserved-status-variable.sh",
+    "AS-28": "detect-as-stale-default-capability-guidance.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -595,6 +622,65 @@ payload = json.loads(final_off.stdout)
 assert payload["ds_id"] == "AS-15", payload
 assert payload["fired"] is False, payload
 assert payload["signals"]["rollback_control_proven_count"] == 1, payload
+PY
+
+DEFAULT_CAPABILITY_OWNER_GAP_REPO="$TMPDIR/as-default-capability-owner-gap-repo"
+mkdir -p "$DEFAULT_CAPABILITY_OWNER_GAP_REPO/docs"
+cat > "$DEFAULT_CAPABILITY_OWNER_GAP_REPO/docs/default-capability.md" <<'EOF'
+# Default Capability Owner Gap
+
+Default capability guidance keeps the capability behind a fallback until source
+proof, local proof, same-version proof, and upstream main all reconcile. The
+validation reconciliation record names upstream_main_sha, local_main_sha,
+same_version_proof, source_local_reconciliation, fallback_path, and
+validation_receipt, but no owner surface is named for production adoption.
+EOF
+
+OPEN_PR_ADOPTION_REPO="$TMPDIR/as-open-pr-adoption-repo"
+mkdir -p "$OPEN_PR_ADOPTION_REPO/docs"
+cat > "$OPEN_PR_ADOPTION_REPO/docs/open-pr-adoption.md" <<'EOF'
+# Open PR Adoption
+
+Default capability guidance: make this capability default in production because
+an open PR and unmerged pull request show it works. Treat the PR as enough for
+production adoption without upstream main, local proof, same-version proof,
+owner surface, fallback path, or validation reconciliation.
+EOF
+
+CAPABILITY_GATING_CLEAN_REPO="$TMPDIR/as-capability-gating-clean-repo"
+mkdir -p "$CAPABILITY_GATING_CLEAN_REPO/docs"
+cat > "$CAPABILITY_GATING_CLEAN_REPO/docs/capability-gating.md" <<'EOF'
+# Capability Gating
+
+Do not recommend platform features unless availability is confirmed via target
+config or version evidence. If capability is unknown, default to suppress or
+allow-with-warning, never confidently allow.
+EOF
+
+python3 - "$REPO_ROOT" "$DEFAULT_CAPABILITY_OWNER_GAP_REPO" "$OPEN_PR_ADOPTION_REPO" "$CAPABILITY_GATING_CLEAN_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, owner_gap_repo, open_pr_repo, capability_gating_repo = sys.argv[1:5]
+script = f"{repo_root}/scripts/detect-as-stale-default-capability-guidance.sh"
+
+owner_gap = subprocess.run(["bash", script, owner_gap_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(owner_gap.stdout)
+assert payload["ds_id"] == "AS-28", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["missing_owner_surface_count"] == 1, payload
+
+open_pr = subprocess.run(["bash", script, open_pr_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(open_pr.stdout)
+assert payload["ds_id"] == "AS-28", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["weak_default_proof_count"] == 1, payload
+
+capability_gating = subprocess.run(["bash", script, capability_gating_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(capability_gating.stdout)
+assert payload["ds_id"] == "AS-28", payload
+assert payload["fired"] is False, payload
 PY
 
 NOISE_REPO="$TMPDIR/as-noise-only-repo"
