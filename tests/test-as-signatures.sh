@@ -192,6 +192,11 @@ runtime evidence is retained for that claim.
 
 The Hermes provider failed, so the next repair should route to another
 retrospective and selector update as the primary way to handle the blocker.
+
+Hermes foreground wrapper:
+timeout 900 hermes chat --provider copilot -m gpt-5.5 -q prompt -Q
+status=$?
+python3 scripts/validate-hermes-foreground-output.py --status-code "$status"
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -207,8 +212,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 26
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 26
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 27
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 27
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -238,6 +243,7 @@ assert as_ids == {
     "AS-24",
     "AS-25",
     "AS-26",
+    "AS-27",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -293,6 +299,9 @@ CI runs.
 
 **Triggers:** AS-26 fires when a known failure routes to retrospective or
 selector work instead of direct owner-surface repair or GitHub issue truth.
+
+**Triggers:** AS-27 fires when a Hermes/zsh launch snippet uses status=$?.
+The template says to use hermes_status=$? instead.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -322,6 +331,11 @@ transcript, or CI run reference.
 
 The provider failure should be handled by another retrospective and selector
 update before any concrete fix is named.
+
+Hermes foreground wrapper:
+hermes chat --provider copilot -m gpt-5.5 -q prompt -Q
+status=$?
+python3 scripts/validate-hermes-foreground-output.py --status-code "$status"
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -338,6 +352,7 @@ scripts = {
     "AS-24": "detect-as-reciprocal-proving-ground-gap.sh",
     "AS-25": "detect-as-goal-runtime-evidence-gap.sh",
     "AS-26": "detect-as-reactive-self-healing-loop.sh",
+    "AS-27": "detect-as-shell-reserved-status-variable.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -460,6 +475,13 @@ The provider failure was converted to GitHub issue truth and routed to the
 repo-agent-core owner surface with first deliverable, validation scope, and
 issue, branch, PR, checks, and merge.
 
+Hermes foreground wrapper:
+hermes chat --provider copilot -m gpt-5.5 -q prompt -Q
+hermes_status=$?
+cmd_status=$?
+STATUS=$?
+python3 scripts/validate-hermes-foreground-output.py --status-code "$hermes_status"
+
 Recommendation category ordering is fix-broken > add-new > optimize; that
 schema vocabulary is not a reactive self-healing repair route.
 
@@ -515,6 +537,7 @@ scripts = {
     "AS-24": "detect-as-reciprocal-proving-ground-gap.sh",
     "AS-25": "detect-as-goal-runtime-evidence-gap.sh",
     "AS-26": "detect-as-reactive-self-healing-loop.sh",
+    "AS-27": "detect-as-shell-reserved-status-variable.sh",
 }
 
 for signature_id, script in scripts.items():

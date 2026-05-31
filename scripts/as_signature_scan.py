@@ -168,6 +168,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-reactive-self-healing-loop.sh",
     },
+    "AS-27": {
+        "name": "Shell reserved status-variable launch snippet",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-shell-reserved-status-variable.sh",
+    },
 }
 
 
@@ -1174,12 +1180,13 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-6]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-7]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
     r"goal-mode runtime evidence gap|goal mode runtime evidence gap|"
-    r"reactive self-healing loop)\b",
+    r"reactive self-healing loop|shell reserved status-variable|"
+    r"reserved status variable|status-variable launch)\b",
     re.IGNORECASE,
 )
 SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
@@ -1471,6 +1478,51 @@ SELF_HEALING_NEGATION_PATTERN = re.compile(
     r"\b(retrospective|retro|selector|doctrine|planning)\b",
     re.IGNORECASE | re.DOTALL,
 )
+RESERVED_STATUS_ASSIGNMENT_PATTERN = re.compile(r"(^|[;&|({\s])status\s*=\s*\$\?")
+HERMES_OR_ZSH_CONTEXT_PATTERN = re.compile(
+    r"\b(hermes|foreground|launch snippet|launch contract|zsh|zsh-compatible|"
+    r"read-only variable|reserved variable|validate-hermes-foreground-output)\b",
+    re.IGNORECASE,
+)
+
+
+def shell_reserved_status_variable(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    safe_examples: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            safe_examples.append(path)
+            continue
+        path_lower = path.lower()
+        context = bool(
+            HERMES_OR_ZSH_CONTEXT_PATTERN.search(text)
+            or path_lower.endswith((".zsh", ".zshrc", ".zprofile", ".zlogin"))
+        )
+        if not context:
+            continue
+        path_offenders: list[str] = []
+        for line in text.splitlines():
+            if RESERVED_STATUS_ASSIGNMENT_PATTERN.search(line):
+                path_offenders.append(line.strip()[:100])
+            elif re.search(r"\b(?:hermes_status|cmd_status|STATUS)\s*=\s*\$\?", line):
+                safe_examples.append(path)
+        if path_offenders:
+            offenders.append(f"{path}=>{path_offenders[0]}")
+
+    details = [
+        f"reserved_status_assignment=>{';'.join(offenders[:4]) or 'none'}",
+        f"safe_status_assignment=>{','.join(sorted(set(safe_examples))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "shell_reserved_status_variable_count": len(offenders),
+            "safe_status_assignment_count": len(set(safe_examples)),
+        },
+        "evidence": evidence_join(details),
+        "reason": "Hermes/zsh launch snippet captures exit code in reserved shell variable `status`" if offenders else "Hermes/zsh launch snippets use non-reserved status variables or are absent",
+    }
 
 
 def goal_runtime_evidence_gap(texts: dict[str, str]) -> dict[str, Any]:
@@ -1575,6 +1627,7 @@ EVALUATORS = {
     "AS-24": reciprocal_proving_ground_gap,
     "AS-25": goal_runtime_evidence_gap,
     "AS-26": reactive_self_healing_loop,
+    "AS-27": shell_reserved_status_variable,
 }
 
 

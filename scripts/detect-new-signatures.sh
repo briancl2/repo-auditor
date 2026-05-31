@@ -59,6 +59,7 @@ scripts=(
     "detect-as-reciprocal-proving-ground-gap.sh"
     "detect-as-goal-runtime-evidence-gap.sh"
     "detect-as-reactive-self-healing-loop.sh"
+    "detect-as-shell-reserved-status-variable.sh"
 )
 
 idx=0
