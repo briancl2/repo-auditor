@@ -202,6 +202,14 @@ The recommendation says to adopt the upstream default capability as the new
 default based on fork proof, PR-branch proof, and a remote-only branch check;
 it has no upstream-main/local-proof reconciliation gate, source/local proof,
 fallback path, or validation reconciliation record retained.
+
+The Goal-mode arc was interrupted by an upstream blocker. Use the interruption
+recovery and batch reconstitution contract, but only record the replacement
+objective. Missing original objective, blocker class, Goal state, first owner PR,
+intentional serial/parallel plan, learning trigger, fallback, and validation.
+
+After that blocker, continue one at a time as unplanned serial repair work
+without a planned replacement route or intentional plan.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -217,8 +225,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 29
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 29
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 31
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 31
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -251,6 +259,8 @@ assert as_ids == {
     "AS-27",
     "AS-28",
     "AS-29",
+    "AS-30",
+    "AS-31",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -281,6 +291,18 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** A surface says PR #99 is merged while also requiring a completion manifest, work-close, SER, or handoff.
 - **Fire condition:** `github_native_closure_regrowth_count > 0`
 - **Script:** `scripts/detect-as-github-native-closure-regrowth.sh`
+
+### AS-30: Interrupted Goal Recovery Gap
+- **Detects:** Goal-mode blocker recovery that omits batch-reconstitution fields.
+- **Signal:** A surface names an interrupted Goal episode and blocker without original objective, blocker class, Goal state, replacement objective, first owner PR, intentional plan, learning trigger, fallback, or validation.
+- **Fire condition:** `interrupted_goal_recovery_gap_count > 0`
+- **Script:** `scripts/detect-as-interrupted-goal-recovery-gap.sh`
+
+### AS-31: Fractured Serial Continuation
+- **Detects:** Blocker recovery that collapses into unplanned serial continuation.
+- **Signal:** A surface describes ad hoc serial work after a blocker with no replacement objective or intentional serial/parallel plan.
+- **Fire condition:** `fractured_serial_continuation_count > 0`
+- **Script:** `scripts/detect-as-fractured-serial-continuation.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -317,6 +339,12 @@ upstream-main/local-proof reconciliation gates.
 **Triggers:** AS-29 fires when Hermes foreground launcher guidance mentions
 `hermes chat -q -Q` or validate-hermes-foreground-output.py but omits the
 foreground run receipt contract and wrapper.
+
+**Triggers:** AS-30 fires when interrupted Goal recovery docs omit the batch
+reconstitution fields.
+
+**Triggers:** AS-31 fires when blocker recovery collapses into fractured serial
+continuation.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -355,6 +383,14 @@ python3 scripts/validate-hermes-foreground-output.py --status-code "$status"
 Default capability guidance: adopt the upstream default capability from the
 fork proof and PR branch proof. The remote-only proof is enough; do not block on
 local proof or upstream-main reconciliation before recommending the default.
+
+The Goal-mode arc was interrupted by an upstream blocker. Use the interruption
+recovery and batch reconstitution contract, but only record the replacement
+objective. Missing original objective, blocker class, Goal state, first owner PR,
+intentional serial/parallel plan, learning trigger, fallback, and validation.
+
+After that blocker, continue one at a time as unplanned serial repair work
+without a planned replacement route or intentional plan.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -374,6 +410,8 @@ scripts = {
     "AS-27": "detect-as-shell-reserved-status-variable.sh",
     "AS-28": "detect-as-stale-default-capability-guidance.sh",
     "AS-29": "detect-as-hermes-foreground-receipt-adoption-gap.sh",
+    "AS-30": "detect-as-interrupted-goal-recovery-gap.sh",
+    "AS-31": "detect-as-fractured-serial-continuation.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -800,6 +838,17 @@ and validation_receipt before recommending any default.
 | Audit and signature detection | repo-auditor | Detector signature, fixture, registration, and repo-native test |
 | Recommendation packaging | repo-upgrade-advisor | Recommendation template, scorer rule, prompt/schema update, and packaging fixture |
 | Patch-pack materialization | repo-optimizer | Deterministic patch materializer plus git apply check fixture |
+
+Interruption recovery and batch reconstitution record:
+- Original objective: Complete the Goal-mode arc.
+- Blocker class: tool_runtime_failure.
+- Goal state: active.
+- Replacement objective: Continue with the preauthorized owner-surface repair.
+- First owner PR: repo-auditor detector precision PR.
+- Intentional serial/parallel plan: intentionally serial inside the approved batch.
+- Learning trigger: foreground tool failure changed the route.
+- Fallback: convert a fresh permission boundary to GitHub issue truth and stop.
+- Validation: repo-native checks and campaign sync.
 EOF
 
 mkdir -p "$CLEAN_REPO/research/evidence/source-package"
@@ -850,6 +899,8 @@ scripts = {
     "AS-27": "detect-as-shell-reserved-status-variable.sh",
     "AS-28": "detect-as-stale-default-capability-guidance.sh",
     "AS-29": "detect-as-hermes-foreground-receipt-adoption-gap.sh",
+    "AS-30": "detect-as-interrupted-goal-recovery-gap.sh",
+    "AS-31": "detect-as-fractured-serial-continuation.sh",
 }
 
 for signature_id, script in scripts.items():

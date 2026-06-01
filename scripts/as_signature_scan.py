@@ -187,6 +187,18 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-hermes-foreground-receipt-adoption-gap.sh",
     },
+    "AS-30": {
+        "name": "Interrupted Goal recovery gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-interrupted-goal-recovery-gap.sh",
+    },
+    "AS-31": {
+        "name": "Fractured serial continuation",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-fractured-serial-continuation.sh",
+    },
 }
 
 
@@ -1274,7 +1286,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[01]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1283,7 +1295,8 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"reserved status variable|status-variable launch|"
     r"stale/default capability guidance|stale default capability guidance|"
     r"default capability guidance|hermes foreground receipt adoption gap|"
-    r"foreground receipt adoption gap)\b",
+    r"foreground receipt adoption gap|interrupted goal recovery gap|"
+    r"fractured serial continuation)\b",
     re.IGNORECASE,
 )
 SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
@@ -1589,6 +1602,41 @@ SELF_HEALING_NEGATION_PATTERN = re.compile(
     r"\b(do not|not|never|instead of|rather than|invalid|forbid(?:s|den)?|rejects?)\b.{0,80}"
     r"\b(retrospective|retro|selector|doctrine|planning)\b",
     re.IGNORECASE | re.DOTALL,
+)
+INTERRUPTION_BLOCKER_PATTERN = re.compile(
+    r"\b(interrupt(?:ed|ion)?|blocked?|blocker|upstream blocker|upstream fix|"
+    r"tool runtime failure|hermes executable not found|ci failure|permission boundary|"
+    r"owner[- ]surface blocker|validation blocker|timeout|hang|hung)\b",
+    re.IGNORECASE,
+)
+INTERRUPTION_CONTRACT_PATTERN = re.compile(
+    r"\b(interruption recovery and batch reconstitution|interrupted goal recovery|"
+    r"batch reconstitution|replacement objective|original objective|blocker class|"
+    r"intentional serial/parallel plan)\b",
+    re.IGNORECASE,
+)
+RECOVERY_FIELDS = {
+    "original_objective": re.compile(r"\boriginal objective\b", re.IGNORECASE),
+    "blocker_class": re.compile(r"\bblocker class\b", re.IGNORECASE),
+    "goal_state": re.compile(r"\bgoal state\b", re.IGNORECASE),
+    "replacement_objective": re.compile(r"\breplacement objective\b", re.IGNORECASE),
+    "first_owner_pr": re.compile(r"\bfirst owner (?:pr|pull request|issue)\b", re.IGNORECASE),
+    "intentional_plan": re.compile(r"\bintentional serial/parallel plan\b", re.IGNORECASE),
+    "learning_trigger": re.compile(r"\blearning trigger\b", re.IGNORECASE),
+    "fallback": re.compile(r"\bfallback\b", re.IGNORECASE),
+    "validation": re.compile(r"\bvalidation\b", re.IGNORECASE),
+}
+FRACTURED_SERIAL_PATTERN = re.compile(
+    r"\b(fractured serial continuation|ad hoc serial|serial repair(?:s)? without (?:a )?plan|"
+    r"continue one[- ]off|continue one at a time|single[- ]PR continuation|"
+    r"silent serial continuation|unplanned serial)\b",
+    re.IGNORECASE,
+)
+RECOVERY_RECONSTITUTED_PATTERN = re.compile(
+    r"\b(replacement objective|first owner (?:pr|pull request|issue)|"
+    r"intentional serial/parallel plan|goal-ready (?:episode|github episode)|"
+    r"batch reconstitution)\b",
+    re.IGNORECASE,
 )
 RESERVED_STATUS_ASSIGNMENT_PATTERN = re.compile(r"(^|[;&|({\s\"'])status=")
 AS27_REPLAY_EVIDENCE_PATH_PATTERN = re.compile(
@@ -1948,6 +1996,81 @@ def reactive_self_healing_loop(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def interruption_recovery_missing_fields(text: str) -> list[str]:
+    return [field for field, pattern in RECOVERY_FIELDS.items() if not pattern.search(text)]
+
+
+def interrupted_goal_recovery_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not (GOAL_MODE_PATTERN.search(text) and INTERRUPTION_BLOCKER_PATTERN.search(text)):
+            continue
+        if not INTERRUPTION_CONTRACT_PATTERN.search(text):
+            continue
+        missing = interruption_recovery_missing_fields(text)
+        if missing:
+            offenders.append(f"{path}=>missing:{','.join(missing[:4])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"interrupted_goal_recovery_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"interrupted_goal_recovery_grounded=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "interrupted_goal_recovery_gap_count": len(offenders),
+            "interrupted_goal_recovery_grounded_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "Goal-mode blocker recovery lacks the batch reconstitution contract fields" if offenders else "interrupted Goal recovery records are complete or absent",
+    }
+
+
+def fractured_serial_continuation(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    reconstituted: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            reconstituted.append(path)
+            continue
+        path_offender = False
+        path_reconstituted = False
+        chunks = [chunk.strip() for chunk in re.split(r"\n\s*\n", text) if chunk.strip()]
+        for chunk in chunks:
+            if not (INTERRUPTION_BLOCKER_PATTERN.search(chunk) and FRACTURED_SERIAL_PATTERN.search(chunk)):
+                continue
+            if RECOVERY_RECONSTITUTED_PATTERN.search(chunk):
+                path_reconstituted = True
+                continue
+            path_offender = True
+        if path_offender:
+            offenders.append(path)
+        elif path_reconstituted:
+            reconstituted.append(path)
+
+    details = [
+        f"fractured_serial_continuation=>{','.join(offenders[:4]) or 'none'}",
+        f"batch_reconstituted=>{','.join(reconstituted[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "fractured_serial_continuation_count": len(offenders),
+            "batch_reconstituted_count": len(reconstituted),
+        },
+        "evidence": evidence_join(details),
+        "reason": "blocker recovery collapsed into unplanned serial continuation" if offenders else "blocker recovery is batch-reconstituted or absent",
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -1978,6 +2101,8 @@ EVALUATORS = {
     "AS-27": shell_reserved_status_variable,
     "AS-28": stale_default_capability_guidance,
     "AS-29": hermes_foreground_receipt_adoption_gap,
+    "AS-30": interrupted_goal_recovery_gap,
+    "AS-31": fractured_serial_continuation,
 }
 
 
