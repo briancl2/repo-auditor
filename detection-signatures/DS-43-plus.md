@@ -278,3 +278,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-stale-default-capability-guidance.sh`
+
+### AS-29: Hermes Foreground Receipt Adoption Gap
+- **Detects:** Owner guidance that mentions Hermes foreground launchers, `hermes chat -q -Q`, `validate-hermes-foreground-output.py`, or ad hoc Hermes launcher commands without the governed foreground run receipt contract.
+- **Signal:** A live instruction/recommendation/script surface gives Hermes foreground launcher guidance but lacks `HERMES_FOREGROUND_RUN_RECEIPT`, `run-hermes-foreground.py`, `hermes-foreground-launcher-contract.md`, or `HERMES_FOREGROUND_RUN_RECEIPT.schema.json`.
+- **Phase range:** Hermes foreground launcher guidance, agent-operation notes, campaign implementation snippets, and local launcher wrappers.
+- **Check:** Scan owner evidence text for foreground launcher cues while suppressing detector docs/templates/tests/fixtures and clean examples; require at least one receipt/contract/wrapper/schema reference on the same surface.
+- **Fire condition:** `foreground_receipt_gap_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-hermes-foreground-receipt-adoption-gap.sh`

@@ -217,8 +217,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 28
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 28
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 29
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 29
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -250,6 +250,7 @@ assert as_ids == {
     "AS-26",
     "AS-27",
     "AS-28",
+    "AS-29",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -312,6 +313,10 @@ The template says to use hermes_status=$? instead.
 **Triggers:** AS-28 fires when stale/default capability guidance adopts an
 upstream default using fork proof, PR-branch proof, or remote-only proof without
 upstream-main/local-proof reconciliation gates.
+
+**Triggers:** AS-29 fires when Hermes foreground launcher guidance mentions
+`hermes chat -q -Q` or validate-hermes-foreground-output.py but omits the
+foreground run receipt contract and wrapper.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -368,6 +373,7 @@ scripts = {
     "AS-26": "detect-as-reactive-self-healing-loop.sh",
     "AS-27": "detect-as-shell-reserved-status-variable.sh",
     "AS-28": "detect-as-stale-default-capability-guidance.sh",
+    "AS-29": "detect-as-hermes-foreground-receipt-adoption-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -390,6 +396,32 @@ for signature_id, script in scripts.items():
     live_payload = json.loads(live.stdout)
     assert live_payload["ds_id"] == signature_id
     assert live_payload["fired"] is True, live_payload
+PY
+
+AS29_BARE_COMMAND_REPO="$TMPDIR/as29-bare-command-repo"
+mkdir -p "$AS29_BARE_COMMAND_REPO/docs"
+cat > "$AS29_BARE_COMMAND_REPO/docs/hermes.md" <<'EOF'
+# Hermes Launch
+
+hermes chat -q "implement the detector" -Q
+EOF
+
+python3 - "$REPO_ROOT" "$AS29_BARE_COMMAND_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, target_repo = sys.argv[1:3]
+completed = subprocess.run(
+    ["bash", f"{repo_root}/scripts/detect-as-hermes-foreground-receipt-adoption-gap.sh", target_repo],
+    check=True,
+    text=True,
+    stdout=subprocess.PIPE,
+)
+payload = json.loads(completed.stdout)
+assert payload["ds_id"] == "AS-29"
+assert payload["fired"] is True, payload
+assert "docs/hermes.md" in payload["evidence"], payload
 PY
 
 AS27_REPLAY_ONLY_REPO="$TMPDIR/as27-replay-only-repo"
@@ -625,6 +657,9 @@ hermes_status=$?
 cmd_status=$?
 STATUS=$?
 python3 scripts/validate-hermes-foreground-output.py --status-code "$hermes_status"
+HERMES_FOREGROUND_RUN_RECEIPT is exported by scripts/run-hermes-foreground.py
+and validated against docs/hermes-foreground-launcher-contract.md plus
+schemas/HERMES_FOREGROUND_RUN_RECEIPT.schema.json.
 
 Default capability guidance keeps the capability behind a fallback until
 source proof, local proof, and same-version proof all validate on upstream main.
@@ -694,6 +729,7 @@ scripts = {
     "AS-26": "detect-as-reactive-self-healing-loop.sh",
     "AS-27": "detect-as-shell-reserved-status-variable.sh",
     "AS-28": "detect-as-stale-default-capability-guidance.sh",
+    "AS-29": "detect-as-hermes-foreground-receipt-adoption-gap.sh",
 }
 
 for signature_id, script in scripts.items():
