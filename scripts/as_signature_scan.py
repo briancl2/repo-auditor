@@ -1222,7 +1222,9 @@ TOO_SMALL_GOAL_NEGATION_PATTERN = re.compile(
     re.IGNORECASE,
 )
 GITHUB_CLOSURE_TRUTH_PATTERN = re.compile(
-    r"\b(github[- ]native|github issue|issue #\d+|pr #\d+|pull request|merged|closed)\b",
+    r"\b(github[- ]native (?:closure|closeout|task truth|issue/pr truth|issue and pr closure authority)|"
+    r"github issue|issue #\d+|pr #\d+|pull request|merged (?:pr|pull request)|"
+    r"closed (?:issue|pr|pull request)|(?:issue|pr|pull request) (?:is |was )?closed)\b",
     re.IGNORECASE,
 )
 LOCAL_CLOSEOUT_AUTHORITY_PATTERN = re.compile(
@@ -1234,7 +1236,11 @@ LOCAL_CLOSEOUT_AUTHORITY_PATTERN = re.compile(
 LOCAL_CLOSEOUT_BYPASS_PATTERN = re.compile(
     r"\b(github-native-closeout|github[- ]native closeout|bypass(?:ed)?|"
     r"explicitly bypass(?:ed)?|not re-graded|no local completion authority|"
-    r"no local closeout authority|issue/pr truth is closure authority)\b",
+    r"no local closeout authority|no new local closeout|issue/pr truth is closure authority|"
+    r"except for qualifying|do not run|do not add|not required|not authoritative|not used|"
+    r"no new.{0,80}local closeout|not for.{0,80}direct closure|"
+    r"instead of [`'\"]?(?:make )?work-close|"
+    r"score[_-]session[_-]not[_-]authoritative|session grader skipped)\b",
     re.IGNORECASE,
 )
 CORE_FIVE_SURFACE_PATTERN = re.compile(
@@ -1438,15 +1444,30 @@ def github_native_closure_regrowth(texts: dict[str, str]) -> dict[str, Any]:
         if is_work_management_signature_explainer(path, text):
             bypassed.append(path)
             continue
-        lowered = text.lower()
-        if not GITHUB_CLOSURE_TRUTH_PATTERN.search(lowered):
-            continue
-        if not LOCAL_CLOSEOUT_AUTHORITY_PATTERN.search(lowered):
-            continue
-        if LOCAL_CLOSEOUT_BYPASS_PATTERN.search(lowered):
+        if "AS_WORK_MANAGEMENT_SIGNATURES" in text:
             bypassed.append(path)
             continue
-        offenders.append(path)
+        if path.startswith(("docs/archive/", "docs/handoffs/", "docs/completions/")):
+            bypassed.append(path)
+            continue
+        chunks = [chunk.strip() for chunk in re.split(r"\n\s*\n", text) if chunk.strip()]
+        path_bypassed = False
+        for chunk in chunks:
+            if chunk.startswith("```"):
+                path_bypassed = True
+                continue
+            lowered = chunk.lower()
+            if not GITHUB_CLOSURE_TRUTH_PATTERN.search(lowered):
+                continue
+            if not LOCAL_CLOSEOUT_AUTHORITY_PATTERN.search(lowered):
+                continue
+            if LOCAL_CLOSEOUT_BYPASS_PATTERN.search(lowered):
+                path_bypassed = True
+                continue
+            offenders.append(f"{path}=>{chunk[:100].replace(chr(10), ' ')}")
+            break
+        if path_bypassed:
+            bypassed.append(path)
 
     details = [
         f"closure_regrowth=>{','.join(offenders[:4]) or 'none'}",
