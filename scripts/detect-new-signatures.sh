@@ -62,6 +62,8 @@ scripts=(
     "detect-as-shell-reserved-status-variable.sh"
     "detect-as-stale-default-capability-guidance.sh"
     "detect-as-hermes-foreground-receipt-adoption-gap.sh"
+    "detect-as-interrupted-goal-recovery-gap.sh"
+    "detect-as-fractured-serial-continuation.sh"
 )
 
 idx=0
