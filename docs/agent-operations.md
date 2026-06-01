@@ -32,6 +32,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 |---|---|
 | `scripts/repo-auditor.sh` | Main orchestrator: pre-scan, score, report |
 | `scripts/score-audit-dimensions.sh` | Five-dimension scorer |
+| `scripts/replay-work-management-signatures.py` | Bounded read-only AS-20 through AS-29 replay across named targets |
 | `scripts/compare-scorecards.sh` | Pre/post scorecard deltas |
 | `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
 | `scripts/stall-risk-score.sh` | Six-signal stall risk predictor |
