@@ -1545,6 +1545,22 @@ DEFAULT_REQUIRED_RECONCILIATION_PATTERNS = {
 }
 
 
+def strip_operations_signature_inventory_for_as28(path: str, text: str) -> str:
+    """Ignore AS-28 reference-only inventory lines in repo-auditor operations docs."""
+
+    if path != "docs/agent-operations.md":
+        return text
+    kept: list[str] = []
+    in_detection_signatures = False
+    for line in text.splitlines():
+        if line.startswith("## "):
+            in_detection_signatures = line.strip() == "## Detection Signatures"
+        if in_detection_signatures and WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN.search(line):
+            continue
+        kept.append(line)
+    return "\n".join(kept)
+
+
 def shell_reserved_status_variable(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     safe_examples: list[str] = []
@@ -1598,6 +1614,7 @@ def stale_default_capability_guidance(texts: dict[str, str]) -> dict[str, Any]:
             continue
         if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")):
             continue
+        text = strip_operations_signature_inventory_for_as28(path, text)
         if not DEFAULT_CAPABILITY_GUIDANCE_PATTERN.search(text):
             continue
 

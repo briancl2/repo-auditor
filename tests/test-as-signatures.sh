@@ -657,12 +657,24 @@ config or version evidence. If capability is unknown, default to suppress or
 allow-with-warning, never confidently allow.
 EOF
 
-python3 - "$REPO_ROOT" "$DEFAULT_CAPABILITY_OWNER_GAP_REPO" "$OPEN_PR_ADOPTION_REPO" "$CAPABILITY_GATING_CLEAN_REPO" <<'PY'
+OPERATIONS_INVENTORY_REPO="$TMPDIR/as-operations-inventory-repo"
+mkdir -p "$OPERATIONS_INVENTORY_REPO/docs"
+cat > "$OPERATIONS_INVENTORY_REPO/docs/agent-operations.md" <<'EOF'
+# Agent Operations
+
+## Detection Signatures
+
+The deterministic signature family includes agent-surface AS-* checks for
+Goal-mode runtime evidence gaps, reactive self-healing loops, shell reserved
+status-variable launch snippets, and stale/default capability guidance.
+EOF
+
+python3 - "$REPO_ROOT" "$DEFAULT_CAPABILITY_OWNER_GAP_REPO" "$OPEN_PR_ADOPTION_REPO" "$CAPABILITY_GATING_CLEAN_REPO" "$OPERATIONS_INVENTORY_REPO" <<'PY'
 import json
 import subprocess
 import sys
 
-repo_root, owner_gap_repo, open_pr_repo, capability_gating_repo = sys.argv[1:5]
+repo_root, owner_gap_repo, open_pr_repo, capability_gating_repo, operations_inventory_repo = sys.argv[1:6]
 script = f"{repo_root}/scripts/detect-as-stale-default-capability-guidance.sh"
 
 owner_gap = subprocess.run(["bash", script, owner_gap_repo], check=True, text=True, stdout=subprocess.PIPE)
@@ -679,6 +691,11 @@ assert payload["signals"]["weak_default_proof_count"] == 1, payload
 
 capability_gating = subprocess.run(["bash", script, capability_gating_repo], check=True, text=True, stdout=subprocess.PIPE)
 payload = json.loads(capability_gating.stdout)
+assert payload["ds_id"] == "AS-28", payload
+assert payload["fired"] is False, payload
+
+operations_inventory = subprocess.run(["bash", script, operations_inventory_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(operations_inventory.stdout)
 assert payload["ds_id"] == "AS-28", payload
 assert payload["fired"] is False, payload
 PY
