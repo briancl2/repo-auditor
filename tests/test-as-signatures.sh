@@ -427,12 +427,56 @@ python3 scripts/validate-hermes-foreground-output.py --status-code "$status"
 EOF
 chmod +x "$AS27_LIVE_STATUS_ZERO_REPO/scripts/hermes-foreground-wrapper.sh"
 
-python3 - "$REPO_ROOT" "$AS27_REPLAY_ONLY_REPO" "$AS27_LIVE_STATUS_ZERO_REPO" <<'PY'
+AS27_PYTHON_STATUS_REPO="$TMPDIR/as27-python-status-repo"
+mkdir -p "$AS27_PYTHON_STATUS_REPO/scripts"
+cat > "$AS27_PYTHON_STATUS_REPO/scripts/audit_terminal.py" <<'EOF'
+#!/usr/bin/env python3
+"""Mentions zsh and Hermes in prose but uses ordinary Python assignment."""
+
+status = "WARNING: INCONCLUSIVE"
+status="WARNING: STILL PYTHON"
+print(status)
+EOF
+
+AS27_PYTHON_GENERATOR_REPO="$TMPDIR/as27-python-generator-repo"
+mkdir -p "$AS27_PYTHON_GENERATOR_REPO/scripts"
+cat > "$AS27_PYTHON_GENERATOR_REPO/scripts/generate_hermes_wrapper.py" <<'EOF'
+#!/usr/bin/env python3
+"""Generates a zsh-compatible Hermes foreground wrapper."""
+
+guard = "status=$?"
+print(f"timeout 900 hermes chat -q prompt -Q; {guard}")
+EOF
+
+AS27_PYTHON_MULTILINE_GENERATOR_REPO="$TMPDIR/as27-python-multiline-generator-repo"
+mkdir -p "$AS27_PYTHON_MULTILINE_GENERATOR_REPO/scripts"
+cat > "$AS27_PYTHON_MULTILINE_GENERATOR_REPO/scripts/generate_hermes_wrapper.py" <<'EOF'
+#!/usr/bin/env python3
+"""Generates a zsh-compatible Hermes foreground wrapper."""
+
+script = """
+timeout 900 hermes chat -q prompt -Q
+status=$?
+"""
+print(script)
+EOF
+
+AS27_PYTHON_RHS_GENERATOR_REPO="$TMPDIR/as27-python-rhs-generator-repo"
+mkdir -p "$AS27_PYTHON_RHS_GENERATOR_REPO/scripts"
+cat > "$AS27_PYTHON_RHS_GENERATOR_REPO/scripts/generate_hermes_wrapper.py" <<'EOF'
+#!/usr/bin/env python3
+"""Generates a zsh-compatible Hermes foreground wrapper."""
+
+status = "status=$?"
+print(f"timeout 900 hermes chat -q prompt -Q; {status}")
+EOF
+
+python3 - "$REPO_ROOT" "$AS27_REPLAY_ONLY_REPO" "$AS27_LIVE_STATUS_ZERO_REPO" "$AS27_PYTHON_STATUS_REPO" "$AS27_PYTHON_GENERATOR_REPO" "$AS27_PYTHON_MULTILINE_GENERATOR_REPO" "$AS27_PYTHON_RHS_GENERATOR_REPO" <<'PY'
 import json
 import subprocess
 import sys
 
-repo_root, replay_repo, live_status_zero_repo = sys.argv[1:4]
+repo_root, replay_repo, live_status_zero_repo, python_status_repo, python_generator_repo, python_multiline_generator_repo, python_rhs_generator_repo = sys.argv[1:8]
 script = f"{repo_root}/scripts/detect-as-shell-reserved-status-variable.sh"
 
 replay = subprocess.run(["bash", script, replay_repo], check=True, text=True, stdout=subprocess.PIPE)
@@ -448,6 +492,33 @@ assert payload["ds_id"] == "AS-27", payload
 assert payload["fired"] is True, payload
 assert payload["signals"]["shell_reserved_status_variable_count"] == 1, payload
 assert "status=0" in payload["evidence"], payload
+
+python_status = subprocess.run(["bash", script, python_status_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(python_status.stdout)
+assert payload["ds_id"] == "AS-27", payload
+assert payload["fired"] is False, payload
+assert payload["signals"]["shell_reserved_status_variable_count"] == 0, payload
+
+python_generator = subprocess.run(["bash", script, python_generator_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(python_generator.stdout)
+assert payload["ds_id"] == "AS-27", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["shell_reserved_status_variable_count"] == 1, payload
+assert "status=$?" in payload["evidence"], payload
+
+python_multiline_generator = subprocess.run(["bash", script, python_multiline_generator_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(python_multiline_generator.stdout)
+assert payload["ds_id"] == "AS-27", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["shell_reserved_status_variable_count"] == 1, payload
+assert "status=$?" in payload["evidence"], payload
+
+python_rhs_generator = subprocess.run(["bash", script, python_rhs_generator_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(python_rhs_generator.stdout)
+assert payload["ds_id"] == "AS-27", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["shell_reserved_status_variable_count"] == 1, payload
+assert "status=$?" in payload["evidence"], payload
 PY
 
 CLEAN_REPO="$TMPDIR/as-cost-clean-repo"

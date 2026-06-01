@@ -261,9 +261,9 @@
 
 ### AS-27: Shell Reserved Status-Variable Launch Snippet
 - **Detects:** Hermes, foreground, or zsh-compatible launch snippets that assign to the reserved/read-only shell variable `status`.
-- **Signal:** A zsh/Hermes/foreground launch context contains bare lowercase `status=$?` or `status=0`.
+- **Signal:** A zsh/Hermes/foreground launch context contains shell-assignment form bare lowercase `status=$?`, `status=0`, or another `status=...` value.
 - **Phase range:** Hermes launch guidance, foreground wrapper docs, shell examples, and campaign implementation snippets.
-- **Check:** Scan owner evidence text for bare lowercase `status` assignment only in Hermes/foreground/zsh contexts while allowing safe variables such as `hermes_status=$?`, `cmd_status=$?`, or `STATUS=$?`; suppress retained replay/evidence receipts that quote historical findings instead of executable snippets.
+- **Check:** Scan owner evidence text for bare lowercase shell assignment `status=...` only in Hermes/foreground/zsh contexts while allowing safe variables such as `hermes_status=$?`, `cmd_status=$?`, or `STATUS=$?`; suppress retained replay/evidence receipts that quote historical findings instead of executable snippets, ignore ordinary Python variable assignments such as `status = "..."` or `status="..."`, and still scan Python generator strings that embed shell snippets.
 - **Fire condition:** `shell_reserved_status_variable_count > 0`
 - **Prevention tier:** T1
 - **Severity:** HIGH

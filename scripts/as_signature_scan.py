@@ -1486,7 +1486,7 @@ SELF_HEALING_NEGATION_PATTERN = re.compile(
     r"\b(retrospective|retro|selector|doctrine|planning)\b",
     re.IGNORECASE | re.DOTALL,
 )
-RESERVED_STATUS_ASSIGNMENT_PATTERN = re.compile(r"(^|[;&|({\s])status\s*=")
+RESERVED_STATUS_ASSIGNMENT_PATTERN = re.compile(r"(^|[;&|({\s\"'])status=")
 AS27_REPLAY_EVIDENCE_PATH_PATTERN = re.compile(
     r"(^|/)acceptance/replays/[^/]+/(AS_WORK_MANAGEMENT_FINDINGS\.json|advisor-stdout\.txt)$|"
     r"(^|/)(AS_WORK_MANAGEMENT_FINDINGS\.json|advisor-stdout\.txt)$",
@@ -1602,7 +1602,20 @@ def shell_reserved_status_variable(texts: dict[str, str]) -> dict[str, Any]:
         if not context:
             continue
         path_offenders: list[str] = []
+        in_python_multiline_string = False
         for line in text.splitlines():
+            triple_quote_count = line.count('"""') + line.count("'''")
+            in_generated_python_string = in_python_multiline_string
+            if triple_quote_count % 2 == 1:
+                in_python_multiline_string = not in_python_multiline_string
+            if (
+                path.endswith(".py")
+                and not in_generated_python_string
+                and re.match(r"^\s*status\s*=", line)
+            ):
+                rhs = line.split("=", 1)[1]
+                if not RESERVED_STATUS_ASSIGNMENT_PATTERN.search(rhs):
+                    continue
             if RESERVED_STATUS_ASSIGNMENT_PATTERN.search(line):
                 path_offenders.append(line.strip()[:100])
             elif re.search(r"\b(?:hermes_status|cmd_status|STATUS)\s*=\s*\$\?", line):
