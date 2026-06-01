@@ -406,14 +406,79 @@ cat > "$AS29_BARE_COMMAND_REPO/docs/hermes.md" <<'EOF'
 hermes chat -q "implement the detector" -Q
 EOF
 
-python3 - "$REPO_ROOT" "$AS29_BARE_COMMAND_REPO" <<'PY'
+AS29_LARGE_UNGROUNDED_REPO="$TMPDIR/as29-large-ungrounded-repo"
+mkdir -p "$AS29_LARGE_UNGROUNDED_REPO/aaa-filler" "$AS29_LARGE_UNGROUNDED_REPO/docs"
+python3 - "$AS29_LARGE_UNGROUNDED_REPO" <<'PY'
+from pathlib import Path
+import sys
+
+repo = Path(sys.argv[1])
+for index in range(225):
+    (repo / "aaa-filler" / f"filler-{index:03d}.md").write_text(
+        f"# Filler {index}\n\nThis sorted filler file previously hid owner guidance behind the AS scan cap.\n",
+        encoding="utf-8",
+    )
+(repo / "docs" / "issue164-ecosystem-architecture.md").write_text(
+    "# Issue 164 Ecosystem Architecture\n\n"
+    "Hermes foreground wrapper:\n"
+    "timeout 900 hermes chat --provider copilot -m gpt-5.5 -q prompt -Q\n"
+    "python3 scripts/validate-hermes-foreground-output.py --status-code \"$status\"\n",
+    encoding="utf-8",
+)
+PY
+
+AS29_LARGE_GROUNDED_REPO="$TMPDIR/as29-large-grounded-repo"
+mkdir -p "$AS29_LARGE_GROUNDED_REPO/aaa-filler" "$AS29_LARGE_GROUNDED_REPO/scripts"
+python3 - "$AS29_LARGE_GROUNDED_REPO" <<'PY'
+from pathlib import Path
+import sys
+
+repo = Path(sys.argv[1])
+for index in range(225):
+    (repo / "aaa-filler" / f"filler-{index:03d}.md").write_text(
+        f"# Filler {index}\n\nThis sorted filler file previously hid grounded launcher guidance.\n",
+        encoding="utf-8",
+    )
+(repo / "scripts" / "run-hermes-foreground.py").write_text(
+    "#!/usr/bin/env python3\n"
+    "\"\"\"Grounded Hermes foreground launcher.\"\"\"\n"
+    "# Writes HERMES_FOREGROUND_RUN_RECEIPT for timeout 900 hermes chat -q prompt -Q runs.\n"
+    "print('HERMES_FOREGROUND_RUN_RECEIPT')\n",
+    encoding="utf-8",
+)
+PY
+
+AS29_LARGE_ROOT_GROUNDED_REPO="$TMPDIR/as29-large-root-grounded-repo"
+mkdir -p "$AS29_LARGE_ROOT_GROUNDED_REPO/.agents/skills"
+python3 - "$AS29_LARGE_ROOT_GROUNDED_REPO" <<'PY'
+from pathlib import Path
+import sys
+
+repo = Path(sys.argv[1])
+for index in range(225):
+    skill_dir = repo / ".agents" / "skills" / f"filler-{index:03d}"
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    (skill_dir / "AGENTS.md").write_text(
+        f"# Nested Agent {index}\n\nNested AGENTS.md fixture without Hermes guidance.\n",
+        encoding="utf-8",
+    )
+(repo / "AGENTS.md").write_text(
+    "# AGENTS.md\n\n"
+    "Use foreground Hermes through hermes chat -q prompt -Q and retain HERMES_FOREGROUND_RUN_RECEIPT.\n",
+    encoding="utf-8",
+)
+PY
+
+python3 - "$REPO_ROOT" "$AS29_BARE_COMMAND_REPO" "$AS29_LARGE_UNGROUNDED_REPO" "$AS29_LARGE_GROUNDED_REPO" "$AS29_LARGE_ROOT_GROUNDED_REPO" <<'PY'
 import json
 import subprocess
 import sys
 
-repo_root, target_repo = sys.argv[1:3]
+repo_root, target_repo, large_ungrounded_repo, large_grounded_repo, large_root_grounded_repo = sys.argv[1:6]
+script = f"{repo_root}/scripts/detect-as-hermes-foreground-receipt-adoption-gap.sh"
+
 completed = subprocess.run(
-    ["bash", f"{repo_root}/scripts/detect-as-hermes-foreground-receipt-adoption-gap.sh", target_repo],
+    ["bash", script, target_repo],
     check=True,
     text=True,
     stdout=subprocess.PIPE,
@@ -422,6 +487,61 @@ payload = json.loads(completed.stdout)
 assert payload["ds_id"] == "AS-29"
 assert payload["fired"] is True, payload
 assert "docs/hermes.md" in payload["evidence"], payload
+assert payload["eligible_files"] == 1, payload
+assert payload["scan_limit"] == 200, payload
+assert payload["scan_limited"] is False, payload
+assert "owner guidance" in payload["scan_order_note"], payload
+
+large_ungrounded = subprocess.run(
+    ["bash", script, large_ungrounded_repo],
+    check=True,
+    text=True,
+    stdout=subprocess.PIPE,
+)
+payload = json.loads(large_ungrounded.stdout)
+assert payload["ds_id"] == "AS-29", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["hermes_foreground_guidance_count"] == 1, payload
+assert payload["signals"]["foreground_receipt_gap_count"] == 1, payload
+assert "docs/issue164-ecosystem-architecture.md" in payload["evidence"], payload
+assert payload["eligible_files"] == 226, payload
+assert payload["scanned_files"] == 200, payload
+assert payload["scan_limit"] == 200, payload
+assert payload["scan_limited"] is True, payload
+assert "bounded to 200" in payload["scan_order_note"], payload
+
+large_grounded = subprocess.run(
+    ["bash", script, large_grounded_repo],
+    check=True,
+    text=True,
+    stdout=subprocess.PIPE,
+)
+payload = json.loads(large_grounded.stdout)
+assert payload["ds_id"] == "AS-29", payload
+assert payload["fired"] is False, payload
+assert payload["signals"]["hermes_foreground_guidance_count"] == 1, payload
+assert payload["signals"]["foreground_receipt_grounded_count"] == 1, payload
+assert "scripts/run-hermes-foreground.py" in payload["evidence"], payload
+assert payload["eligible_files"] == 226, payload
+assert payload["scanned_files"] == 200, payload
+assert payload["scan_limit"] == 200, payload
+assert payload["scan_limited"] is True, payload
+
+large_root_grounded = subprocess.run(
+    ["bash", script, large_root_grounded_repo],
+    check=True,
+    text=True,
+    stdout=subprocess.PIPE,
+)
+payload = json.loads(large_root_grounded.stdout)
+assert payload["ds_id"] == "AS-29", payload
+assert payload["fired"] is False, payload
+assert payload["signals"]["hermes_foreground_guidance_count"] == 1, payload
+assert payload["signals"]["foreground_receipt_grounded_count"] == 1, payload
+assert "AGENTS.md" in payload["evidence"], payload
+assert payload["eligible_files"] == 226, payload
+assert payload["scanned_files"] == 200, payload
+assert payload["scan_limited"] is True, payload
 PY
 
 AS27_REPLAY_ONLY_REPO="$TMPDIR/as27-replay-only-repo"
