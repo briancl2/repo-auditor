@@ -7,6 +7,7 @@ import json
 import re
 import sys
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -191,10 +192,42 @@ SIGNATURES: dict[str, dict[str, str]] = {
 
 INSTRUCTION_FILES = {
     "AGENTS.md",
+    "AGENT.md",
+    "CLAUDE.md",
+    "CODEX.md",
+    "GEMINI.md",
     "README.md",
     "LEARNINGS.md",
     "docs/invocation-contract.md",
     ".specify/memory/constitution.md",
+}
+SCAN_LIMIT = 200
+SCAN_ORDER_NOTE = (
+    "AS text scan is bounded to 200 files after prioritizing owner guidance, "
+    "instruction, and operation surfaces (root instruction files, AGENTS.md, "
+    "README.md, docs, .github, .agents, scripts, schemas, tests) before the "
+    "general sorted file walk."
+)
+PRIORITY_ROOT_FILES = {
+    "AGENTS.md",
+    "AGENT.md",
+    "CLAUDE.md",
+    "CODEX.md",
+    "GEMINI.md",
+    "README.md",
+    "README.txt",
+    "LEARNINGS.md",
+    "Makefile",
+    "makefile",
+}
+PRIORITY_DIR_RANKS = {
+    "docs": 10,
+    ".github": 20,
+    ".agents": 30,
+    "scripts": 40,
+    "schemas": 50,
+    "tests": 60,
+    "test": 60,
 }
 
 TEXT_EXTENSIONS = {
@@ -234,23 +267,66 @@ def parse_args() -> tuple[str, Path]:
     return sys.argv[1], Path(sys.argv[2]).resolve()
 
 
-def load_texts(repo: Path) -> dict[str, str]:
+@dataclass(frozen=True)
+class TextScan:
+    texts: dict[str, str]
+    eligible_files: int
+    scan_limit: int = SCAN_LIMIT
+    scan_order_note: str = SCAN_ORDER_NOTE
+
+    @property
+    def scan_limited(self) -> bool:
+        return self.eligible_files > self.scan_limit
+
+
+def is_eligible_text_path(repo: Path, path: Path) -> bool:
+    if not path.is_file():
+        return False
+    rel = path.relative_to(repo)
+    if any(part.lower() in SKIP_PARTS for part in rel.parts):
+        return False
+    rel_str = rel.as_posix()
+    return (
+        path.suffix.lower() in TEXT_EXTENSIONS
+        or path.name in INSTRUCTION_FILES
+        or path.name in PRIORITY_ROOT_FILES
+        or rel_str in INSTRUCTION_FILES
+    )
+
+
+def scan_priority_key(repo: Path, path: Path) -> tuple[int, str]:
+    rel = path.relative_to(repo)
+    rel_str = rel.as_posix()
+    parts = rel.parts
+    name = path.name
+    if rel_str in INSTRUCTION_FILES or (len(parts) == 1 and name in PRIORITY_ROOT_FILES):
+        return (0, rel_str)
+    if parts:
+        first = parts[0].lower()
+        if first in PRIORITY_DIR_RANKS:
+            return (PRIORITY_DIR_RANKS[first], rel_str)
+    return (100, rel_str)
+
+
+def load_text_scan(repo: Path) -> TextScan:
+    eligible_paths = sorted(
+        (path for path in repo.rglob("*") if is_eligible_text_path(repo, path)),
+        key=lambda path: scan_priority_key(repo, path),
+    )
     texts: dict[str, str] = {}
-    for path in sorted(repo.rglob("*")):
-        if len(texts) >= 200:
+    for path in eligible_paths:
+        if len(texts) >= SCAN_LIMIT:
             break
-        if not path.is_file():
-            continue
-        rel = path.relative_to(repo)
-        if any(part.lower() in SKIP_PARTS for part in rel.parts):
-            continue
-        if path.suffix.lower() not in TEXT_EXTENSIONS and path.name not in INSTRUCTION_FILES:
-            continue
+        rel = path.relative_to(repo).as_posix()
         try:
-            texts[str(rel)] = path.read_text(encoding="utf-8", errors="replace")
+            texts[rel] = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-    return texts
+    return TextScan(texts=texts, eligible_files=len(eligible_paths))
+
+
+def load_texts(repo: Path) -> dict[str, str]:
+    return load_text_scan(repo).texts
 
 
 def is_instrumentation_noise_path(path: str) -> bool:
@@ -1895,7 +1971,8 @@ def main() -> int:
         print(json.dumps({"error": "repo_not_found", "signature_id": signature_id}))
         return 1
 
-    texts = load_texts(repo)
+    text_scan = load_text_scan(repo)
+    texts = text_scan.texts
     result = evaluator(texts)
     payload = {
         "ds_id": signature_id,
@@ -1909,6 +1986,10 @@ def main() -> int:
         "evidence": result.get("evidence", ""),
         "reason": result.get("reason", ""),
         "scanned_files": len(texts),
+        "eligible_files": text_scan.eligible_files,
+        "scan_limit": text_scan.scan_limit,
+        "scan_limited": text_scan.scan_limited,
+        "scan_order_note": text_scan.scan_order_note,
     }
     print(json.dumps(payload, indent=2))
     return 0
