@@ -1486,7 +1486,18 @@ SELF_HEALING_NEGATION_PATTERN = re.compile(
     r"\b(retrospective|retro|selector|doctrine|planning)\b",
     re.IGNORECASE | re.DOTALL,
 )
-RESERVED_STATUS_ASSIGNMENT_PATTERN = re.compile(r"(^|[;&|({\s])status\s*=\s*\$\?")
+RESERVED_STATUS_ASSIGNMENT_PATTERN = re.compile(r"(^|[;&|({\s])status\s*=")
+AS27_REPLAY_EVIDENCE_PATH_PATTERN = re.compile(
+    r"(^|/)acceptance/replays/[^/]+/(AS_WORK_MANAGEMENT_FINDINGS\.json|advisor-stdout\.txt)$|"
+    r"(^|/)(AS_WORK_MANAGEMENT_FINDINGS\.json|advisor-stdout\.txt)$",
+    re.IGNORECASE,
+)
+AS27_REPLAY_EVIDENCE_TEXT_PATTERN = re.compile(
+    r"(?:\b(?:AS_WORK_MANAGEMENT_FINDINGS|fired_findings|advisor stdout|advisor-stdout|"
+    r"anti_pattern_family|shell_reserved_status_variable|reserved_status_assignment=>|"
+    r"review diff|evidence_refs)\b|reported reason:|snapshot corroboration:|receipt:)",
+    re.IGNORECASE,
+)
 HERMES_OR_ZSH_CONTEXT_PATTERN = re.compile(
     r"\b(hermes|foreground|launch snippet|launch contract|zsh|zsh-compatible|"
     r"read-only variable|reserved variable|validate-hermes-foreground-output)\b",
@@ -1561,13 +1572,27 @@ def strip_operations_signature_inventory_for_as28(path: str, text: str) -> str:
     return "\n".join(kept)
 
 
+def is_as27_retained_replay_evidence(path: str, text: str) -> bool:
+    """Suppress retained AS-27 replay/advisor receipts that quote historical findings."""
+
+    if not AS27_REPLAY_EVIDENCE_PATH_PATTERN.search(path):
+        return False
+    if not RESERVED_STATUS_ASSIGNMENT_PATTERN.search(text):
+        return False
+    return AS27_REPLAY_EVIDENCE_TEXT_PATTERN.search(text) is not None
+
+
 def shell_reserved_status_variable(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     safe_examples: list[str] = []
+    replay_evidence: list[str] = []
 
     for path, text in owner_evidence_texts(texts).items():
         if is_work_management_signature_explainer(path, text):
             safe_examples.append(path)
+            continue
+        if is_as27_retained_replay_evidence(path, text):
+            replay_evidence.append(path)
             continue
         path_lower = path.lower()
         context = bool(
@@ -1588,15 +1613,17 @@ def shell_reserved_status_variable(texts: dict[str, str]) -> dict[str, Any]:
     details = [
         f"reserved_status_assignment=>{';'.join(offenders[:4]) or 'none'}",
         f"safe_status_assignment=>{','.join(sorted(set(safe_examples))[:4]) or 'none'}",
+        f"retained_replay_evidence=>{','.join(sorted(set(replay_evidence))[:4]) or 'none'}",
     ]
     return {
         "fired": bool(offenders),
         "signals": {
             "shell_reserved_status_variable_count": len(offenders),
             "safe_status_assignment_count": len(set(safe_examples)),
+            "retained_replay_evidence_count": len(set(replay_evidence)),
         },
         "evidence": evidence_join(details),
-        "reason": "Hermes/zsh launch snippet captures exit code in reserved shell variable `status`" if offenders else "Hermes/zsh launch snippets use non-reserved status variables or are absent",
+        "reason": "Hermes/zsh launch snippet assigns to reserved shell variable `status`" if offenders else "Hermes/zsh launch snippets use non-reserved status variables, are retained replay evidence, or are absent",
     }
 
 

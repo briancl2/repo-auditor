@@ -392,6 +392,64 @@ for signature_id, script in scripts.items():
     assert live_payload["fired"] is True, live_payload
 PY
 
+AS27_REPLAY_ONLY_REPO="$TMPDIR/as27-replay-only-repo"
+mkdir -p "$AS27_REPLAY_ONLY_REPO/acceptance/replays/20260601T005144Z-real-hermes-chat-as-scorecard"
+cat > "$AS27_REPLAY_ONLY_REPO/acceptance/replays/20260601T005144Z-real-hermes-chat-as-scorecard/AS_WORK_MANAGEMENT_FINDINGS.json" <<'EOF'
+{
+  "fired_findings": [
+    {
+      "anti_pattern_family": "shell_reserved_status_variable",
+      "ds_id": "AS-27",
+      "evidence": "reserved_status_assignment=>scripts/generate-patches.sh=>guard_indent + \"    status=$?\", | safe_status_assignment=>none",
+      "fired": true,
+      "reason": "Hermes/zsh launch snippet captures exit code in reserved shell variable `status`"
+    }
+  ]
+}
+EOF
+cat > "$AS27_REPLAY_ONLY_REPO/acceptance/replays/20260601T005144Z-real-hermes-chat-as-scorecard/advisor-stdout.txt" <<'EOF'
++        "command": "target content search for reserved status capture",
++        "outcome": "matched scripts/generate-patches.sh generated launch snippet lines using status=$? and $status",
++        "artifact": "/tmp/replay/advisor-stdout.txt"
++- AS-27, `shell_reserved_status_variable`, severity HIGH, prevention tier T1.
++- Reported reason: Hermes/zsh launch snippet captures exit code in reserved shell variable `status`.
++- Snapshot corroboration: `scripts/generate-patches.sh` includes generated guard lines that emit `status=$?` and then reference `$status`.
+EOF
+
+AS27_LIVE_STATUS_ZERO_REPO="$TMPDIR/as27-live-status-zero-repo"
+mkdir -p "$AS27_LIVE_STATUS_ZERO_REPO/scripts"
+cat > "$AS27_LIVE_STATUS_ZERO_REPO/scripts/hermes-foreground-wrapper.sh" <<'EOF'
+#!/usr/bin/env zsh
+# Real Hermes foreground launch snippet.
+status=0
+timeout 900 hermes chat --provider copilot -m gpt-5.5 -q prompt -Q
+python3 scripts/validate-hermes-foreground-output.py --status-code "$status"
+EOF
+chmod +x "$AS27_LIVE_STATUS_ZERO_REPO/scripts/hermes-foreground-wrapper.sh"
+
+python3 - "$REPO_ROOT" "$AS27_REPLAY_ONLY_REPO" "$AS27_LIVE_STATUS_ZERO_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, replay_repo, live_status_zero_repo = sys.argv[1:4]
+script = f"{repo_root}/scripts/detect-as-shell-reserved-status-variable.sh"
+
+replay = subprocess.run(["bash", script, replay_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(replay.stdout)
+assert payload["ds_id"] == "AS-27", payload
+assert payload["fired"] is False, payload
+assert payload["signals"]["shell_reserved_status_variable_count"] == 0, payload
+assert payload["signals"]["retained_replay_evidence_count"] == 2, payload
+
+live = subprocess.run(["bash", script, live_status_zero_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(live.stdout)
+assert payload["ds_id"] == "AS-27", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["shell_reserved_status_variable_count"] == 1, payload
+assert "status=0" in payload["evidence"], payload
+PY
+
 CLEAN_REPO="$TMPDIR/as-cost-clean-repo"
 mkdir -p "$CLEAN_REPO/docs"
 
