@@ -35,6 +35,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 | `scripts/replay-work-management-signatures.py` | Bounded read-only AS-20 through AS-29 replay across named targets |
 | `scripts/detect-as-interrupted-goal-recovery-gap.sh` | AS-30 interrupted Goal recovery contract-field detector |
 | `scripts/detect-as-fractured-serial-continuation.sh` | AS-31 fractured serial continuation detector |
+| `scripts/detect-as-unanchored-self-learning-claim.sh` | AS-32 unanchored self-learning/self-healing claim detector |
 | `scripts/compare-scorecards.sh` | Pre/post scorecard deltas |
 | `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
 | `scripts/stall-risk-score.sh` | Six-signal stall risk predictor |
@@ -57,7 +58,8 @@ unauthorized default enablement, rollback proof, aggregate-only readiness,
 stale direct-token evidence, forbidden public `CustomerNewsletter` mutation,
 Goal-mode runtime evidence gaps, reactive self-healing loops, shell reserved
 status-variable launch snippets, stale/default capability guidance, and Hermes
-foreground receipt adoption gaps.
+foreground receipt adoption gaps, interruption recovery gaps, fractured serial
+continuation, and unanchored self-learning claims.
 
 ## Helper Scripts
 

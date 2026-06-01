@@ -64,6 +64,7 @@ scripts=(
     "detect-as-hermes-foreground-receipt-adoption-gap.sh"
     "detect-as-interrupted-goal-recovery-gap.sh"
     "detect-as-fractured-serial-continuation.sh"
+    "detect-as-unanchored-self-learning-claim.sh"
 )
 
 idx=0

@@ -199,6 +199,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-fractured-serial-continuation.sh",
     },
+    "AS-32": {
+        "name": "Unanchored self-learning claim",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-unanchored-self-learning-claim.sh",
+    },
 }
 
 
@@ -1286,7 +1292,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[01]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-2]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1296,7 +1302,8 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"stale/default capability guidance|stale default capability guidance|"
     r"default capability guidance|hermes foreground receipt adoption gap|"
     r"foreground receipt adoption gap|interrupted goal recovery gap|"
-    r"fractured serial continuation)\b",
+    r"fractured serial continuation|unanchored self-learning claim|"
+    r"unanchored self learning claim)\b",
     re.IGNORECASE,
 )
 SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
@@ -1636,6 +1643,27 @@ RECOVERY_RECONSTITUTED_PATTERN = re.compile(
     r"\b(replacement objective|first owner (?:pr|pull request|issue)|"
     r"intentional serial/parallel plan|goal-ready (?:episode|github episode)|"
     r"batch reconstitution)\b",
+    re.IGNORECASE,
+)
+SELF_LEARNING_CLAIM_PATTERN = re.compile(
+    r"\b(self[- ]?(?:learning|learned)|self[- ]?(?:healing|healed)|self[- ]?improv(?:ement|ing)|"
+    r"learning / recovery|learning/recovery|reusable learning|"
+    r"decision[- ]changing learning|learned from|learning loop)\b",
+    re.IGNORECASE,
+)
+LEARNING_GITHUB_SURFACE_PATTERN = re.compile(
+    r"\b(github surface|github issue truth|github issue|owner action|owner[-_ ]surface|"
+    r"first owner (?:pr|pull request|issue)|issue #\d+|pr #\d+|pull request #\d+|"
+    r"check run|github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/(?:issues|pull)/\d+)\b",
+    re.IGNORECASE,
+)
+LEARNING_MEMORY_DISPOSITION_PATTERN = re.compile(
+    r"\b(gbrain slug|gbrain capture|optional gbrain slug|bma/issue164/[A-Za-z0-9_.-]+|"
+    r"no[-_ ]capture reason|no capture reason|no_capture_reason)\b",
+    re.IGNORECASE,
+)
+LEARNING_BOUNDED_NON_CLAIM_PATTERN = re.compile(
+    r"\b(bounded non[- ]claims?|does not prove|does not authorize|non[- ]claim)\b",
     re.IGNORECASE,
 )
 RESERVED_STATUS_ASSIGNMENT_PATTERN = re.compile(r"(^|[;&|({\s\"'])status=")
@@ -2071,6 +2099,52 @@ def fractured_serial_continuation(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def unanchored_self_learning_claim(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if path == "docs/agent-operations.md" and WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN.search(text):
+            grounded.append(path)
+            continue
+        if not SELF_LEARNING_CLAIM_PATTERN.search(text):
+            continue
+        has_github_surface = LEARNING_GITHUB_SURFACE_PATTERN.search(text) is not None
+        has_raw_evidence = RAW_RUNTIME_EVIDENCE_PATTERN.search(text) is not None
+        has_memory_disposition = LEARNING_MEMORY_DISPOSITION_PATTERN.search(text) is not None
+        has_bounded_non_claim = LEARNING_BOUNDED_NON_CLAIM_PATTERN.search(text) is not None
+        if has_github_surface and has_raw_evidence and has_memory_disposition and has_bounded_non_claim:
+            grounded.append(path)
+            continue
+        missing = []
+        if not has_github_surface:
+            missing.append("github_surface_or_owner_action")
+        if not has_raw_evidence:
+            missing.append("raw_evidence")
+        if not has_memory_disposition:
+            missing.append("gbrain_slug_or_no_capture_reason")
+        if not has_bounded_non_claim:
+            missing.append("bounded_non_claims")
+        offenders.append(f"{path}=>missing:{','.join(missing[:4])}")
+
+    details = [
+        f"unanchored_self_learning_claim=>{';'.join(offenders[:4]) or 'none'}",
+        f"learning_recovery_grounded=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "unanchored_self_learning_claim_count": len(offenders),
+            "learning_recovery_grounded_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": "self-learning/self-healing claim lacks GitHub owner action, raw evidence, memory disposition, or bounded non-claims" if offenders else "self-learning claims are anchored or absent",
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -2103,6 +2177,7 @@ EVALUATORS = {
     "AS-29": hermes_foreground_receipt_adoption_gap,
     "AS-30": interrupted_goal_recovery_gap,
     "AS-31": fractured_serial_continuation,
+    "AS-32": unanchored_self_learning_claim,
 }
 
 

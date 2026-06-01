@@ -210,6 +210,10 @@ intentional serial/parallel plan, learning trigger, fallback, and validation.
 
 After that blocker, continue one at a time as unplanned serial repair work
 without a planned replacement route or intentional plan.
+
+The system self-learned and self-healed from this interruption, but no GitHub
+owner action, raw evidence, GBrain slug, no-capture reason, or bounded
+non-claims were recorded.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -225,8 +229,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 31
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 31
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 32
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 32
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -261,12 +265,13 @@ assert as_ids == {
     "AS-29",
     "AS-30",
     "AS-31",
+    "AS-32",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
 # smoke test proves the full owner-surface family is wired and addressable.
 fired = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS" and item.get("fired")}
-assert fired == as_ids
+assert fired == as_ids, {"missing": sorted(as_ids - fired), "unexpected": sorted(fired - as_ids)}
 PY
 
 EXPLAINER_REPO="$TMPDIR/as-work-management-explainer-repo"
@@ -303,6 +308,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** A surface describes ad hoc serial work after a blocker with no replacement objective or intentional serial/parallel plan.
 - **Fire condition:** `fractured_serial_continuation_count > 0`
 - **Script:** `scripts/detect-as-fractured-serial-continuation.sh`
+
+### AS-32: Unanchored Self-Learning Claim
+- **Detects:** Self-learning or self-healing claims without GitHub owner action, raw evidence, GBrain slug, or explicit no-capture reason.
+- **Signal:** A surface says the system self-learned but has no Learning / Recovery block.
+- **Fire condition:** `unanchored_self_learning_claim_count > 0`
+- **Script:** `scripts/detect-as-unanchored-self-learning-claim.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -345,6 +356,9 @@ reconstitution fields.
 
 **Triggers:** AS-31 fires when blocker recovery collapses into fractured serial
 continuation.
+
+**Triggers:** AS-32 fires when self-learning claims are unanchored from GitHub
+owner action, raw evidence, GBrain slug, or no-capture reason.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -391,6 +405,10 @@ intentional serial/parallel plan, learning trigger, fallback, and validation.
 
 After that blocker, continue one at a time as unplanned serial repair work
 without a planned replacement route or intentional plan.
+
+The system self-learned and self-healed from this interruption, but no GitHub
+owner action, raw evidence, GBrain slug, no-capture reason, or bounded
+non-claims were recorded.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -412,6 +430,7 @@ scripts = {
     "AS-29": "detect-as-hermes-foreground-receipt-adoption-gap.sh",
     "AS-30": "detect-as-interrupted-goal-recovery-gap.sh",
     "AS-31": "detect-as-fractured-serial-continuation.sh",
+    "AS-32": "detect-as-unanchored-self-learning-claim.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -849,6 +868,16 @@ Interruption recovery and batch reconstitution record:
 - Learning trigger: foreground tool failure changed the route.
 - Fallback: convert a fresh permission boundary to GitHub issue truth and stop.
 - Validation: repo-native checks and campaign sync.
+
+Learning / Recovery:
+- Decision changed: continue through a preauthorized owner-surface repair.
+- GitHub surface: issue #403 and PR #404.
+- Raw evidence: raw runtime evidence, command transcript, CI run, and check run.
+- Optional GBrain slug: none.
+- No-capture reason: duplicate route-change already recorded on GitHub issue truth.
+- Reusable learning text: foreground tool blockers should convert to owner issue truth before fallback.
+- Owner action: repo-agent-core issue #24 and first owner PR.
+- Bounded non-claims: does not prove background memory, daemon behavior, scheduler behavior, or target mutation.
 EOF
 
 mkdir -p "$CLEAN_REPO/research/evidence/source-package"
@@ -901,6 +930,7 @@ scripts = {
     "AS-29": "detect-as-hermes-foreground-receipt-adoption-gap.sh",
     "AS-30": "detect-as-interrupted-goal-recovery-gap.sh",
     "AS-31": "detect-as-fractured-serial-continuation.sh",
+    "AS-32": "detect-as-unanchored-self-learning-claim.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1002,7 +1032,9 @@ cat > "$OPERATIONS_INVENTORY_REPO/docs/agent-operations.md" <<'EOF'
 
 The deterministic signature family includes agent-surface AS-* checks for
 Goal-mode runtime evidence gaps, reactive self-healing loops, shell reserved
-status-variable launch snippets, and stale/default capability guidance.
+status-variable launch snippets, stale/default capability guidance,
+interruption recovery gaps, fractured serial continuation, and unanchored
+self-learning claims.
 EOF
 
 python3 - "$REPO_ROOT" "$DEFAULT_CAPABILITY_OWNER_GAP_REPO" "$OPEN_PR_ADOPTION_REPO" "$CAPABILITY_GATING_CLEAN_REPO" "$OPERATIONS_INVENTORY_REPO" <<'PY'
