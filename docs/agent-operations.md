@@ -53,7 +53,8 @@ cost/token evidence boundaries, pricing provenance, copied evidence boundaries,
 unauthorized default enablement, rollback proof, aggregate-only readiness,
 stale direct-token evidence, forbidden public `CustomerNewsletter` mutation,
 Goal-mode runtime evidence gaps, reactive self-healing loops, shell reserved
-status-variable launch snippets, and stale/default capability guidance.
+status-variable launch snippets, stale/default capability guidance, and Hermes
+foreground receipt adoption gaps.
 
 ## Helper Scripts
 

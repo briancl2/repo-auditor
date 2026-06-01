@@ -180,6 +180,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-stale-default-capability-guidance.sh",
     },
+    "AS-29": {
+        "name": "Hermes foreground receipt adoption gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-hermes-foreground-receipt-adoption-gap.sh",
+    },
 }
 
 
@@ -1186,7 +1192,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-8]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1194,7 +1200,8 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"reactive self-healing loop|shell reserved status-variable|"
     r"reserved status variable|status-variable launch|"
     r"stale/default capability guidance|stale default capability guidance|"
-    r"default capability guidance)\b",
+    r"default capability guidance|hermes foreground receipt adoption gap|"
+    r"foreground receipt adoption gap)\b",
     re.IGNORECASE,
 )
 SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
@@ -1554,6 +1561,28 @@ DEFAULT_REQUIRED_RECONCILIATION_PATTERNS = {
     "fallback": re.compile(r"\b(fallback path|fallback_path|rollback path|disable path|kill switch)\b", re.IGNORECASE),
     "validation": re.compile(r"\b(validation reconciliation|validation_receipt|validation record|validation receipt)\b", re.IGNORECASE),
 }
+HERMES_FOREGROUND_GUIDANCE_PATTERN = re.compile(
+    r"(?:\bhermes foreground launchers?\b|\bforeground launchers?\b|"
+    r"\bforeground wrapper\b|\bforeground hermes\b|"
+    r"\bhermes\s+chat\b(?=[\s\S]{0,160}(?:^|\s)-q(?:\s|=|$))"
+    r"(?=[\s\S]{0,160}(?:^|\s)-Q(?:\s|$))|"
+    r"\bvalidate-hermes-foreground-output\.py\b|"
+    r"\btimeout\s+\d+\s+hermes\s+chat\b|"
+    r"\bhermes\s+chat\b(?=[\s\S]{0,160}(?:^|\s)"
+    r"(?:--provider|-m|--model|--model-id)(?:\s|=|$)))",
+    re.IGNORECASE | re.DOTALL,
+)
+HERMES_FOREGROUND_RECEIPT_CONTRACT_PATTERN = re.compile(
+    r"\b(HERMES_FOREGROUND_RUN_RECEIPT|run-hermes-foreground\.py|"
+    r"hermes-foreground-launcher-contract\.md|"
+    r"HERMES_FOREGROUND_RUN_RECEIPT\.schema\.json)\b",
+    re.IGNORECASE,
+)
+HERMES_FOREGROUND_CLEAN_EXAMPLE_PATTERN = re.compile(
+    r"\b(clean example|safe example|compliant example|negative fixture|"
+    r"should not fire|does not fire|no finding)\b",
+    re.IGNORECASE,
+)
 
 
 def strip_operations_signature_inventory_for_as28(path: str, text: str) -> str:
@@ -1707,6 +1736,46 @@ def stale_default_capability_guidance(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def hermes_foreground_receipt_adoption_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    clean_examples: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml", ".sh", ".py")):
+            continue
+        if not HERMES_FOREGROUND_GUIDANCE_PATTERN.search(text):
+            continue
+        has_contract = HERMES_FOREGROUND_RECEIPT_CONTRACT_PATTERN.search(text) is not None
+        is_clean_example = HERMES_FOREGROUND_CLEAN_EXAMPLE_PATTERN.search(text) is not None
+        if has_contract:
+            grounded.append(path)
+        elif is_clean_example:
+            clean_examples.append(path)
+        else:
+            offenders.append(path)
+
+    details = [
+        f"foreground_receipt_gap=>{','.join(offenders[:4]) or 'none'}",
+        f"foreground_receipt_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+        f"foreground_clean_example=>{','.join(sorted(set(clean_examples))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "hermes_foreground_guidance_count": len(offenders) + len(set(grounded)) + len(set(clean_examples)),
+            "foreground_receipt_gap_count": len(offenders),
+            "foreground_receipt_grounded_count": len(set(grounded)),
+            "foreground_clean_example_count": len(set(clean_examples)),
+        },
+        "evidence": evidence_join(details),
+        "reason": "Hermes foreground launcher guidance lacks the governed run receipt contract" if offenders else "Hermes foreground launcher guidance carries receipt contract references, is a clean example, or is absent",
+    }
+
+
 def goal_runtime_evidence_gap(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -1811,6 +1880,7 @@ EVALUATORS = {
     "AS-26": reactive_self_healing_loop,
     "AS-27": shell_reserved_status_variable,
     "AS-28": stale_default_capability_guidance,
+    "AS-29": hermes_foreground_receipt_adoption_gap,
 }
 
 
