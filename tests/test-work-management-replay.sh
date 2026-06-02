@@ -13,6 +13,24 @@ OUTPUT_DIR="$TMPDIR/replay-output"
 
 mkdir -p "$CLEAN_REPO/docs" "$REGROWTH_REPO/docs" "$STALE_REPO/docs"
 
+init_git_fixture() {
+    local repo="$1"
+    git -C "$repo" init -q
+    git -C "$repo" config user.email "test@example.com"
+    git -C "$repo" config user.name "Replay Test"
+}
+
+commit_git_fixture() {
+    local repo="$1"
+    local msg="$2"
+    git -C "$repo" add .
+    git -C "$repo" commit -q -m "$msg"
+}
+
+init_git_fixture "$CLEAN_REPO"
+init_git_fixture "$REGROWTH_REPO"
+init_git_fixture "$STALE_REPO"
+
 cat > "$CLEAN_REPO/docs/issue164-direct-closure.md" <<'EOF'
 # Issue 164 Direct Campaign Closure
 
@@ -73,6 +91,8 @@ queue, daemon, retry loop, background watcher, or target-repo mutation; this is
 not a runtime dependency and does not authorize downstream mutation.
 EOF
 
+commit_git_fixture "$CLEAN_REPO" "clean replay fixture"
+
 cat > "$REGROWTH_REPO/docs/retained-local-closeout.md" <<'EOF'
 # Retained Local Closeout Regrowth
 
@@ -80,6 +100,8 @@ Issue #401 is closed by PR #402 and the pull request is merged, but the local
 completion manifest remains the authoritative closeout and work-close is still
 required as the closure authority.
 EOF
+
+commit_git_fixture "$REGROWTH_REPO" "retained replay fixture"
 
 cat > "$STALE_REPO/docs/stale-fractured-recovery-runtime.md" <<'EOF'
 # Stale Fractured Recovery Runtime Examples
@@ -103,6 +125,8 @@ owner issue truth, failed foreground run receipt evidence, and no-regrowth
 boundaries.
 EOF
 
+commit_git_fixture "$STALE_REPO" "stale replay fixture"
+
 python3 "$REPO_ROOT/scripts/replay-work-management-signatures.py" \
     --repo direct="$CLEAN_REPO" \
     --repo retained="$REGROWTH_REPO" \
@@ -118,6 +142,8 @@ from_stdout = json.load(open(sys.argv[2]))
 assert from_file == from_stdout
 assert from_file["signature_ids"] == [f"AS-{index}" for index in range(20, 34)]
 assert from_file["target_count"] == 3
+assert from_file["contract_reference"] == "repo-agent-core/docs/downstream-read-only-recovery-runtime-pilot-contract.md"
+assert from_file["receipt_shape_reference"] == "DOWNSTREAM_READ_ONLY_RECOVERY_RUNTIME_PILOT_RECEIPT"
 assert from_file["core_five_recovery_runtime_signature_ids"] == [f"AS-{index}" for index in range(29, 34)]
 
 targets = {target["name"]: target for target in from_file["targets"]}
@@ -127,6 +153,36 @@ stale = targets["stale"]
 
 def result(target, ds_id):
     return next(item for item in target["results"] if item["ds_id"] == ds_id)
+
+def assert_downstream_receipt(target):
+    receipt = target["downstream_pilot_receipt"]
+    assert receipt["artifact"] == "DOWNSTREAM_READ_ONLY_RECOVERY_RUNTIME_PILOT_RECEIPT", receipt
+    assert receipt["schema_version"] == 1, receipt
+    assert receipt["target_repo_identity"], receipt
+    assert receipt["target_path_or_name"] == target["path"], receipt
+    assert receipt["target_git_head_before"] == receipt["target_git_head_after"], receipt
+    assert len(receipt["target_git_head_before"]) == 40, receipt
+    assert receipt["target_dirty_count_before"] == receipt["target_dirty_count_after"] == 0, receipt
+    assert receipt["auditor_as_replay_artifact_path"].endswith("AS_WORK_MANAGEMENT_REPLAY.json"), receipt
+    assert receipt["advisor_artifact_path"] is None, receipt
+    assert receipt["optimizer_replay_receipt_path"] is None, receipt
+    assert receipt["generated_patch_pack_path"] is None, receipt
+    assert receipt["patch_metadata_path"] is None, receipt
+    assert receipt["blocker_path"] is None, receipt
+    assert receipt["apply_check_result_path"] is None, receipt
+    assert any("does not mutate the target repo" in claim for claim in receipt["bounded_non_claims"]), receipt
+    assert any("does not apply patches" in claim for claim in receipt["bounded_non_claims"]), receipt
+    assert target["target_repo_identity"] == receipt["target_repo_identity"], target
+    assert target["target_path_or_name"] == receipt["target_path_or_name"], target
+    assert target["target_git_head_before"] == receipt["target_git_head_before"], target
+    assert target["target_git_head_after"] == receipt["target_git_head_after"], target
+    assert target["target_dirty_count_before"] == receipt["target_dirty_count_before"], target
+    assert target["target_dirty_count_after"] == receipt["target_dirty_count_after"], target
+    assert target["auditor_as_replay_artifact_path"] == receipt["auditor_as_replay_artifact_path"], target
+    assert target["bounded_non_claims"] == receipt["bounded_non_claims"], target
+
+for target in targets.values():
+    assert_downstream_receipt(target)
 
 assert direct["closure_regrowth_fired"] is False, direct
 assert "AS-22" not in direct["fired_ids"], direct
