@@ -205,6 +205,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-unanchored-self-learning-claim.sh",
     },
+    "AS-33": {
+        "name": "Foreground failure guidance gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-foreground-failure-guidance-gap.sh",
+    },
 }
 
 
@@ -1292,7 +1298,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[0-2]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-3]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1303,7 +1309,8 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"default capability guidance|hermes foreground receipt adoption gap|"
     r"foreground receipt adoption gap|interrupted goal recovery gap|"
     r"fractured serial continuation|unanchored self-learning claim|"
-    r"unanchored self learning claim)\b",
+    r"unanchored self learning claim|foreground failure guidance gap|"
+    r"foreground recovery runtime contract)\b",
     re.IGNORECASE,
 )
 SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
@@ -1666,6 +1673,62 @@ LEARNING_BOUNDED_NON_CLAIM_PATTERN = re.compile(
     r"\b(bounded non[- ]claims?|does not prove|does not authorize|non[- ]claim)\b",
     re.IGNORECASE,
 )
+
+FOREGROUND_FAILURE_GUIDANCE_CLAIM_PATTERN = re.compile(
+    r"(?:\bhermes\b.{0,80}\bforeground\b.{0,120}"
+    r"\b(recover(?:y|ed|ing)?|fail(?:ed|ure)?|route[- ]changing)\b|"
+    r"\bforeground\b.{0,80}\b(failure guidance|route[- ]changing failure|failed foreground run)\b|"
+    r"\bforeground recovery runtime contract\b|"
+    r"\bHERMES_FOREGROUND_FAILURE_GUIDANCE\b|"
+    r"\b--from-hermes-guidance\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+FOREGROUND_FAILURE_GUIDANCE_CONSUMPTION_PATTERN = re.compile(
+    r"\b(HERMES_FOREGROUND_FAILURE_GUIDANCE|--from-hermes-guidance|"
+    r"foreground recovery runtime contract)\b",
+    re.IGNORECASE,
+)
+ROUTE_CHANGING_GITHUB_OWNER_TRUTH_PATTERN = re.compile(
+    r"(?=.*\b(route[- ]changing failures?|foreground failures?|failed foreground run|fail(?:ed|ure)\b))"
+    r"(?=.*\b(github issue truth|github issue/owner truth|github issue|issue truth)\b)"
+    r"(?=.*\b(owner truth|owner[-_ ]surface|owner action|owner repo|owner repository)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+FAILED_FOREGROUND_RECEIPT_EVIDENCE_PATTERN = re.compile(
+    r"(?=.*\b(failed|failure|non[- ]zero|status_code|stderr_tail|exit code)\b)"
+    r"(?=.*\b(HERMES_FOREGROUND_RUN_RECEIPT|foreground run receipt|run receipt evidence|failed run receipt)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+NO_REGROWTH_BOUNDARY_PATTERN = re.compile(
+    r"\b(no[- ]regrowth|forbid(?:s|den)?|must not|do not|never|"
+    r"does not authorize|not by|not a runtime dependency|must not turn)\b",
+    re.IGNORECASE,
+)
+NO_REGROWTH_CONTROL_TERMS = {
+    "controller": re.compile(r"\bcontroller\b", re.IGNORECASE),
+    "scheduler": re.compile(r"\bscheduler|cron\b", re.IGNORECASE),
+    "queue": re.compile(r"\bqueues?\b", re.IGNORECASE),
+    "daemon": re.compile(r"\bdaemon|service\b", re.IGNORECASE),
+    "retry": re.compile(r"\bretr(?:y|ies)|retry[- ]loop\b", re.IGNORECASE),
+    "background": re.compile(r"\bbackground (?:behavior|sync|memory)|watcher|autopilot|MCP server\b", re.IGNORECASE),
+}
+NO_REGROWTH_MUTATION_BOUNDARY_PATTERN = re.compile(
+    r"\b(downstream mutation|downstream repos?|target[- ]repo mutation|mutating downstream|"
+    r"mutate target repos?|target repos?|Hermes internals|automatic GitHub issue creation)\b",
+    re.IGNORECASE,
+)
+
+
+def is_foreground_failure_guidance_surface(path: str) -> bool:
+    lowered = path.lower()
+    if lowered.startswith(("schemas/", "templates/", "scripts/")):
+        return False
+    return (
+        path in {"AGENTS.md", "README.md"}
+        or lowered.startswith("docs/")
+        or lowered.startswith(".github/")
+        or lowered.startswith(".agents/")
+    )
 RESERVED_STATUS_ASSIGNMENT_PATTERN = re.compile(r"(^|[;&|({\s\"'])status=")
 AS27_REPLAY_EVIDENCE_PATH_PATTERN = re.compile(
     r"(^|/)acceptance/replays/[^/]+/(AS_WORK_MANAGEMENT_FINDINGS\.json|advisor-stdout\.txt)$|"
@@ -2145,6 +2208,65 @@ def unanchored_self_learning_claim(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def foreground_failure_guidance_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if not is_foreground_failure_guidance_surface(path):
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if path == "docs/agent-operations.md" and WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN.search(text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml", ".sh", ".py")):
+            continue
+        if not FOREGROUND_FAILURE_GUIDANCE_CLAIM_PATTERN.search(text):
+            continue
+
+        has_guidance_consumption = FOREGROUND_FAILURE_GUIDANCE_CONSUMPTION_PATTERN.search(text) is not None
+        has_github_owner_truth = ROUTE_CHANGING_GITHUB_OWNER_TRUTH_PATTERN.search(text) is not None
+        has_failed_receipt_evidence = FAILED_FOREGROUND_RECEIPT_EVIDENCE_PATTERN.search(text) is not None
+        control_term_count = sum(1 for pattern in NO_REGROWTH_CONTROL_TERMS.values() if pattern.search(text))
+        has_no_regrowth_boundaries = (
+            NO_REGROWTH_BOUNDARY_PATTERN.search(text) is not None
+            and control_term_count >= 3
+            and NO_REGROWTH_MUTATION_BOUNDARY_PATTERN.search(text) is not None
+        )
+
+        missing: list[str] = []
+        if not has_guidance_consumption:
+            missing.append("guidance_consumption")
+        if not has_github_owner_truth:
+            missing.append("github_issue_owner_truth")
+        if not has_failed_receipt_evidence:
+            missing.append("failed_foreground_run_receipt")
+        if not has_no_regrowth_boundaries:
+            missing.append("no_regrowth_boundaries")
+
+        if missing:
+            offenders.append(f"{path}=>missing:{','.join(missing)}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"foreground_failure_guidance_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"foreground_failure_guidance_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "foreground_failure_guidance_claim_count": len(offenders) + len(set(grounded)),
+            "foreground_failure_guidance_gap_count": len(offenders),
+            "foreground_failure_guidance_grounded_count": len(set(grounded)),
+        },
+        "evidence": evidence_join(details),
+        "reason": "Hermes foreground recovery/self-healing guidance lacks failure-guidance consumption, GitHub issue/owner truth, failed run receipt evidence, or no-regrowth boundaries" if offenders else "foreground failure recovery guidance carries the full runtime contract or is absent",
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -2178,6 +2300,7 @@ EVALUATORS = {
     "AS-30": interrupted_goal_recovery_gap,
     "AS-31": fractured_serial_continuation,
     "AS-32": unanchored_self_learning_claim,
+    "AS-33": foreground_failure_guidance_gap,
 }
 
 

@@ -214,6 +214,11 @@ without a planned replacement route or intentional plan.
 The system self-learned and self-healed from this interruption, but no GitHub
 owner action, raw evidence, GBrain slug, no-capture reason, or bounded
 non-claims were recorded.
+
+Hermes foreground recovery will self-heal route-changing failures and recover
+after a failed foreground run, but this owner guidance does not require the
+foreground failure guidance artifact, GitHub issue truth, failed run receipt
+evidence, or no-regrowth boundaries.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -229,8 +234,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 32
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 32
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 33
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 33
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -266,6 +271,7 @@ assert as_ids == {
     "AS-30",
     "AS-31",
     "AS-32",
+    "AS-33",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -314,6 +320,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** A surface says the system self-learned but has no Learning / Recovery block.
 - **Fire condition:** `unanchored_self_learning_claim_count > 0`
 - **Script:** `scripts/detect-as-unanchored-self-learning-claim.sh`
+
+### AS-33: Foreground Failure Guidance Gap
+- **Detects:** Hermes foreground recovery or self-healing guidance that omits the failure-guidance consumption, GitHub issue truth, failed foreground run receipt evidence, or no-regrowth boundaries.
+- **Signal:** A surface claims foreground recovery for route-changing failures without the full foreground recovery runtime contract.
+- **Fire condition:** `foreground_failure_guidance_gap_count > 0`
+- **Script:** `scripts/detect-as-foreground-failure-guidance-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -359,6 +371,10 @@ continuation.
 
 **Triggers:** AS-32 fires when self-learning claims are unanchored from GitHub
 owner action, raw evidence, GBrain slug, or no-capture reason.
+
+**Triggers:** AS-33 fires when Hermes foreground recovery/self-healing guidance
+omits HERMES_FOREGROUND_FAILURE_GUIDANCE consumption, GitHub issue/owner truth,
+failed HERMES_FOREGROUND_RUN_RECEIPT evidence, or no-regrowth boundaries.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -409,6 +425,11 @@ without a planned replacement route or intentional plan.
 The system self-learned and self-healed from this interruption, but no GitHub
 owner action, raw evidence, GBrain slug, no-capture reason, or bounded
 non-claims were recorded.
+
+Hermes foreground recovery will self-heal route-changing failures and recover
+after a failed foreground run, but this owner guidance does not require the
+foreground failure guidance artifact, GitHub issue truth, failed run receipt
+evidence, or no-regrowth boundaries.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -431,6 +452,7 @@ scripts = {
     "AS-30": "detect-as-interrupted-goal-recovery-gap.sh",
     "AS-31": "detect-as-fractured-serial-continuation.sh",
     "AS-32": "detect-as-unanchored-self-learning-claim.sh",
+    "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -878,6 +900,12 @@ Learning / Recovery:
 - Reusable learning text: foreground tool blockers should convert to owner issue truth before fallback.
 - Owner action: repo-agent-core issue #24 and first owner PR.
 - Bounded non-claims: does not prove background memory, daemon behavior, scheduler behavior, or target mutation.
+
+Foreground recovery runtime contract:
+- HERMES_FOREGROUND_FAILURE_GUIDANCE is consumed with --from-hermes-guidance.
+- Route-changing failures convert to GitHub issue truth and owner truth before route changes.
+- Failed HERMES_FOREGROUND_RUN_RECEIPT evidence is retained with status_code and stderr_tail.
+- No-regrowth boundaries forbid controller, scheduler, queue, daemon, retry-loop, background behavior, and downstream mutation.
 EOF
 
 mkdir -p "$CLEAN_REPO/research/evidence/source-package"
@@ -931,6 +959,7 @@ scripts = {
     "AS-30": "detect-as-interrupted-goal-recovery-gap.sh",
     "AS-31": "detect-as-fractured-serial-continuation.sh",
     "AS-32": "detect-as-unanchored-self-learning-claim.sh",
+    "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
 }
 
 for signature_id, script in scripts.items():
