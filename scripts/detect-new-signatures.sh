@@ -65,6 +65,7 @@ scripts=(
     "detect-as-interrupted-goal-recovery-gap.sh"
     "detect-as-fractured-serial-continuation.sh"
     "detect-as-unanchored-self-learning-claim.sh"
+    "detect-as-foreground-failure-guidance-gap.sh"
 )
 
 idx=0
