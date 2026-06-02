@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay AS-20..AS-29 work-management signatures against bounded targets."""
+"""Replay AS-20..AS-33 work-management signatures against bounded targets."""
 
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 
-SIGNATURE_IDS = [f"AS-{index}" for index in range(20, 30)]
+SIGNATURE_IDS = [f"AS-{index}" for index in range(20, 34)]
+CORE_FIVE_RECOVERY_RUNTIME_SIGNATURE_IDS = [f"AS-{index}" for index in range(29, 34)]
 DEFAULT_MAX_TARGETS = 8
 
 
@@ -30,7 +31,7 @@ def parse_repo(value: str) -> tuple[str, Path]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run AS-20..AS-29 against a bounded set of read-only target repositories.",
+        description="Run AS-20..AS-33 against a bounded set of read-only target repositories.",
     )
     parser.add_argument(
         "--repo",
@@ -88,6 +89,11 @@ def summarize_target(name: str, path: Path, script_dir: Path) -> dict[str, Any]:
     fired_ids = [result["ds_id"] for result in results if result.get("fired")]
     error_ids = [result["ds_id"] for result in results if result.get("error")]
     as22 = next((result for result in results if result.get("ds_id") == "AS-22"), {})
+    core_five_recovery_runtime_fired_ids = [
+        result["ds_id"]
+        for result in results
+        if result.get("ds_id") in CORE_FIVE_RECOVERY_RUNTIME_SIGNATURE_IDS and result.get("fired")
+    ]
     return {
         "name": name,
         "path": str(path),
@@ -102,6 +108,7 @@ def summarize_target(name: str, path: Path, script_dir: Path) -> dict[str, Any]:
         "github_native_closeout_bypassed_count": as22.get("signals", {}).get(
             "github_native_closeout_bypassed_count", 0
         ),
+        "core_five_recovery_runtime_fired_ids": core_five_recovery_runtime_fired_ids,
         "results": results,
     }
 
@@ -131,6 +138,7 @@ def main() -> int:
     payload = {
         "schema_version": "issue164-work-management-replay-v1",
         "signature_ids": SIGNATURE_IDS,
+        "core_five_recovery_runtime_signature_ids": CORE_FIVE_RECOVERY_RUNTIME_SIGNATURE_IDS,
         "max_targets": args.max_targets,
         "target_count": len(targets),
         "fired_target_count": fired_target_count,
@@ -138,7 +146,8 @@ def main() -> int:
         "error_target_count": error_target_count,
         "bounded_non_claims": [
             "Replay is read-only and does not mutate target repositories.",
-            "Replay is bounded to AS-20 through AS-29 and the per-signature text scan limit.",
+            "Replay is bounded to AS-20 through AS-33 and the per-signature text scan limit.",
+            "AS-29 through AS-33 replay is bounded core-five recovery-runtime detector precision evidence only.",
             "A clean replay is detector precision evidence, not proof of issue or PR closure.",
         ],
         "targets": targets,
