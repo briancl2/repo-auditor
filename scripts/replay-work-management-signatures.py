@@ -7,10 +7,12 @@ import argparse
 from datetime import datetime, timezone
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 
 SIGNATURE_IDS = [f"AS-{index}" for index in range(20, 34)]
@@ -29,6 +31,160 @@ DOWNSTREAM_PILOT_BOUNDED_NON_CLAIMS = [
     "This receipt does not perform automatic GitHub issue creation.",
     "This receipt does not claim replay evidence is safe to use without explicit operator review and an explicit downstream write step outside this pilot.",
 ]
+EVIDENCE_CONTEXT_CLASSES = [
+    "active_doc",
+    "historical_work",
+    "debug_log",
+    "cache",
+    "generated_evidence",
+    "unknown",
+]
+EVIDENCE_PATH_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9_.@/-])"
+    r"("
+    r"(?:[A-Za-z0-9_.@-]+/)+[A-Za-z0-9_.@-]+"
+    r"\.(?:md|txt|jsonl?|csv|ya?ml|sh|py|prompt)"
+    r"|(?:AGENTS|AGENT|CLAUDE|CODEX|GEMINI|README|LEARNINGS)\.md"
+    r"|(?:SCORECARD|AUDIT_REPORT|PRE_SCAN|AS_WORK_MANAGEMENT_REPLAY)\.(?:md|json)"
+    r"|docs/invocation-contract\.md"
+    r"|\.specify/memory/constitution\.md"
+    r"|Makefile|makefile"
+    r")"
+)
+
+
+def evidence_paths(evidence: str) -> list[str]:
+    paths: list[str] = []
+    seen: set[str] = set()
+    for match in EVIDENCE_PATH_PATTERN.finditer(evidence or ""):
+        path = match.group(1).rstrip(".,;:)]}")
+        if path in seen:
+            continue
+        seen.add(path)
+        paths.append(path)
+    return paths
+
+
+def classify_evidence_path(path: str) -> str:
+    lowered = path.lower()
+    parts = [part for part in lowered.split("/") if part]
+    stem = Path(lowered).stem
+    joined = "/".join(parts)
+
+    if any(
+        marker in parts
+        for marker in (
+            "generated-evidence",
+            "generated_evidence",
+            "audit-output",
+            "audit_output",
+            "replay-output",
+            "replay_output",
+        )
+    ) or lowered.endswith(
+        (
+            "/as_work_management_replay.json",
+            "/scorecard.json",
+            "/audit_report.md",
+            "/pre_scan.md",
+            "/pre-scan.md",
+        )
+    ) or lowered in {
+        "as_work_management_replay.json",
+        "scorecard.json",
+        "audit_report.md",
+        "pre_scan.md",
+        "pre-scan.md",
+    }:
+        return "generated_evidence"
+    if any(
+        part in {"cache", "caches", ".cache", "cached", "tmp", ".tmp"}
+        or part.endswith("cache")
+        or part.endswith("-cache")
+        for part in parts
+    ) or "cache" in stem:
+        return "cache"
+    if any(
+        part in {"debug", "debugs", "debug-log", "debug-logs", "logs", "log"}
+        or part.startswith("debug-")
+        or part.endswith("-debug")
+        for part in parts
+    ) or "debug" in stem or stem.endswith("log"):
+        return "debug_log"
+    if any(
+        part in {
+            "work",
+            "works",
+            "history",
+            "historical",
+            "archive",
+            "archives",
+            "closeout",
+            "closeouts",
+            "retrospectives",
+            "retrospective",
+            "sessions",
+            "session-logs",
+        }
+        for part in parts
+    ) or stem.startswith(("old-", "historical-", "archived-")):
+        return "historical_work"
+    if parts and parts[0] in {"docs", ".github", ".agents", "scripts", "schemas"}:
+        return "active_doc"
+    if "/" not in lowered and lowered in {
+        "agents.md",
+        "agent.md",
+        "claude.md",
+        "codex.md",
+        "gemini.md",
+        "readme.md",
+        "learnings.md",
+        "makefile",
+    }:
+        return "active_doc"
+    return "unknown"
+
+
+def summarize_evidence_context(paths: list[str], classes: list[str]) -> str:
+    if not paths:
+        return "No path-like evidence segment was surfaced; evidence context is unknown."
+    path_word = "path" if len(paths) == 1 else "paths"
+    class_word = "class" if len(classes) == 1 else "classes"
+    shown_paths = ", ".join(paths[:4])
+    if len(paths) > 4:
+        shown_paths += f", ... +{len(paths) - 4} more"
+    return (
+        f"Classified {len(paths)} evidence {path_word} as "
+        f"{', '.join(classes)} {class_word}: {shown_paths}. "
+        "Context is advisory metadata only; it does not suppress the finding."
+    )
+
+
+def evidence_context(result: dict[str, Any]) -> dict[str, Any]:
+    paths = evidence_paths(str(result.get("evidence", "")))
+    path_classes = [{"path": path, "class": classify_evidence_path(path)} for path in paths]
+    classes: list[str] = []
+    for item in path_classes:
+        klass = item["class"]
+        if klass not in classes:
+            classes.append(klass)
+    if not classes:
+        classes = ["unknown"]
+    return {
+        "primary_class": classes[0],
+        "classes": classes,
+        "paths": path_classes,
+        "path_count": len(paths),
+        "multiple_paths": len(paths) > 1,
+        "is_suppressor": False,
+        "summary": summarize_evidence_context(paths, classes),
+    }
+
+
+def annotate_evidence_context(result: dict[str, Any]) -> dict[str, Any]:
+    annotated = dict(result)
+    annotated["evidence_context"] = evidence_context(result)
+    return annotated
 
 
 def parse_repo(value: str) -> tuple[str, Path]:
@@ -130,11 +286,21 @@ def git_dirty_count(repo: Path) -> int | None:
 def target_repo_identity(name: str, path: Path) -> str:
     origin = git_value(path, ["remote", "get-url", "origin"])
     if origin:
-        return f"{name} ({origin})"
+        return f"{name} ({sanitize_remote_identity(origin)})"
     toplevel = git_value(path, ["rev-parse", "--show-toplevel"])
     if toplevel:
         return f"{name} ({toplevel})"
     return f"{name} ({path})"
+
+
+def sanitize_remote_identity(remote: str) -> str:
+    if "://" in remote:
+        parsed = urlsplit(remote)
+        netloc = parsed.netloc.rsplit("@", 1)[-1]
+        return urlunsplit((parsed.scheme, netloc, parsed.path, "", ""))
+    if "@" in remote and ":" in remote.split("@", 1)[1]:
+        return remote.split("@", 1)[1]
+    return remote
 
 
 def downstream_pilot_receipt(
@@ -178,7 +344,10 @@ def summarize_target(
 ) -> dict[str, Any]:
     git_head_before = git_value(path, ["rev-parse", "HEAD"])
     dirty_count_before = git_dirty_count(path)
-    results = [run_signature(script_dir, signature_id, path) for signature_id in SIGNATURE_IDS]
+    results = [
+        annotate_evidence_context(run_signature(script_dir, signature_id, path))
+        for signature_id in SIGNATURE_IDS
+    ]
     git_head_after = git_value(path, ["rev-parse", "HEAD"])
     dirty_count_after = git_dirty_count(path)
     fired_ids = [result["ds_id"] for result in results if result.get("fired")]
