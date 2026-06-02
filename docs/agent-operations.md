@@ -32,7 +32,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 |---|---|
 | `scripts/repo-auditor.sh` | Main orchestrator: pre-scan, score, report |
 | `scripts/score-audit-dimensions.sh` | Five-dimension scorer |
-| `scripts/replay-work-management-signatures.py` | Bounded read-only AS-20 through AS-29 replay across named targets |
+| `scripts/replay-work-management-signatures.py` | Bounded read-only AS-20 through AS-33 replay across named targets, including core-five recovery-runtime AS-29 through AS-33 precision examples |
 | `scripts/detect-as-interrupted-goal-recovery-gap.sh` | AS-30 interrupted Goal recovery contract-field detector |
 | `scripts/detect-as-fractured-serial-continuation.sh` | AS-31 fractured serial continuation detector |
 | `scripts/detect-as-unanchored-self-learning-claim.sh` | AS-32 unanchored self-learning/self-healing claim detector |
@@ -58,9 +58,13 @@ cost/token evidence boundaries, pricing provenance, copied evidence boundaries,
 unauthorized default enablement, rollback proof, aggregate-only readiness,
 stale direct-token evidence, forbidden public `CustomerNewsletter` mutation,
 Goal-mode runtime evidence gaps, reactive self-healing loops, shell reserved
-status-variable launch snippets, stale/default capability guidance, and Hermes
+status-variable launch snippets, stale/default capability guidance, Hermes
 foreground receipt adoption gaps, interruption recovery gaps, fractured serial
-continuation, and unanchored self-learning claims.
+continuation, unanchored self-learning claims, and foreground failure guidance
+gaps. The work-management replay harness emits `AS_WORK_MANAGEMENT_REPLAY.json`
+for bounded AS-20 through AS-33 detector precision checks; AS-29 through AS-33
+cover the core-five recovery-runtime examples and remain read-only, scan-limited,
+and non-claim evidence only.
 
 ## Helper Scripts
 

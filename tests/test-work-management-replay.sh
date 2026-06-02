@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify bounded AS-20..AS-29 replay keeps direct GitHub closure clean.
+# Verify bounded AS-20..AS-33 replay keeps direct closure and clean recovery runtime clean.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -8,9 +8,10 @@ trap 'rm -rf "$TMPDIR"' EXIT
 
 CLEAN_REPO="$TMPDIR/direct-campaign-closure"
 REGROWTH_REPO="$TMPDIR/retained-closeout-regrowth"
+STALE_REPO="$TMPDIR/stale-fractured-recovery-runtime"
 OUTPUT_DIR="$TMPDIR/replay-output"
 
-mkdir -p "$CLEAN_REPO/docs" "$REGROWTH_REPO/docs"
+mkdir -p "$CLEAN_REPO/docs" "$REGROWTH_REPO/docs" "$STALE_REPO/docs"
 
 cat > "$CLEAN_REPO/docs/issue164-direct-closure.md" <<'EOF'
 # Issue 164 Direct Campaign Closure
@@ -38,6 +39,40 @@ templates/
 ```
 EOF
 
+cat > "$CLEAN_REPO/docs/clean-foreground-recovery-runtime-contract.md" <<'EOF'
+# Clean Foreground Recovery Runtime Contract Example
+
+This safe example should not fire. Hermes foreground launcher guidance uses
+`hermes chat -q -Q` only through the governed run-hermes-foreground.py wrapper
+and retains HERMES_FOREGROUND_RUN_RECEIPT.schema.json evidence.
+
+Interrupted Goal recovery and batch reconstitution record:
+- original objective: deliver the core-five recovery-runtime replay harness.
+- blocker class: failed foreground run from a route-changing foreground failure.
+- goal state: paused before downstream mutation.
+- replacement objective: first owner PR proves the bounded detector replay.
+- first owner PR: repo-auditor PR #402 with GitHub issue truth for issue #401.
+- intentional serial/parallel plan: serial owner repair first, parallel target
+  validation only after merge.
+- learning trigger: failed foreground run changed the owner-surface route.
+- fallback: preserve read-only target validation if foreground is unavailable.
+- validation: replay log and raw runtime evidence are retained.
+
+Learning / Recovery is anchored by GitHub surface owner action, raw runtime
+evidence from a goal receipt and replay log, optional GBrain slug
+bma/issue164/recovery-runtime, and bounded non-claims: this does not prove
+closure and does not authorize target mutation.
+
+The foreground recovery runtime contract consumes
+HERMES_FOREGROUND_FAILURE_GUIDANCE via --from-hermes-guidance for route-changing
+foreground failures. GitHub issue/owner truth names GitHub issue #401 as issue
+truth and owner surface repo-auditor owner action. Failed HERMES_FOREGROUND_RUN_RECEIPT
+evidence includes status_code non-zero, stderr_tail, and exit code from the
+failed run receipt. No-regrowth boundaries: do not add a controller, scheduler,
+queue, daemon, retry loop, background watcher, or target-repo mutation; this is
+not a runtime dependency and does not authorize downstream mutation.
+EOF
+
 cat > "$REGROWTH_REPO/docs/retained-local-closeout.md" <<'EOF'
 # Retained Local Closeout Regrowth
 
@@ -46,9 +81,32 @@ completion manifest remains the authoritative closeout and work-close is still
 required as the closure authority.
 EOF
 
+cat > "$STALE_REPO/docs/stale-fractured-recovery-runtime.md" <<'EOF'
+# Stale Fractured Recovery Runtime Examples
+
+Hermes foreground launcher guidance tells operators to run `hermes chat -q -Q`
+and validate-hermes-foreground-output.py directly. It does not cite the governed
+foreground wrapper or run receipt contract.
+
+Interrupted Goal recovery and batch reconstitution: Goal-mode work was blocked
+by a tool runtime failure, but the record only says to keep going.
+
+A blocker caused fractured serial continuation with ad hoc serial repair. The
+team will continue one at a time as a single-PR continuation.
+
+The system self-learned from the incident and claims self-healing improved the
+workflow.
+
+Hermes foreground recovery for a route-changing foreground failure is now
+recommended, but the guidance omits the failure guidance environment contract,
+owner issue truth, failed foreground run receipt evidence, and no-regrowth
+boundaries.
+EOF
+
 python3 "$REPO_ROOT/scripts/replay-work-management-signatures.py" \
     --repo direct="$CLEAN_REPO" \
     --repo retained="$REGROWTH_REPO" \
+    --repo stale="$STALE_REPO" \
     --output-dir "$OUTPUT_DIR" > "$TMPDIR/stdout.json"
 
 python3 - "$OUTPUT_DIR/AS_WORK_MANAGEMENT_REPLAY.json" "$TMPDIR/stdout.json" <<'PY'
@@ -58,24 +116,36 @@ import sys
 from_file = json.load(open(sys.argv[1]))
 from_stdout = json.load(open(sys.argv[2]))
 assert from_file == from_stdout
-assert from_file["signature_ids"] == [f"AS-{index}" for index in range(20, 30)]
-assert from_file["target_count"] == 2
+assert from_file["signature_ids"] == [f"AS-{index}" for index in range(20, 34)]
+assert from_file["target_count"] == 3
+assert from_file["core_five_recovery_runtime_signature_ids"] == [f"AS-{index}" for index in range(29, 34)]
 
 targets = {target["name"]: target for target in from_file["targets"]}
 direct = targets["direct"]
 retained = targets["retained"]
+stale = targets["stale"]
+
+def result(target, ds_id):
+    return next(item for item in target["results"] if item["ds_id"] == ds_id)
 
 assert direct["closure_regrowth_fired"] is False, direct
 assert "AS-22" not in direct["fired_ids"], direct
 assert direct["github_native_closeout_bypassed_count"] >= 1, direct
+for ds_id in [f"AS-{index}" for index in range(29, 34)]:
+    assert ds_id not in direct["fired_ids"], (ds_id, result(direct, ds_id))
 
 assert retained["closure_regrowth_fired"] is True, retained
 assert "AS-22" in retained["fired_ids"], retained
 assert retained["closure_regrowth_count"] == 1, retained
 
+for ds_id in [f"AS-{index}" for index in range(29, 34)]:
+    assert ds_id in stale["fired_ids"], (ds_id, result(stale, ds_id))
+assert stale["core_five_recovery_runtime_fired_ids"] == [f"AS-{index}" for index in range(29, 34)], stale
+
 assert from_file["closure_regrowth_target_count"] == 1
 assert from_file["error_target_count"] == 0
 assert any("read-only" in claim for claim in from_file["bounded_non_claims"])
+assert any("AS-20 through AS-33" in claim for claim in from_file["bounded_non_claims"])
 PY
 
 if python3 "$REPO_ROOT/scripts/replay-work-management-signatures.py" \
