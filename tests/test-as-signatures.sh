@@ -755,6 +755,15 @@ PY
 CLEAN_REPO="$TMPDIR/as-cost-clean-repo"
 mkdir -p "$CLEAN_REPO/docs"
 
+cat > "$CLEAN_REPO/AGENTS.md" <<'EOF'
+# AGENTS.md
+
+Core-five and repo-star validation may use this repository as a reciprocal
+proving-ground read-only target. That evidence is ordinary validation, not
+downstream adoption authority. Any mutation must route through the named owner
+repo's own issue, branch, PR, checks, and merge path.
+EOF
+
 cat > "$CLEAN_REPO/docs/cost-evidence.md" <<EOF
 # Bounded Cost Evidence
 
@@ -906,6 +915,14 @@ Foreground recovery runtime contract:
 - Route-changing failures convert to GitHub issue truth and owner truth before route changes.
 - Failed HERMES_FOREGROUND_RUN_RECEIPT evidence is retained with status_code and stderr_tail.
 - No-regrowth boundaries forbid controller, scheduler, queue, daemon, retry-loop, background behavior, and downstream mutation.
+EOF
+
+cat > "$CLEAN_REPO/docs/subordinate-core-five-validation.md" <<'EOF'
+# Subordinate Core-Five Validation
+
+Run repo-auditor against repo-optimizer as a validation target for the core
+five. This file intentionally relies on the repo-wide AGENTS.md proving-ground
+boundary instead of repeating it locally.
 EOF
 
 mkdir -p "$CLEAN_REPO/research/evidence/source-package"
