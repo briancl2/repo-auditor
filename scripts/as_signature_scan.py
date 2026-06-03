@@ -1547,6 +1547,7 @@ def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
 def reciprocal_proving_ground_gap(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
+    root_grounded: list[str] = []
 
     for path, text in owner_evidence_texts(texts).items():
         if is_work_management_signature_explainer(path, text):
@@ -1559,12 +1560,18 @@ def reciprocal_proving_ground_gap(texts: dict[str, str]) -> dict[str, Any]:
             continue
         if RECIPROCAL_PROVING_GROUND_PATTERN.search(text):
             grounded.append(path)
+            if path in {"AGENTS.md", "README.md", "CLAUDE.md"}:
+                root_grounded.append(path)
         else:
             offenders.append(path)
+
+    if root_grounded:
+        offenders = []
 
     details = [
         f"reciprocal_proving_ground_gap=>{','.join(offenders[:4]) or 'none'}",
         f"reciprocal_grounded=>{','.join(grounded[:4]) or 'none'}",
+        f"reciprocal_root_grounded=>{','.join(root_grounded[:4]) or 'none'}",
     ]
     return {
         "fired": bool(offenders),
