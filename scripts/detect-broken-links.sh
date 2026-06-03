@@ -22,7 +22,10 @@ while IFS= read -r md_file; do
     md_dir=$(dirname "$md_file")
 
     # Extract [text](path) links, exclude URLs/anchors/mailto
-    links=$(grep -oE '\]\([^)]+\)' "$md_file" 2>/dev/null | \
+    links=$(awk '
+        /^[[:space:]]*```/ || /^[[:space:]]*~~~/ { in_fence = !in_fence; next }
+        !in_fence { print }
+    ' "$md_file" 2>/dev/null | grep -oE '\]\([^)]+\)' | \
         sed 's/^\]//' | sed 's/^(//' | sed 's/)$//' | \
         grep -v '^http' | grep -v '^#' | grep -v '^mailto:' | \
         grep -v '^ *$' | sed 's/#.*//' | sed 's/?.*$//' | sort -u) || true
