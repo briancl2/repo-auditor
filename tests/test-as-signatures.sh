@@ -234,8 +234,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 33
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 33
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 34
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 34
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -272,6 +272,7 @@ assert as_ids == {
     "AS-31",
     "AS-32",
     "AS-33",
+    "AS-34",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -326,6 +327,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** A surface claims foreground recovery for route-changing failures without the full foreground recovery runtime contract.
 - **Fire condition:** `foreground_failure_guidance_gap_count > 0`
 - **Script:** `scripts/detect-as-foreground-failure-guidance-gap.sh`
+
+### AS-34: Closure-Run Identity Gap
+- **Detects:** Make, script, or GitHub Actions closure surfaces without comparable closure-run identity fields.
+- **Signal:** Closure commands and workflows exist without `closure_run_id`, `evidence_reuse_key`, `github_run_id`, or `github_run_attempt`.
+- **Fire condition:** `closure_run_identity_gap_count > 0`
+- **Script:** `scripts/detect-as-closure-run-identity-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -375,10 +382,37 @@ owner action, raw evidence, GBrain slug, or no-capture reason.
 **Triggers:** AS-33 fires when Hermes foreground recovery/self-healing guidance
 omits HERMES_FOREGROUND_FAILURE_GUIDANCE consumption, GitHub issue/owner truth,
 failed HERMES_FOREGROUND_RUN_RECEIPT evidence, or no-regrowth boundaries.
+
+**Triggers:** AS-34 fires when closure commands or GitHub Actions checks exist
+without closure_run_id, evidence_reuse_key, github_run_id, or github_run_attempt
+fields that let local and remote validation runs be correlated.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
-mkdir -p "$LIVE_WORK_MANAGEMENT_REPO/docs"
+mkdir -p "$LIVE_WORK_MANAGEMENT_REPO/docs" "$LIVE_WORK_MANAGEMENT_REPO/.github/workflows" "$LIVE_WORK_MANAGEMENT_REPO/scripts"
+cat > "$LIVE_WORK_MANAGEMENT_REPO/Makefile" <<'EOF'
+check:
+	@bash scripts/check.sh
+
+test-fast:
+	@bash scripts/check.sh
+EOF
+cat > "$LIVE_WORK_MANAGEMENT_REPO/.github/workflows/ci.yml" <<'EOF'
+name: ci
+on:
+  pull_request:
+  push:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: make check
+EOF
+cat > "$LIVE_WORK_MANAGEMENT_REPO/scripts/check.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "closure validation"
+EOF
+chmod +x "$LIVE_WORK_MANAGEMENT_REPO/scripts/check.sh"
 cat > "$LIVE_WORK_MANAGEMENT_REPO/docs/recommendation.md" <<'EOF'
 # Live Work Recommendation
 
@@ -453,6 +487,7 @@ scripts = {
     "AS-31": "detect-as-fractured-serial-continuation.sh",
     "AS-32": "detect-as-unanchored-self-learning-claim.sh",
     "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
+    "AS-34": "detect-as-closure-run-identity-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -475,6 +510,92 @@ for signature_id, script in scripts.items():
     live_payload = json.loads(live.stdout)
     assert live_payload["ds_id"] == signature_id
     assert live_payload["fired"] is True, live_payload
+PY
+
+AS34_GAP_REPO="$TMPDIR/as34-gap-repo"
+AS34_HEALTHY_REPO="$TMPDIR/as34-healthy-repo"
+mkdir -p "$AS34_GAP_REPO/.github/workflows" "$AS34_GAP_REPO/scripts"
+mkdir -p "$AS34_HEALTHY_REPO/.github/workflows" "$AS34_HEALTHY_REPO/scripts"
+cat > "$AS34_GAP_REPO/Makefile" <<'EOF'
+check:
+	@bash scripts/check.sh
+
+test-fast:
+	@bash scripts/check.sh
+EOF
+cat > "$AS34_GAP_REPO/.github/workflows/ci.yml" <<'EOF'
+name: ci
+on:
+  pull_request:
+  push:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: make test-fast
+EOF
+cat > "$AS34_GAP_REPO/scripts/check.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "make check"
+EOF
+chmod +x "$AS34_GAP_REPO/scripts/check.sh"
+
+cat > "$AS34_HEALTHY_REPO/Makefile" <<'EOF'
+check:
+	@CLOSURE_PHASE=local-validation bash scripts/record-make-target.sh check
+
+test-fast:
+	@CLOSURE_PHASE=local-validation bash scripts/record-make-target.sh test-fast
+EOF
+cat > "$AS34_HEALTHY_REPO/.github/workflows/ci.yml" <<'EOF'
+name: ci
+on:
+  pull_request:
+  push:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: make test-fast
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+EOF
+cat > "$AS34_HEALTHY_REPO/scripts/record-make-target.sh" <<'EOF'
+#!/usr/bin/env bash
+closure_run_id="${CLOSURE_RUN_ID:-local-$(date +%s)}"
+closure_phase="${CLOSURE_PHASE:-local-validation}"
+closure_trigger="${CLOSURE_TRIGGER:-manual}"
+evidence_reuse_key="${EVIDENCE_REUSE_KEY:-${closure_phase}:$1}"
+github_run_id="${GITHUB_RUN_ID:-local}"
+github_run_attempt="${GITHUB_RUN_ATTEMPT:-0}"
+parent_command="${PARENT_COMMAND:-make $1}"
+printf '%s\n' "$closure_run_id $closure_phase $closure_trigger $evidence_reuse_key $github_run_id $github_run_attempt $parent_command"
+EOF
+chmod +x "$AS34_HEALTHY_REPO/scripts/record-make-target.sh"
+
+python3 - "$REPO_ROOT" "$AS34_GAP_REPO" "$AS34_HEALTHY_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, gap_repo, healthy_repo = sys.argv[1:4]
+script = f"{repo_root}/scripts/detect-as-closure-run-identity-gap.sh"
+
+gap = subprocess.run(["bash", script, gap_repo], check=True, text=True, stdout=subprocess.PIPE)
+gap_payload = json.loads(gap.stdout)
+assert gap_payload["ds_id"] == "AS-34", gap_payload
+assert gap_payload["fired"] is True, gap_payload
+assert gap_payload["signals"]["closure_run_identity_gap_count"] == 1, gap_payload
+assert "local_command_identity" in gap_payload["signals"]["missing_identity_surfaces"], gap_payload
+assert "github_workflow_identity" in gap_payload["signals"]["missing_identity_surfaces"], gap_payload
+
+healthy = subprocess.run(["bash", script, healthy_repo], check=True, text=True, stdout=subprocess.PIPE)
+healthy_payload = json.loads(healthy.stdout)
+assert healthy_payload["ds_id"] == "AS-34", healthy_payload
+assert healthy_payload["fired"] is False, healthy_payload
+assert healthy_payload["signals"]["local_identity_surface_count"] >= 1, healthy_payload
+assert healthy_payload["signals"]["remote_identity_surface_count"] >= 1, healthy_payload
 PY
 
 AS29_BARE_COMMAND_REPO="$TMPDIR/as29-bare-command-repo"
@@ -977,6 +1098,7 @@ scripts = {
     "AS-31": "detect-as-fractured-serial-continuation.sh",
     "AS-32": "detect-as-unanchored-self-learning-claim.sh",
     "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
+    "AS-34": "detect-as-closure-run-identity-gap.sh",
 }
 
 for signature_id, script in scripts.items():
