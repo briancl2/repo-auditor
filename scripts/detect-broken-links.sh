@@ -15,7 +15,7 @@ archive_evidence=""
 is_archive_source() {
     local rel_path="$1"
     case "$rel_path" in
-        archive/*|*/archive/*|archives/*|*/archives/*|history/*|*/history/*)
+        archive/*|*/archive/*|archived/*|*/archived/*|archives/*|*/archives/*|history/*|*/history/*)
             return 0
             ;;
         old-*|*/old-*|archived-*|*/archived-*|historical-*|*/historical-*)
@@ -77,8 +77,19 @@ done <<< "$md_files"
 fired="false"
 [ "$broken_count" -gt 0 ] && fired="true"
 
+target_actionability="none"
+if [ "$broken_count" -gt 0 ] && [ "$archive_broken_count" -gt 0 ]; then
+    target_actionability="mixed_live_and_archive_repair"
+elif [ "$broken_count" -gt 0 ]; then
+    target_actionability="live_doc_repair"
+elif [ "$archive_broken_count" -gt 0 ]; then
+    target_actionability="archive_triage_only"
+fi
+
 python3 "$SCRIPT_DIR/ds_json_helper.py" \
     '{"ds_id":"DS-42","name":"Broken internal links","severity":"HIGH","prevention_tier":"T1"}' \
     "fired=$fired" "total_links=$total_links" "broken_count=$broken_count" \
+    "active_doc_broken_count=$broken_count" \
     "archive_broken_count=$archive_broken_count" "evidence=$evidence" \
-    "archive_evidence=$archive_evidence"
+    "archive_doc_broken_count=$archive_broken_count" \
+    "archive_evidence=$archive_evidence" "target_actionability=$target_actionability"
