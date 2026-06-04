@@ -211,6 +211,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-foreground-failure-guidance-gap.sh",
     },
+    "AS-34": {
+        "name": "Closure-run identity gap",
+        "severity": "MEDIUM",
+        "prevention_tier": "T2",
+        "script": "detect-as-closure-run-identity-gap.sh",
+    },
 }
 
 
@@ -228,9 +234,10 @@ INSTRUCTION_FILES = {
 SCAN_LIMIT = 200
 SCAN_ORDER_NOTE = (
     "AS text scan is bounded to 200 files after prioritizing owner guidance, "
-    "instruction, and operation surfaces (root instruction files, AGENTS.md, "
-    "README.md, docs, .github, .agents, scripts, schemas, tests) before the "
-    "general sorted file walk."
+    "instruction, and closure operation surfaces (root instruction files, "
+    "AGENTS.md, README.md, Makefile, GitHub workflows, closure/timing scripts, "
+    "docs, .github, .agents, scripts, schemas, tests) before the general sorted "
+    "file walk."
 )
 PRIORITY_ROOT_FILES = {
     "AGENTS.md",
@@ -252,6 +259,13 @@ PRIORITY_DIR_RANKS = {
     "schemas": 50,
     "tests": 60,
     "test": 60,
+}
+PRIORITY_OPERATION_PATHS = {
+    "scripts/analyze-closure-dedupe.py",
+    "scripts/record-check-step-timing.py",
+    "scripts/record-make-target.sh",
+    "scripts/run-test-manifest.sh",
+    "scripts/work-close.sh",
 }
 
 TEXT_EXTENSIONS = {
@@ -325,6 +339,8 @@ def scan_priority_key(repo: Path, path: Path) -> tuple[int, str]:
     name = path.name
     if rel_str in INSTRUCTION_FILES or (len(parts) == 1 and name in PRIORITY_ROOT_FILES):
         return (0, rel_str)
+    if rel_str in PRIORITY_OPERATION_PATHS or rel_str.startswith(".github/workflows/"):
+        return (5, rel_str)
     if parts:
         first = parts[0].lower()
         if first in PRIORITY_DIR_RANKS:
@@ -1298,7 +1314,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[0-3]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-4]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1310,6 +1326,8 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"foreground receipt adoption gap|interrupted goal recovery gap|"
     r"fractured serial continuation|unanchored self-learning claim|"
     r"unanchored self learning claim|foreground failure guidance gap|"
+    r"closure-run identity gap|closure run identity gap|closure_run_identity_gap|"
+    r"closure-run identity|closure run identity|"
     r"foreground recovery runtime contract)\b",
     re.IGNORECASE,
 )
@@ -1321,7 +1339,7 @@ SIGNATURE_DEFINITION_MARKER_PATTERN = re.compile(
 
 
 def is_work_management_signature_explainer(path: str, text: str) -> bool:
-    """Suppress detector docs/templates that define AS-20/21/22 themselves."""
+    """Suppress detector docs/templates that define work-management AS checks."""
 
     lowered_path = path.lower()
     if not WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN.search(text):
@@ -2274,6 +2292,113 @@ def foreground_failure_guidance_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+CLOSURE_LOCAL_COMMAND_PATTERN = re.compile(
+    r"\b(make\s+(?:check|test|test-fast|validate|work-close)|"
+    r"work-close|check-step|test[-_ ]manifest|record[-_ ]make[-_ ]target|"
+    r"local validation|closure timing|timing ledger)\b",
+    re.IGNORECASE,
+)
+CLOSURE_REMOTE_COMMAND_PATTERN = re.compile(
+    r"\b(github actions|pull_request|workflow_dispatch|push|schedule|"
+    r"jobs:|runs-on:|check run|workflow run|github\.run_id|GITHUB_RUN_ID)\b",
+    re.IGNORECASE,
+)
+CLOSURE_LOCAL_IDENTITY_PATTERN = re.compile(
+    r"\b(closure_run_id|closure_phase|closure_trigger|"
+    r"evidence_reuse_key|parent_command)\b",
+    re.IGNORECASE,
+)
+CLOSURE_REMOTE_IDENTITY_PATTERN = re.compile(
+    r"\b(github_run_id|github_run_attempt|GITHUB_RUN_ID|GITHUB_RUN_ATTEMPT|"
+    r"github\.run_id|github\.run_attempt)\b",
+    re.IGNORECASE,
+)
+CLOSURE_IDENTITY_NEGATION_PATTERN = re.compile(
+    r"\b(no|missing|without|lacks?|lack|absent|omit(?:s|ted)?|"
+    r"cannot|can't|not)\b.{0,80}"
+    r"\b(closure[-_ ]run[-_ ]identity|closure_run_id|closure_phase|"
+    r"closure_trigger|evidence_reuse_key|github_run_id|github_run_attempt|"
+    r"GITHUB_RUN_ID|GITHUB_RUN_ATTEMPT|parent_command)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def is_closure_owner_surface(path: str) -> bool:
+    return (
+        path == "Makefile"
+        or path == "makefile"
+        or path.startswith("scripts/")
+        or path.startswith(".github/workflows/")
+    )
+
+
+def has_positive_closure_identity(text: str, pattern: re.Pattern[str]) -> bool:
+    if pattern.search(text) is None:
+        return False
+    return CLOSURE_IDENTITY_NEGATION_PATTERN.search(text) is None
+
+
+def closure_run_identity_gap(texts: dict[str, str]) -> dict[str, Any]:
+    local_closure: list[str] = []
+    remote_closure: list[str] = []
+    local_identity: list[str] = []
+    remote_identity: list[str] = []
+    explainer: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            explainer.append(path)
+            continue
+        if not is_closure_owner_surface(path):
+            continue
+
+        if (
+            path in {"Makefile", "makefile"}
+            or path.startswith("scripts/")
+        ) and CLOSURE_LOCAL_COMMAND_PATTERN.search(text):
+            local_closure.append(path)
+        if path.startswith(".github/workflows/") and CLOSURE_REMOTE_COMMAND_PATTERN.search(text):
+            remote_closure.append(path)
+        if has_positive_closure_identity(text, CLOSURE_LOCAL_IDENTITY_PATTERN):
+            local_identity.append(path)
+        if has_positive_closure_identity(text, CLOSURE_REMOTE_IDENTITY_PATTERN):
+            remote_identity.append(path)
+
+    missing: list[str] = []
+    if local_closure and not local_identity:
+        missing.append("local_command_identity")
+    if remote_closure and not remote_identity:
+        missing.append("github_workflow_identity")
+
+    fired = bool(missing)
+    details = [
+        f"local_closure=>{','.join(sorted(set(local_closure))[:4]) or 'none'}",
+        f"remote_closure=>{','.join(sorted(set(remote_closure))[:4]) or 'none'}",
+        f"local_identity=>{','.join(sorted(set(local_identity))[:4]) or 'none'}",
+        f"remote_identity=>{','.join(sorted(set(remote_identity))[:4]) or 'none'}",
+        f"missing_identity=>{','.join(missing) or 'none'}",
+        f"explainer_suppressed=>{','.join(sorted(set(explainer))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": fired,
+        "signals": {
+            "closure_run_identity_gap_count": 1 if fired else 0,
+            "local_closure_surface_count": len(set(local_closure)),
+            "remote_closure_surface_count": len(set(remote_closure)),
+            "local_identity_surface_count": len(set(local_identity)),
+            "remote_identity_surface_count": len(set(remote_identity)),
+            "missing_identity_surface_count": len(missing),
+            "missing_identity_surfaces": missing,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "closure validation surfaces lack comparable closure-run identity across local commands and workflow runs"
+            if fired
+            else "closure-run identity is present where closure surfaces exist, or closure surfaces are absent"
+        ),
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -2308,6 +2433,7 @@ EVALUATORS = {
     "AS-31": fractured_serial_continuation,
     "AS-32": unanchored_self_learning_claim,
     "AS-33": foreground_failure_guidance_gap,
+    "AS-34": closure_run_identity_gap,
 }
 
 

@@ -288,3 +288,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-hermes-foreground-receipt-adoption-gap.sh`
+
+### AS-34: Closure-Run Identity Gap
+- **Detects:** Repositories with Make, script, or GitHub Actions closure surfaces that cannot correlate local validation commands with workflow runs through closure-run identity fields.
+- **Signal:** Closure commands or workflows exist, but no executable closure surface records local identity such as `closure_run_id` / `evidence_reuse_key` or GitHub run identity such as `github_run_id` / `github_run_attempt`.
+- **Phase range:** Work closure, local validation, CI replay, merge-loop validation, and closure-cost analysis.
+- **Check:** Scan owner executable closure surfaces (`Makefile`, `scripts/`, `.github/workflows/`) for closure command triggers and require additive identity fields on comparable closure-run evidence surfaces; suppress detector docs/templates and negative/missing examples.
+- **Fire condition:** `closure_run_identity_gap_count > 0`
+- **Prevention tier:** T2
+- **Severity:** MEDIUM
+- **Script:** `scripts/detect-as-closure-run-identity-gap.sh`
