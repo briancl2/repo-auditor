@@ -8,7 +8,22 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 total_links=0
 broken_count=0
+archive_broken_count=0
 evidence=""
+archive_evidence=""
+
+is_archive_source() {
+    local rel_path="$1"
+    case "$rel_path" in
+        archive/*|*/archive/*|archived/*|*/archived/*|archives/*|*/archives/*|history/*|*/history/*)
+            return 0
+            ;;
+        old-*|*/old-*|archived-*|*/archived-*|historical-*|*/historical-*)
+            return 0
+            ;;
+    esac
+    return 1
+}
 
 # Find markdown files (limit to 200 for performance)
 md_files=$(find "$REPO" -name "*.md" \
@@ -43,10 +58,17 @@ while IFS= read -r md_file; do
 
         if [ ! -f "$target1" ] && [ ! -d "$target1" ] && \
            [ ! -f "$target2" ] && [ ! -d "$target2" ]; then
-            broken_count=$((broken_count + 1))
-            if [ "$broken_count" -le 5 ]; then
-                short_md=$(echo "$md_file" | sed "s|$REPO/||")
-                evidence="${evidence}${short_md} -> ${link}; "
+            short_md=$(echo "$md_file" | sed "s|$REPO/||")
+            if is_archive_source "$short_md"; then
+                archive_broken_count=$((archive_broken_count + 1))
+                if [ "$archive_broken_count" -le 5 ]; then
+                    archive_evidence="${archive_evidence}${short_md} -> ${link}; "
+                fi
+            else
+                broken_count=$((broken_count + 1))
+                if [ "$broken_count" -le 5 ]; then
+                    evidence="${evidence}${short_md} -> ${link}; "
+                fi
             fi
         fi
     done <<< "$links"
@@ -55,6 +77,19 @@ done <<< "$md_files"
 fired="false"
 [ "$broken_count" -gt 0 ] && fired="true"
 
+target_actionability="none"
+if [ "$broken_count" -gt 0 ] && [ "$archive_broken_count" -gt 0 ]; then
+    target_actionability="mixed_live_and_archive_repair"
+elif [ "$broken_count" -gt 0 ]; then
+    target_actionability="live_doc_repair"
+elif [ "$archive_broken_count" -gt 0 ]; then
+    target_actionability="archive_triage_only"
+fi
+
 python3 "$SCRIPT_DIR/ds_json_helper.py" \
     '{"ds_id":"DS-42","name":"Broken internal links","severity":"HIGH","prevention_tier":"T1"}' \
-    "fired=$fired" "total_links=$total_links" "broken_count=$broken_count" "evidence=$evidence"
+    "fired=$fired" "total_links=$total_links" "broken_count=$broken_count" \
+    "active_doc_broken_count=$broken_count" \
+    "archive_broken_count=$archive_broken_count" "evidence=$evidence" \
+    "archive_doc_broken_count=$archive_broken_count" \
+    "archive_evidence=$archive_evidence" "target_actionability=$target_actionability"
