@@ -92,6 +92,20 @@ Run receipts also include `started_at`, `completed_at`, and integer
 `elapsed_seconds` fields. `timestamp` remains present for compatibility and is
 the same value as `completed_at`.
 
+## Closure-Run Identity
+
+Local validation gates and GitHub Actions runs expose a comparable
+closure-run identity surface with these fields: `closure_run_id`,
+`closure_phase`, `closure_trigger`, `evidence_reuse_key`, `parent_command`,
+`github_run_id`, and `github_run_attempt`.
+
+Local defaults use `closure_run_id=${CLOSURE_RUN_ID:-local-<UTC>-<pid>}`,
+the invoked gate as `closure_phase`, and `manual` as `closure_trigger`.
+GitHub Actions sets `closure_run_id` to `${{ github.run_id }}-${{
+github.run_attempt }}` and also exposes `github_run_id` and
+`github_run_attempt`. Local runs do not create receipt files unless
+`CLOSURE_IDENTITY_RECEIPT_PATH` or `--receipt` is provided.
+
 ## Scorecard Receipts and Count Reconciliation
 
 `SCORECARD_RECEIPTS.json.count_reconciliation` records the file-count surface
