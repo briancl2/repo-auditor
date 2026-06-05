@@ -55,6 +55,40 @@ find_tool_candidates() {
   find . -path ./.git -prune -o "$@" -print 2>/dev/null
 }
 
+canonical_tool_identity() {
+  local relpath="$1"
+  relpath="${relpath#./}"
+  case "$relpath" in
+    .github/skills/*)
+      printf '%s\n' ".agents/skills/${relpath#.github/skills/}"
+      ;;
+    *)
+      printf '%s\n' "$relpath"
+      ;;
+  esac
+}
+
+dedupe_tool_candidates() {
+  local deduped_tmp
+  if [[ ${#ALL_TOOL_CANDIDATES[@]} -eq 0 ]]; then
+    return
+  fi
+  deduped_tmp=$(mktemp)
+  printf '%s\n' "${ALL_TOOL_CANDIDATES[@]}" \
+    | while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        canonical_tool_identity "$f"
+      done \
+    | sort -u > "$deduped_tmp"
+
+  ALL_TOOL_CANDIDATES=()
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    ALL_TOOL_CANDIDATES+=("$f")
+  done < "$deduped_tmp"
+  rm -f "$deduped_tmp"
+}
+
 json_array_from_name() {
   local name="$1"
   local count
@@ -136,6 +170,27 @@ done < <(find_tool_candidates \
   | sed 's|^\./||' \
   | sort -u)
 
+# Skill reference prompt/material files
+while IFS= read -r f; do
+  ALL_TOOL_CANDIDATES+=("$f")
+done < <(find_tool_candidates \
+  -path '*/skills/*/references/*.md' -print 2>/dev/null \
+  | sed 's|^\./||' \
+  | sort -u)
+
+# GitHub skills mirrors are often symlinks to .agents/skills. Follow only that
+# bounded mirror and canonicalize the resulting paths so mirrors do not double
+# count or create duplicate drift.
+if [[ -e ".github/skills" ]]; then
+  while IFS= read -r f; do
+    ALL_TOOL_CANDIDATES+=("$f")
+  done < <(find -L .github/skills \
+    \( -name 'SKILL.md' -o -path '*/scripts/*.sh' -o -path '*/scripts/*.py' -o -path '*/references/*.md' \) \
+    -print 2>/dev/null \
+    | sed 's|^\./||' \
+    | sort -u)
+fi
+
 # Agent .agent.md files
 while IFS= read -r f; do
   ALL_TOOL_CANDIDATES+=("$f")
@@ -143,6 +198,8 @@ done < <(find_tool_candidates \
   -name '*.agent.md' -print 2>/dev/null \
   | sed 's|^\./||' \
   | sort -u)
+
+dedupe_tool_candidates
 
 if [[ ${#ALL_TOOL_CANDIDATES[@]} -gt 0 ]]; then
   while IFS= read -r tool; do
@@ -255,10 +312,10 @@ for tool in "${TOOLS_ON_DISK[@]}"; do
     skill_name=$(echo "$relpath" | sed -n 's|.*skills/\([^/]*\)/SKILL\.md|\1|p')
   fi
 
-  # For scripts inside a skill directory, check if the parent skill is documented
+  # For scripts/references inside a skill directory, check if the parent skill is documented
   parent_skill=""
-  if echo "$relpath" | grep -qE 'skills/[^/]+/scripts/'; then
-    parent_skill=$(echo "$relpath" | sed -n 's|.*skills/\([^/]*\)/scripts/.*|\1|p')
+  if echo "$relpath" | grep -qE 'skills/[^/]+/(scripts|references)/'; then
+    parent_skill=$(echo "$relpath" | sed -E -n 's#.*skills/([^/]+)/(scripts|references)/.*#\1#p')
   fi
 
   # For agent files, also match by agent name (e.g., "b5a-agent-fixer")
