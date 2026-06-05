@@ -53,6 +53,13 @@ make review
 
 Shared primitives from [repo-agent-core](https://github.com/briancl2/repo-agent-core) (copied, not symlinked).
 
+## Live Capability Inventory
+
+The [live capability inventory](docs/live-capability-inventory.md) records
+repo-auditor's live agents, detectors, scripts, Speckit helpers, and tracking
+decisions for calibrated capability-drift checks. It is documentation, not a
+runtime registry or generated control plane.
+
 ## Self-Management
 
 - `make check` — shellcheck + inventory + co-evolution + trailer validation
