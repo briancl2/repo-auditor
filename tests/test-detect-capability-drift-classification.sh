@@ -11,6 +11,9 @@ FIXTURE="$TMP_ROOT/capability-drift-classification"
 mkdir -p \
   "$FIXTURE/scripts" \
   "$FIXTURE/scripts/archive" \
+  "$FIXTURE/.agents/skills/example-skill/references" \
+  "$FIXTURE/.agents/skills/example-skill/scripts" \
+  "$FIXTURE/.github" \
   "$FIXTURE/work/20260605T000000Z/.target-snapshot/scripts" \
   "$FIXTURE/runs/20260605T000000Z/tools" \
   "$FIXTURE/research/evidence/package/scripts" \
@@ -25,12 +28,28 @@ cat > "$FIXTURE/AGENTS.md" <<'EOF'
 # AGENTS
 
 - Live tool: scripts/live.sh
+- Skill: example-skill
 EOF
 
 cat > "$FIXTURE/scripts/live.sh" <<'EOF'
 #!/usr/bin/env bash
 echo live
 EOF
+
+cat > "$FIXTURE/.agents/skills/example-skill/SKILL.md" <<'EOF'
+# Example Skill
+EOF
+
+cat > "$FIXTURE/.agents/skills/example-skill/references/review-prompt.md" <<'EOF'
+# Review Prompt
+EOF
+
+cat > "$FIXTURE/.agents/skills/example-skill/scripts/helper.sh" <<'EOF'
+#!/usr/bin/env bash
+echo helper
+EOF
+
+ln -s ../.agents/skills "$FIXTURE/.github/skills"
 
 cat > "$FIXTURE/scripts/archive/old-tool.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -92,20 +111,24 @@ import sys
 
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 assert data["scope_version"] == "capability-drift-classified-v1", data
-assert data["total_disk"] == 1, data
-assert data["total_tracked"] == 1, data
+assert data["total_disk"] == 4, data
+assert data["total_tracked"] == 4, data
 assert data["drift_count"] == 0, data
 assert data["drift_pct"] == 0, data
 assert data["pass"] is True, data
 assert data["undocumented"] == [], data
 counts = data["scope_counts"]
-assert counts["live"] == 1, counts
+assert counts["live"] == 4, counts
 assert counts["retained"] == 5, counts
 assert counts["archive"] == 1, counts
 assert counts["test_fixture"] == 2, counts
 assert counts["generated"] == 2, counts
 paths = data["scope_paths"]
-assert paths["live"] == ["scripts/live.sh"], paths
+assert ".agents/skills/example-skill/SKILL.md" in paths["live"], paths
+assert ".agents/skills/example-skill/references/review-prompt.md" in paths["live"], paths
+assert ".agents/skills/example-skill/scripts/helper.sh" in paths["live"], paths
+assert "scripts/live.sh" in paths["live"], paths
+assert not any(p.startswith(".github/skills/") for p in paths["live"]), paths
 assert "work/20260605T000000Z/.target-snapshot/scripts/snapshot-tool.sh" in paths["retained"], paths
 assert "scripts/archive/old-tool.sh" in paths["archive"], paths
 assert "tests/fixtures/demo/scripts/fixture-helper.sh" in paths["test_fixture"], paths
@@ -119,7 +142,7 @@ EOF
 
 FAIL_JSON="$TMP_ROOT/fail.json"
 set +e
-bash "$REPO_ROOT/scripts/detect-capability-drift.sh" "$FIXTURE" --threshold 20 --json > "$FAIL_JSON"
+bash "$REPO_ROOT/scripts/detect-capability-drift.sh" "$FIXTURE" --threshold 19 --json > "$FAIL_JSON"
 status=$?
 set -e
 
@@ -134,10 +157,10 @@ import json
 import sys
 
 data = json.load(open(sys.argv[1], encoding="utf-8"))
-assert data["total_disk"] == 2, data
-assert data["total_tracked"] == 1, data
+assert data["total_disk"] == 5, data
+assert data["total_tracked"] == 4, data
 assert data["drift_count"] == 1, data
-assert data["drift_pct"] == 50, data
+assert data["drift_pct"] == 20, data
 assert data["pass"] is False, data
 assert data["undocumented"] == ["scripts/undocumented.sh"], data
 for bucket in ("retained", "archive", "test_fixture", "generated"):
