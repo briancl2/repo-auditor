@@ -22,15 +22,107 @@ done
 
 cd "$REPO"
 
+SCOPE_VERSION="capability-drift-classified-v1"
+
+classify_scope() {
+  local relpath="$1"
+  local lower
+  lower=$(printf '%s' "$relpath" | tr '[:upper:]' '[:lower:]')
+
+  case "$lower" in
+    work/*|runs/*|research/evidence/*|targets/*|*/.target-snapshot/*|*clean-head-snapshot*|*audit-snapshot*)
+      printf '%s\n' "retained"
+      return
+      ;;
+    tests/fixtures/*|fixtures/*|*/fixtures/*|examples/*|*/examples/*|example/*|*/example/*|demo/*|*/demo/*)
+      printf '%s\n' "test_fixture"
+      return
+      ;;
+    archive/*|*/archive/*|archives/*|*/archives/*|archived/*|*/archived/*)
+      printf '%s\n' "archive"
+      return
+      ;;
+    node_modules/*|*/node_modules/*|vendor/*|*/vendor/*|.venv*/*|*/.venv*/*|venv/*|*/venv/*|.tox/*|*/.tox/*|__pycache__/*|*/__pycache__/*|.mypy_cache/*|*/.mypy_cache/*|.pytest_cache/*|*/.pytest_cache/*|.eggs/*|*/.eggs/*|build/*|*/build/*|dist/*|*/dist/*|site-packages/*|*/site-packages/*)
+      printf '%s\n' "generated"
+      return
+      ;;
+  esac
+
+  printf '%s\n' "live"
+}
+
+find_tool_candidates() {
+  find . -path ./.git -prune -o "$@" -print 2>/dev/null
+}
+
+json_array_from_name() {
+  local name="$1"
+  local count
+  eval "count=\${#${name}[@]}"
+  if [[ "$count" -eq 0 ]]; then
+    printf '[]\n'
+    return
+  fi
+  eval "printf '%s\\n' \"\${${name}[@]}\"" | jq -R . | jq -s . 2>/dev/null || printf '[]\n'
+}
+
+emit_json_report() {
+  local total_disk="$1"
+  local tracked_count="$2"
+  local drift_count="$3"
+  local drift_pct="$4"
+  local pass_value="$5"
+  local tracking_json="$6"
+  local undocumented_json="$7"
+  local live_json="$8"
+  local retained_json="$9"
+  local archive_json="${10}"
+  local test_fixture_json="${11}"
+  local generated_json="${12}"
+
+  cat <<EOF
+{
+  "scope_version": "$SCOPE_VERSION",
+  "total_disk": $total_disk,
+  "total_tracked": $tracked_count,
+  "drift_count": $drift_count,
+  "drift_pct": $drift_pct,
+  "threshold": $THRESHOLD,
+  "pass": $pass_value,
+  "tracking_files": $tracking_json,
+  "undocumented": $undocumented_json,
+  "scope_counts": {
+    "live": ${#TOOLS_ON_DISK[@]},
+    "retained": ${#RETAINED_TOOLS[@]},
+    "archive": ${#ARCHIVE_TOOLS[@]},
+    "test_fixture": ${#TEST_FIXTURE_TOOLS[@]},
+    "generated": ${#GENERATED_TOOLS[@]}
+  },
+  "scope_paths": {
+    "live": $live_json,
+    "retained": $retained_json,
+    "archive": $archive_json,
+    "test_fixture": $test_fixture_json,
+    "generated": $generated_json
+  }
+}
+EOF
+}
+
 # ──────────────────────────────────────────────────────────────────────
-# Step 1: Find all tools on disk
+# Step 1: Find and classify all tool-like paths on disk
 # ──────────────────────────────────────────────────────────────────────
+ALL_TOOL_CANDIDATES=()
 TOOLS_ON_DISK=()
+RETAINED_TOOLS=()
+ARCHIVE_TOOLS=()
+TEST_FIXTURE_TOOLS=()
+GENERATED_TOOLS=()
 
 # Scripts in scripts/ or tools/ directories
 while IFS= read -r f; do
-  TOOLS_ON_DISK+=("$f")
-done < <(find . \( -path ./node_modules -o -path ./.git -o -path ./vendor -o -path ./targets \) -prune -o \
+  ALL_TOOL_CANDIDATES+=("$f")
+done < <(find_tool_candidates \
   \( -name '*.sh' -o -name '*.py' \) -print 2>/dev/null \
   | grep -iE '(scripts|tools)/' \
   | sed 's|^\./||' \
@@ -38,24 +130,50 @@ done < <(find . \( -path ./node_modules -o -path ./.git -o -path ./vendor -o -pa
 
 # Skill SKILL.md files
 while IFS= read -r f; do
-  TOOLS_ON_DISK+=("$f")
-done < <(find . \( -path ./node_modules -o -path ./.git -o -path ./vendor -o -path ./targets \) -prune -o \
+  ALL_TOOL_CANDIDATES+=("$f")
+done < <(find_tool_candidates \
   -path '*/skills/*/SKILL.md' -print 2>/dev/null \
   | sed 's|^\./||' \
   | sort -u)
 
 # Agent .agent.md files
 while IFS= read -r f; do
-  TOOLS_ON_DISK+=("$f")
-done < <(find . \( -path ./node_modules -o -path ./.git -o -path ./vendor -o -path ./targets \) -prune -o \
+  ALL_TOOL_CANDIDATES+=("$f")
+done < <(find_tool_candidates \
   -name '*.agent.md' -print 2>/dev/null \
   | sed 's|^\./||' \
   | sort -u)
 
+if [[ ${#ALL_TOOL_CANDIDATES[@]} -gt 0 ]]; then
+  while IFS= read -r tool; do
+    [[ -n "$tool" ]] || continue
+    scope=$(classify_scope "$tool")
+    case "$scope" in
+      live) TOOLS_ON_DISK+=("$tool") ;;
+      retained) RETAINED_TOOLS+=("$tool") ;;
+      archive) ARCHIVE_TOOLS+=("$tool") ;;
+      test_fixture) TEST_FIXTURE_TOOLS+=("$tool") ;;
+      generated) GENERATED_TOOLS+=("$tool") ;;
+    esac
+  done < <(printf '%s\n' "${ALL_TOOL_CANDIDATES[@]}" | sort -u)
+fi
+
 TOTAL_DISK=${#TOOLS_ON_DISK[@]}
 
 if [[ $TOTAL_DISK -eq 0 ]]; then
-  echo "No tools found on disk in $REPO"
+  if $JSON_OUT; then
+    TRACKING_JSON="[]"
+    UNTRACKED_JSON="[]"
+    LIVE_JSON=$(json_array_from_name TOOLS_ON_DISK)
+    RETAINED_JSON=$(json_array_from_name RETAINED_TOOLS)
+    ARCHIVE_JSON=$(json_array_from_name ARCHIVE_TOOLS)
+    TEST_FIXTURE_JSON=$(json_array_from_name TEST_FIXTURE_TOOLS)
+    GENERATED_JSON=$(json_array_from_name GENERATED_TOOLS)
+    emit_json_report 0 0 0 0 true "$TRACKING_JSON" "$UNTRACKED_JSON" "$LIVE_JSON" "$RETAINED_JSON" "$ARCHIVE_JSON" "$TEST_FIXTURE_JSON" "$GENERATED_JSON"
+  else
+    echo "No live tools found on disk in $REPO"
+    echo "Scope counts: live=0 retained=${#RETAINED_TOOLS[@]} archive=${#ARCHIVE_TOOLS[@]} test_fixture=${#TEST_FIXTURE_TOOLS[@]} generated=${#GENERATED_TOOLS[@]}"
+  fi
   exit 0
 fi
 
@@ -73,8 +191,10 @@ CANDIDATES=(
 
 # Also look for files matching *INVENTORY* or *REGISTRY*
 while IFS= read -r f; do
-  CANDIDATES+=("$f")
-done < <(find . -maxdepth 3 \( -path ./node_modules -o -path ./.git -o -path ./vendor -o -path ./targets \) -prune -o \
+  if [[ "$(classify_scope "$f")" == "live" ]]; then
+    CANDIDATES+=("$f")
+  fi
+done < <(find . -maxdepth 3 -path ./.git -prune -o \
   \( -iname '*inventory*' -o -iname '*registry*' -o -iname '*catalog*' -o -iname '*catalogue*' \) \
   -type f -print 2>/dev/null \
   | sed 's|^\./||')
@@ -94,9 +214,16 @@ TRACKING_FILES=($(printf '%s\n' "${TRACKING_FILES[@]}" | sort -u))
 
 if [[ ${#TRACKING_FILES[@]} -eq 0 ]]; then
   echo "WARNING: No tracking files found that reference scripts/tools/skills."
-  echo "All $TOTAL_DISK tools on disk are untracked."
+  echo "All $TOTAL_DISK live tools on disk are untracked."
   if $JSON_OUT; then
-    echo "{\"total_disk\": $TOTAL_DISK, \"total_tracked\": 0, \"drift_count\": $TOTAL_DISK, \"drift_pct\": 100, \"threshold\": $THRESHOLD, \"pass\": false, \"tracking_files\": [], \"undocumented\": $(printf '%s\n' "${TOOLS_ON_DISK[@]}" | jq -R . | jq -s .)}"
+    TRACKING_JSON="[]"
+    UNTRACKED_JSON=$(json_array_from_name TOOLS_ON_DISK)
+    LIVE_JSON=$(json_array_from_name TOOLS_ON_DISK)
+    RETAINED_JSON=$(json_array_from_name RETAINED_TOOLS)
+    ARCHIVE_JSON=$(json_array_from_name ARCHIVE_TOOLS)
+    TEST_FIXTURE_JSON=$(json_array_from_name TEST_FIXTURE_TOOLS)
+    GENERATED_JSON=$(json_array_from_name GENERATED_TOOLS)
+    emit_json_report "$TOTAL_DISK" 0 "$TOTAL_DISK" 100 false "$TRACKING_JSON" "$UNTRACKED_JSON" "$LIVE_JSON" "$RETAINED_JSON" "$ARCHIVE_JSON" "$TEST_FIXTURE_JSON" "$GENERATED_JSON"
   fi
   exit 1
 fi
@@ -192,20 +319,14 @@ fi
 # Output
 # ──────────────────────────────────────────────────────────────────────
 if $JSON_OUT; then
-  UNTRACKED_JSON=$(printf '%s\n' "${UNTRACKED[@]}" | jq -R . | jq -s . 2>/dev/null || echo "[]")
-  TRACKING_JSON=$(printf '%s\n' "${TRACKING_FILES[@]}" | jq -R . | jq -s . 2>/dev/null || echo "[]")
-  cat <<EOF
-{
-  "total_disk": $TOTAL_DISK,
-  "total_tracked": $TRACKED_COUNT,
-  "drift_count": $DRIFT_COUNT,
-  "drift_pct": $DRIFT_PCT,
-  "threshold": $THRESHOLD,
-  "pass": $PASS,
-  "tracking_files": $TRACKING_JSON,
-  "undocumented": $UNTRACKED_JSON
-}
-EOF
+  UNTRACKED_JSON=$(json_array_from_name UNTRACKED)
+  TRACKING_JSON=$(json_array_from_name TRACKING_FILES)
+  LIVE_JSON=$(json_array_from_name TOOLS_ON_DISK)
+  RETAINED_JSON=$(json_array_from_name RETAINED_TOOLS)
+  ARCHIVE_JSON=$(json_array_from_name ARCHIVE_TOOLS)
+  TEST_FIXTURE_JSON=$(json_array_from_name TEST_FIXTURE_TOOLS)
+  GENERATED_JSON=$(json_array_from_name GENERATED_TOOLS)
+  emit_json_report "$TOTAL_DISK" "$TRACKED_COUNT" "$DRIFT_COUNT" "$DRIFT_PCT" "$PASS" "$TRACKING_JSON" "$UNTRACKED_JSON" "$LIVE_JSON" "$RETAINED_JSON" "$ARCHIVE_JSON" "$TEST_FIXTURE_JSON" "$GENERATED_JSON"
 else
   echo "=== Capability Drift Report ==="
   echo ""
@@ -214,6 +335,7 @@ else
   echo "Tools tracked:  $TRACKED_COUNT"
   echo "Undocumented:   $DRIFT_COUNT ($DRIFT_PCT%)"
   echo "Threshold:      $THRESHOLD%"
+  echo "Scope counts:   live=$TOTAL_DISK retained=${#RETAINED_TOOLS[@]} archive=${#ARCHIVE_TOOLS[@]} test_fixture=${#TEST_FIXTURE_TOOLS[@]} generated=${#GENERATED_TOOLS[@]}"
   echo "Tracking files: ${TRACKING_FILES[*]}"
   echo ""
 
