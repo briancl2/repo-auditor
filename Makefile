@@ -61,6 +61,7 @@ token-efficiency-measure:
 
 test:
 	@echo "=== Running auditor test suite ==="
+	@python3 scripts/closure_identity.py --phase "$${CLOSURE_PHASE:-test}" --parent-command "$${PARENT_COMMAND:-make test}"
 	@for t in tests/test-*.sh; do \
 		echo "--- $$t ---"; bash "$$t" || exit 1; \
 	done
@@ -68,6 +69,7 @@ test:
 	@echo "=== All tests passed ==="
 
 validate:
+	@python3 scripts/closure_identity.py --phase "$${CLOSURE_PHASE:-validate}" --parent-command "$${PARENT_COMMAND:-make validate}"
 	@for s in schemas/*.schema.json; do \
 		python3 -c "import json; json.load(open('$$s'))" && echo "  ✓ $$(basename $$s)" || echo "  ✗ $$(basename $$s)"; \
 	done

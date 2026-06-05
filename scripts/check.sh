@@ -14,6 +14,10 @@ cd "$REPO_ROOT"
 
 FAIL=0
 
+python3 scripts/closure_identity.py \
+    --phase "${CLOSURE_PHASE:-check}" \
+    --parent-command "${PARENT_COMMAND:-make check}"
+
 # ── Shellcheck ────────────────────────────────────────────────────────
 echo "── shellcheck ──"
 if ! command -v shellcheck > /dev/null 2>&1; then
