@@ -38,6 +38,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 | `scripts/detect-as-unanchored-self-learning-claim.sh` | AS-32 unanchored self-learning/self-healing claim detector |
 | `scripts/detect-as-foreground-failure-guidance-gap.sh` | AS-33 foreground failure guidance gap detector |
 | `scripts/detect-as-closure-run-identity-gap.sh` | AS-34 closure-run identity gap detector |
+| `scripts/detect-as-upstream-capability-intake-gap.sh` | AS-35 upstream capability intake evidence completeness detector |
 | `scripts/compare-scorecards.sh` | Pre/post scorecard deltas |
 | `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
 | `scripts/stall-risk-score.sh` | Six-signal stall risk predictor |

@@ -67,6 +67,7 @@ scripts=(
     "detect-as-unanchored-self-learning-claim.sh"
     "detect-as-foreground-failure-guidance-gap.sh"
     "detect-as-closure-run-identity-gap.sh"
+    "detect-as-upstream-capability-intake-gap.sh"
 )
 
 idx=0

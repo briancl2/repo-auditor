@@ -217,6 +217,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T2",
         "script": "detect-as-closure-run-identity-gap.sh",
     },
+    "AS-35": {
+        "name": "Upstream capability intake gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-upstream-capability-intake-gap.sh",
+    },
 }
 
 
@@ -1328,6 +1334,7 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"unanchored self learning claim|foreground failure guidance gap|"
     r"closure-run identity gap|closure run identity gap|closure_run_identity_gap|"
     r"closure-run identity|closure run identity|"
+    r"upstream capability intake gap|upstream capability intake|"
     r"foreground recovery runtime contract)\b",
     re.IGNORECASE,
 )
@@ -1405,6 +1412,116 @@ def source_intelligence_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
         },
         "evidence": evidence_join(details),
         "reason": "source-intelligence surfaces lack equal-insight disposition or owner/no-action routing" if offenders else "source-intelligence surfaces are routed or absent",
+    }
+
+
+UPSTREAM_INTAKE_SURFACE_PATTERN = re.compile(
+    r"\b(upstream capability intake|upstream[-_ ]capability[-_ ]intake|"
+    r"capability intake|behindness signal|delta clusters|capability decisions)\b",
+    re.IGNORECASE,
+)
+UPSTREAM_INTAKE_REQUIRED_PATTERNS = {
+    "component_identity": re.compile(r"\b(component identity|component_identity)\b", re.IGNORECASE),
+    "local_version": re.compile(r"\b(local version|local_version)\b", re.IGNORECASE),
+    "upstream_reference": re.compile(r"\b(upstream reference|upstream_reference)\b", re.IGNORECASE),
+    "behindness_signal": re.compile(r"\b(behindness signal|behindness_signal)\b", re.IGNORECASE),
+    "source_refs": re.compile(r"\b(source refs|source_refs|source references)\b", re.IGNORECASE),
+    "delta_clusters": re.compile(r"\b(delta clusters|delta_clusters)\b", re.IGNORECASE),
+    "capability_decisions": re.compile(r"\b(capability decisions|capability_decisions)\b", re.IGNORECASE),
+    "update_action": re.compile(r"\b(update action|update_action)\b", re.IGNORECASE),
+    "validation": re.compile(r"\b(validation|validation receipt|validation_receipt)\b", re.IGNORECASE),
+    "adoption_plan_refs": re.compile(r"\b(adoption-plan refs|adoption plan refs|adoption_plan_refs)\b", re.IGNORECASE),
+    "owner_routes": re.compile(r"\b(owner routes|owner_routes|owner surface|owner_surface)\b", re.IGNORECASE),
+    "non_claims": re.compile(r"\b(non-claims|non_claims|bounded non-claims|bounded_non_claims)\b", re.IGNORECASE),
+    "out_of_bounds_surfaces": re.compile(
+        r"\b(out-of-bounds surfaces|out_of_bounds_surfaces|out of bounds surfaces)\b",
+        re.IGNORECASE,
+    ),
+}
+UPSTREAM_INTAKE_UPDATE_CLAIM_PATTERN = re.compile(
+    r"\b(adopt|adoption|update now|updated|upgrade|delete/sunset|delete|sunset|native capability|"
+    r"behindness reduced|behindness reduction|up to date|behindness:?\s*0)\b",
+    re.IGNORECASE,
+)
+UPSTREAM_INTAKE_MISSING_VALIDATION_PATTERN = re.compile(
+    r"\b(validation|validation receipt|validation_receipt)\b.{0,80}\b(missing|none|null|todo|tbd|absent|not retained|unavailable)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+UPSTREAM_INTAKE_STALE_SOURCE_PATTERN = re.compile(
+    r"\b(source refs?|source_refs|upstream reference|upstream_reference)\b.{0,100}\b(stale|missing|none|null|todo|tbd|unknown|unverified)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def upstream_capability_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    missing_field_records = 0
+    update_without_validation = 0
+    adoption_without_owner_or_nonclaims = 0
+    stale_source_ref_records = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")):
+            continue
+        if not UPSTREAM_INTAKE_SURFACE_PATTERN.search(text):
+            continue
+
+        required_hits = {
+            name: pattern.search(text) is not None
+            for name, pattern in UPSTREAM_INTAKE_REQUIRED_PATTERNS.items()
+        }
+        missing_keys = [name for name, present in required_hits.items() if not present]
+        has_update_claim = UPSTREAM_INTAKE_UPDATE_CLAIM_PATTERN.search(text) is not None
+        validation_missing = (
+            not required_hits["validation"]
+            or UPSTREAM_INTAKE_MISSING_VALIDATION_PATTERN.search(text) is not None
+        )
+        source_stale = UPSTREAM_INTAKE_STALE_SOURCE_PATTERN.search(text) is not None
+        owner_or_nonclaims_missing = not required_hits["owner_routes"] or not required_hits["non_claims"]
+
+        reasons: list[str] = []
+        if missing_keys:
+            missing_field_records += 1
+            reasons.append("missing:" + ",".join(missing_keys[:6]))
+        if has_update_claim and validation_missing:
+            update_without_validation += 1
+            reasons.append("update_without_validation")
+        if has_update_claim and owner_or_nonclaims_missing:
+            adoption_without_owner_or_nonclaims += 1
+            reasons.append("owner_or_nonclaims_missing")
+        if source_stale:
+            stale_source_ref_records += 1
+            reasons.append("stale_or_missing_source_refs")
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons)}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"intake_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"grounded_intake=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "upstream_intake_record_count": len(offenders) + len(grounded),
+            "upstream_intake_gap_count": len(offenders),
+            "missing_field_record_count": missing_field_records,
+            "update_claim_without_validation_count": update_without_validation,
+            "adoption_without_owner_or_nonclaims_count": adoption_without_owner_or_nonclaims,
+            "stale_source_ref_record_count": stale_source_ref_records,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "upstream capability intake records are incomplete, stale, or claim updates without validation"
+            if offenders
+            else "upstream capability intake records are field-complete and bounded, or absent"
+        ),
     }
 
 
@@ -2434,6 +2551,7 @@ EVALUATORS = {
     "AS-32": unanchored_self_learning_claim,
     "AS-33": foreground_failure_guidance_gap,
     "AS-34": closure_run_identity_gap,
+    "AS-35": upstream_capability_intake_gap,
 }
 
 

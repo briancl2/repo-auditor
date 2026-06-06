@@ -219,6 +219,11 @@ Hermes foreground recovery will self-heal route-changing failures and recover
 after a failed foreground run, but this owner guidance does not require the
 foreground failure guidance artifact, GitHub issue truth, failed run receipt
 evidence, or no-regrowth boundaries.
+
+An upstream capability intake record says component identity and local version
+are known, source refs are stale, behindness is reduced to 0, capability
+decisions adopt a native capability, update action is update now, validation is
+missing, and owner routes, non-claims, and out-of-bounds surfaces are absent.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -234,8 +239,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 34
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 34
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 35
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 35
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -273,6 +278,7 @@ assert as_ids == {
     "AS-32",
     "AS-33",
     "AS-34",
+    "AS-35",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -333,6 +339,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** Closure commands and workflows exist without `closure_run_id`, `evidence_reuse_key`, `github_run_id`, or `github_run_attempt`.
 - **Fire condition:** `closure_run_identity_gap_count > 0`
 - **Script:** `scripts/detect-as-closure-run-identity-gap.sh`
+
+### AS-35: Upstream Capability Intake Gap
+- **Detects:** Upstream capability intake records missing required fields, validation, source refs, owner routes, or non-claims.
+- **Signal:** Incomplete intake evidence or update claims without validation.
+- **Fire condition:** `upstream_intake_gap_count > 0`
+- **Script:** `scripts/detect-as-upstream-capability-intake-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -464,6 +476,11 @@ Hermes foreground recovery will self-heal route-changing failures and recover
 after a failed foreground run, but this owner guidance does not require the
 foreground failure guidance artifact, GitHub issue truth, failed run receipt
 evidence, or no-regrowth boundaries.
+
+An upstream capability intake record says component identity and local version
+are known, source refs are stale, behindness is reduced to 0, capability
+decisions adopt a native capability, update action is update now, validation is
+missing, and owner routes, non-claims, and out-of-bounds surfaces are absent.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -488,6 +505,7 @@ scripts = {
     "AS-32": "detect-as-unanchored-self-learning-claim.sh",
     "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
     "AS-34": "detect-as-closure-run-identity-gap.sh",
+    "AS-35": "detect-as-upstream-capability-intake-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1099,6 +1117,7 @@ scripts = {
     "AS-32": "detect-as-unanchored-self-learning-claim.sh",
     "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
     "AS-34": "detect-as-closure-run-identity-gap.sh",
+    "AS-35": "detect-as-upstream-capability-intake-gap.sh",
 }
 
 for signature_id, script in scripts.items():
