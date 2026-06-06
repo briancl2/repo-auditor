@@ -94,6 +94,7 @@ The calibrated detector separates live surfaces from retained, archive, test-fix
 | `scripts/detect-as-stale-direct-token-evidence.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-too-small-goal-mode-episode.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-unanchored-self-learning-claim.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
+| `scripts/detect-as-upstream-capability-intake-gap.sh` | runtime-loaded deterministic detector | Issue #164 owner-route addition for repo-agent-core upstream capability intake contract | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-unauthorized-production-default-enablement.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-unused-platform-surface.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-validator-live-path-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
