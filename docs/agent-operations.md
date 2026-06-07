@@ -73,11 +73,21 @@ AS-29 through AS-33
 cover the core-five recovery-runtime examples and remain read-only, scan-limited,
 and non-claim evidence only.
 
+Repo-star genericity proofs should read the DS bundle's
+`capability_metadata.repo_star_genericity` classification instead of treating
+AS-22 or AS-34 detector names as target closure semantics. AS-22 and AS-34 are
+generic repo-health detectors; they count against a strict genericity proof only
+when their classified `target_finding_count` is nonzero or the signature fires.
+Zero-count closure detector metadata is classified as allowed auditor metadata
+only when `closure_signature_scope_complete` is `true`; missing or errored
+closure detectors, or closure detectors missing their expected count signal,
+make the genericity scope incomplete.
+
 ## Helper Scripts
 
 | Script | Purpose |
 |---|---|
-| `scripts/assemble_ds_results.py` | Assemble DS-34+ results |
+| `scripts/assemble_ds_results.py` | Assemble DS-34+ results and repo-star genericity detector-scope metadata |
 | `scripts/audit-clean-head-snapshot.py` | Clean-HEAD snapshot wrapper |
 | `scripts/as_signature_scan.py` | Shared AS-* evaluator |
 | `scripts/backtest_ds34_42.py` | Backtest deterministic signatures |

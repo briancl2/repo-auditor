@@ -73,8 +73,16 @@ scripts=(
 idx=0
 for script in "${scripts[@]}"; do
     echo "  $script..." >&2
-    bash "$SCRIPT_DIR/$script" "$REPO" > "$TMPDIR_DS/ds_${idx}.json" 2>/dev/null || \
-        echo '{"ds_id":"unknown","fired":false,"error":"script failed"}' > "$TMPDIR_DS/ds_${idx}.json"
+    if ! bash "$SCRIPT_DIR/$script" "$REPO" > "$TMPDIR_DS/ds_${idx}.json" 2>/dev/null; then
+        fallback_id="unknown"
+        case "$script" in
+            detect-as-github-native-closure-regrowth.sh) fallback_id="AS-22" ;;
+            detect-as-closure-run-identity-gap.sh) fallback_id="AS-34" ;;
+        esac
+        python3 "$SCRIPT_DIR/ds_json_helper.py" \
+            "{\"ds_id\":\"$fallback_id\",\"family\":\"${fallback_id:0:2}\",\"fired\":false}" \
+            error="script failed" script="$script" > "$TMPDIR_DS/ds_${idx}.json"
+    fi
     idx=$((idx + 1))
 done
 

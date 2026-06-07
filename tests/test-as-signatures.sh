@@ -287,6 +287,253 @@ fired = {item["ds_id"] for item in output_report["results"] if item.get("family"
 assert fired == as_ids, {"missing": sorted(as_ids - fired), "unexpected": sorted(fired - as_ids)}
 PY
 
+GENERICITY_REPO="$TMPDIR/non-bma-genericity-fixture"
+mkdir -p "$GENERICITY_REPO/.github/workflows" "$GENERICITY_REPO/scripts" "$GENERICITY_REPO/docs"
+git -C "$GENERICITY_REPO" init -q
+git -C "$GENERICITY_REPO" config user.name "Codex Test"
+git -C "$GENERICITY_REPO" config user.email "codex@example.com"
+cat > "$GENERICITY_REPO/README.md" <<'EOF'
+# Generic Fixture
+
+This is a controlled non-BMA target for repo-star genericity proof.
+EOF
+cat > "$GENERICITY_REPO/.github/workflows/ci.yml" <<'EOF'
+name: ci
+on:
+  pull_request:
+  push:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: make check
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+EOF
+cat > "$GENERICITY_REPO/Makefile" <<'EOF'
+check:
+	@bash scripts/check.sh
+EOF
+cat > "$GENERICITY_REPO/scripts/check.sh" <<'EOF'
+#!/usr/bin/env bash
+closure_run_id="${CLOSURE_RUN_ID:-local-$(date +%s)}"
+closure_phase="${CLOSURE_PHASE:-check}"
+closure_trigger="${CLOSURE_TRIGGER:-manual}"
+evidence_reuse_key="${EVIDENCE_REUSE_KEY:-check:generic-fixture}"
+github_run_id="${GITHUB_RUN_ID:-local}"
+github_run_attempt="${GITHUB_RUN_ATTEMPT:-0}"
+parent_command="${PARENT_COMMAND:-make check}"
+printf '%s\n' "$closure_run_id $closure_phase $closure_trigger $evidence_reuse_key $github_run_id $github_run_attempt $parent_command"
+EOF
+chmod +x "$GENERICITY_REPO/scripts/check.sh"
+cat > "$GENERICITY_REPO/docs/notes.md" <<'EOF'
+# Notes
+
+This fixture intentionally avoids project-specific governance prose. It exists
+only to prove that repo-auditor can classify generic detector metadata without
+mutating the target repository.
+EOF
+git -C "$GENERICITY_REPO" add .
+git -C "$GENERICITY_REPO" commit -qm "seed genericity fixture"
+GENERICITY_HEAD_BEFORE="$(git -C "$GENERICITY_REPO" rev-parse HEAD)"
+GENERICITY_STATUS_BEFORE="$(git -C "$GENERICITY_REPO" status --short)"
+GENERICITY_OUTPUT="$TMPDIR/genericity-output"
+mkdir -p "$GENERICITY_OUTPUT"
+bash "$REPO_ROOT/scripts/detect-new-signatures.sh" "$GENERICITY_REPO" "$GENERICITY_OUTPUT" > "$TMPDIR/genericity-run.json"
+GENERICITY_HEAD_AFTER="$(git -C "$GENERICITY_REPO" rev-parse HEAD)"
+GENERICITY_STATUS_AFTER="$(git -C "$GENERICITY_REPO" status --short)"
+python3 - "$GENERICITY_OUTPUT/DS-34-plus-results.json" "$GENERICITY_HEAD_BEFORE" "$GENERICITY_HEAD_AFTER" "$GENERICITY_STATUS_BEFORE" "$GENERICITY_STATUS_AFTER" <<'PY'
+import json
+import sys
+
+report = json.load(open(sys.argv[1]))
+head_before, head_after, status_before, status_after = sys.argv[2:6]
+assert head_before == head_after, (head_before, head_after)
+assert status_before == status_after == "", (status_before, status_after)
+
+genericity = report["capability_metadata"]["repo_star_genericity"]
+assert genericity["detector_scope"] == "classified", genericity
+assert genericity["closure_signature_target_finding_count"] == 0, genericity
+entries = {entry["ds_id"]: entry for entry in genericity["closure_signature_metadata"]}
+for signature_id in ("AS-22", "AS-34"):
+    entry = entries[signature_id]
+    assert entry["scope"] == "generic_repo_health_detector", entry
+    assert entry["target_finding_count"] == 0, entry
+    assert entry["status"] == "closure_detector_metadata_allowed_when_zero_count", entry
+    result = next(item for item in report["results"] if item.get("ds_id") == signature_id)
+    assert result["repo_star_genericity_scope"] == entry, result
+    assert result["fired"] is False, result
+PY
+
+GENERICITY_INCOMPLETE_TMP="$TMPDIR/genericity-incomplete-ds"
+mkdir -p "$GENERICITY_INCOMPLETE_TMP"
+cat > "$GENERICITY_INCOMPLETE_TMP/ds_0.json" <<'EOF'
+{
+  "ds_id": "AS-22",
+  "name": "GitHub-native closure regrowth",
+  "family": "AS",
+  "fired": false,
+  "signals": {
+    "github_native_closure_regrowth_count": 0
+  }
+}
+EOF
+python3 "$REPO_ROOT/scripts/assemble_ds_results.py" "$GENERICITY_INCOMPLETE_TMP" "missing-as34" "$GENERICITY_REPO" > "$TMPDIR/genericity-incomplete.json"
+python3 - "$TMPDIR/genericity-incomplete.json" <<'PY'
+import json
+import sys
+
+report = json.load(open(sys.argv[1]))
+genericity = report["capability_metadata"]["repo_star_genericity"]
+assert genericity["detector_scope"] == "incomplete", genericity
+assert genericity["closure_signature_scope_complete"] is False, genericity
+assert genericity["missing_closure_signature_ids"] == ["AS-34"], genericity
+assert genericity["incomplete_closure_signature_ids"] == [], genericity
+assert genericity["closure_signature_target_finding_count"] is None, genericity
+PY
+
+GENERICITY_ERROR_TMP="$TMPDIR/genericity-error-ds"
+mkdir -p "$GENERICITY_ERROR_TMP"
+cat > "$GENERICITY_ERROR_TMP/ds_0.json" <<'EOF'
+{
+  "ds_id": "AS-22",
+  "name": "GitHub-native closure regrowth",
+  "family": "AS",
+  "fired": false,
+  "error": "script failed"
+}
+EOF
+cat > "$GENERICITY_ERROR_TMP/ds_1.json" <<'EOF'
+{
+  "ds_id": "AS-34",
+  "name": "Closure-run identity gap",
+  "family": "AS",
+  "fired": false,
+  "signals": {
+    "closure_run_identity_gap_count": 0
+  }
+}
+EOF
+python3 "$REPO_ROOT/scripts/assemble_ds_results.py" "$GENERICITY_ERROR_TMP" "errored-as22" "$GENERICITY_REPO" > "$TMPDIR/genericity-error.json"
+python3 - "$TMPDIR/genericity-error.json" <<'PY'
+import json
+import sys
+
+report = json.load(open(sys.argv[1]))
+genericity = report["capability_metadata"]["repo_star_genericity"]
+assert genericity["detector_scope"] == "incomplete", genericity
+assert genericity["closure_signature_scope_complete"] is False, genericity
+assert genericity["missing_closure_signature_ids"] == [], genericity
+assert genericity["errored_closure_signature_ids"] == ["AS-22"], genericity
+assert genericity["incomplete_closure_signature_ids"] == ["AS-22"], genericity
+assert genericity["closure_signature_target_finding_count"] is None, genericity
+entries = {entry["ds_id"]: entry for entry in genericity["closure_signature_metadata"]}
+assert entries["AS-22"]["status"] == "detector_error", entries
+PY
+
+GENERICITY_SIGNAL_TMP="$TMPDIR/genericity-signal-ds"
+mkdir -p "$GENERICITY_SIGNAL_TMP"
+cat > "$GENERICITY_SIGNAL_TMP/ds_0.json" <<'EOF'
+{
+  "ds_id": "AS-22",
+  "name": "GitHub-native closure regrowth",
+  "family": "AS",
+  "fired": false,
+  "signals": {
+    "github_native_closure_regrowth_count": 0
+  }
+}
+EOF
+cat > "$GENERICITY_SIGNAL_TMP/ds_1.json" <<'EOF'
+{
+  "ds_id": "AS-34",
+  "name": "Closure-run identity gap",
+  "family": "AS",
+  "fired": false,
+  "signals": {}
+}
+EOF
+python3 "$REPO_ROOT/scripts/assemble_ds_results.py" "$GENERICITY_SIGNAL_TMP" "missing-as34-signal" "$GENERICITY_REPO" > "$TMPDIR/genericity-signal.json"
+python3 - "$TMPDIR/genericity-signal.json" <<'PY'
+import json
+import sys
+
+report = json.load(open(sys.argv[1]))
+genericity = report["capability_metadata"]["repo_star_genericity"]
+assert genericity["detector_scope"] == "incomplete", genericity
+assert genericity["closure_signature_scope_complete"] is False, genericity
+assert genericity["missing_closure_signature_ids"] == [], genericity
+assert genericity["incomplete_closure_signature_ids"] == ["AS-34"], genericity
+assert genericity["closure_signature_target_finding_count"] is None, genericity
+entries = {entry["ds_id"]: entry for entry in genericity["closure_signature_metadata"]}
+assert entries["AS-34"]["status"] == "detector_signal_missing", entries
+PY
+
+GENERICITY_FIRED_TMP="$TMPDIR/genericity-fired-ds"
+mkdir -p "$GENERICITY_FIRED_TMP"
+cat > "$GENERICITY_FIRED_TMP/ds_0.json" <<'EOF'
+{
+  "ds_id": "AS-22",
+  "name": "GitHub-native closure regrowth",
+  "family": "AS",
+  "fired": true,
+  "signals": {
+    "github_native_closure_regrowth_count": 0
+  }
+}
+EOF
+cat > "$GENERICITY_FIRED_TMP/ds_1.json" <<'EOF'
+{
+  "ds_id": "AS-34",
+  "name": "Closure-run identity gap",
+  "family": "AS",
+  "fired": false,
+  "signals": {
+    "closure_run_identity_gap_count": 0
+  }
+}
+EOF
+python3 "$REPO_ROOT/scripts/assemble_ds_results.py" "$GENERICITY_FIRED_TMP" "fired-as22" "$GENERICITY_REPO" > "$TMPDIR/genericity-fired.json"
+python3 - "$TMPDIR/genericity-fired.json" <<'PY'
+import json
+import sys
+
+report = json.load(open(sys.argv[1]))
+genericity = report["capability_metadata"]["repo_star_genericity"]
+assert genericity["detector_scope"] == "classified", genericity
+assert genericity["closure_signature_scope_complete"] is True, genericity
+assert genericity["closure_signature_target_finding_count"] == 1, genericity
+entries = {entry["ds_id"]: entry for entry in genericity["closure_signature_metadata"]}
+assert entries["AS-22"]["status"] == "target_finding", entries
+PY
+
+GENERICITY_RUNNER_COPY="$TMPDIR/genericity-runner-copy"
+cp -R "$REPO_ROOT/scripts" "$GENERICITY_RUNNER_COPY"
+cat > "$GENERICITY_RUNNER_COPY/detect-as-github-native-closure-regrowth.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 9
+EOF
+chmod +x "$GENERICITY_RUNNER_COPY/detect-as-github-native-closure-regrowth.sh"
+GENERICITY_RUNNER_FAIL_OUT="$TMPDIR/genericity-runner-fail-output"
+mkdir -p "$GENERICITY_RUNNER_FAIL_OUT"
+bash "$GENERICITY_RUNNER_COPY/detect-new-signatures.sh" "$GENERICITY_REPO" "$GENERICITY_RUNNER_FAIL_OUT" > "$TMPDIR/genericity-runner-fail.json"
+python3 - "$GENERICITY_RUNNER_FAIL_OUT/DS-34-plus-results.json" <<'PY'
+import json
+import sys
+
+report = json.load(open(sys.argv[1]))
+genericity = report["capability_metadata"]["repo_star_genericity"]
+assert genericity["detector_scope"] == "incomplete", genericity
+assert genericity["closure_signature_scope_complete"] is False, genericity
+assert genericity["missing_closure_signature_ids"] == [], genericity
+assert genericity["errored_closure_signature_ids"] == ["AS-22"], genericity
+assert genericity["incomplete_closure_signature_ids"] == ["AS-22"], genericity
+entries = {entry["ds_id"]: entry for entry in genericity["closure_signature_metadata"]}
+assert entries["AS-22"]["status"] == "detector_error", entries
+assert entries["AS-22"]["target_finding_count"] is None, entries
+PY
+
 EXPLAINER_REPO="$TMPDIR/as-work-management-explainer-repo"
 mkdir -p "$EXPLAINER_REPO/detection-signatures"
 cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
