@@ -39,6 +39,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 | `scripts/detect-as-foreground-failure-guidance-gap.sh` | AS-33 foreground failure guidance gap detector |
 | `scripts/detect-as-closure-run-identity-gap.sh` | AS-34 closure-run identity gap detector |
 | `scripts/detect-as-upstream-capability-intake-gap.sh` | AS-35 upstream capability intake evidence completeness detector |
+| `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh` | AS-36 GBrain instruction distribution overclaim detector |
 | `scripts/compare-scorecards.sh` | Pre/post scorecard deltas |
 | `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
 | `scripts/stall-risk-score.sh` | Six-signal stall risk predictor |
@@ -63,7 +64,8 @@ Goal-mode runtime evidence gaps, reactive self-healing loops, shell reserved
 status-variable launch snippets, stale/default capability guidance, Hermes
 foreground receipt adoption gaps, interruption recovery gaps, fractured serial
 continuation, unanchored self-learning claims, foreground failure guidance gaps,
-and closure-run identity gaps. The work-management replay harness emits
+closure-run identity gaps, upstream capability intake gaps, and GBrain
+instruction distribution overclaim gaps. The work-management replay harness emits
 `AS_WORK_MANAGEMENT_REPLAY.json` for bounded AS-20 through AS-34 detector
 precision checks, plus per-target
 `DOWNSTREAM_READ_ONLY_RECOVERY_RUNTIME_PILOT_RECEIPT` fields that record target

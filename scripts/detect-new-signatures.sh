@@ -68,6 +68,7 @@ scripts=(
     "detect-as-foreground-failure-guidance-gap.sh"
     "detect-as-closure-run-identity-gap.sh"
     "detect-as-upstream-capability-intake-gap.sh"
+    "detect-as-gbrain-instruction-distribution-overclaim.sh"
 )
 
 idx=0
