@@ -223,6 +223,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-upstream-capability-intake-gap.sh",
     },
+    "AS-36": {
+        "name": "GBrain instruction distribution overclaim",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-gbrain-instruction-distribution-overclaim.sh",
+    },
 }
 
 
@@ -1525,6 +1531,184 @@ def upstream_capability_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+GBRAIN_DISTRIBUTION_SURFACE_PATTERN = re.compile(
+    r"\b(gbrain[-_ ]repo[-_ ]local[-_ ]instruction[-_ ]distribution|"
+    r"gbrain-repo-local-instruction-distribution|"
+    r"gbrain\b.{0,120}\b(distribution|repo-local instructions?|instruction surfaces?)|"
+    r"(distribution|repo-local instructions?|instruction surfaces?)\b.{0,120}\bgbrain)\b",
+    re.IGNORECASE,
+)
+GBRAIN_DISTRIBUTION_RECORD_PATTERN = re.compile(
+    r"\b(distribution|repo-local instructions?|instruction surfaces?|"
+    r"gbrain-repo-local-instruction-distribution)\b",
+    re.IGNORECASE,
+)
+GBRAIN_SOURCE_EXPECTATION_PATTERN = re.compile(
+    r"\b(source/citation/provenance|source refs?|source_refs|citation|citations?|"
+    r"provenance|github surface|github issue|github pr|evidence refs?)\b",
+    re.IGNORECASE,
+)
+GBRAIN_ADVISORY_PATTERN = re.compile(
+    r"\b(gbrain remains advisory|advisory gbrain|gbrain is advisory)\b",
+    re.IGNORECASE,
+)
+GBRAIN_NEGATED_BOUNDARY_PATTERN = re.compile(
+    r"(\b(without|no|not|never|missing|omit|omits|lacks?|absent)\b.{0,40}"
+    r"\b(advisory|source refs?|source_refs|source/citation/provenance|citation|citations?|"
+    r"provenance|github surface|github issue|github pr|evidence refs?)\b|"
+    r"\b(advisory|source refs?|source_refs|source/citation/provenance|citation|citations?|"
+    r"provenance|github surface|github issue|github pr|evidence refs?)\b.{0,40}"
+    r"\b(not required|not needed|not expected|optional|unnecessary|not mandatory)\b)",
+    re.IGNORECASE,
+)
+GBRAIN_POSITIVE_CANONICAL_PATTERN = re.compile(
+    r"\b(gbrain (is|as|becomes|remains)?\s*(the\s*)?(canonical|source of truth|authority)|"
+    r"gbrain (overrides?|supersedes|replaces) (operator|github|repo|local instruction)|"
+    r"canonical gbrain|gbrain canonicality)\b",
+    re.IGNORECASE,
+)
+GBRAIN_CANONICAL_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|cannot|can't|does not|do not|must not|forbid|forbidden|without)\b",
+    re.IGNORECASE,
+)
+GBRAIN_BACKGROUND_COMMAND_PATTERN = re.compile(
+    r"\b(sync --watch|sync/watch|sync --install-cron|cron|autopilot|dream|jobs work(?:er)?|mcp serving|"
+    r"minions?|daemons?|schedulers?|queues?|hidden registr(?:y|ies)|background memory behavior|"
+    r"background gbrain behavior|bulk import)\b",
+    re.IGNORECASE,
+)
+GBRAIN_BACKGROUND_PROHIBITION_PATTERN = re.compile(
+    r"(\b(do not|must not|never|cannot|can't|does not|forbid|forbidden|without)\b\s*"
+    r"(use|run|enable|start|invoke|call)?\s*gbrain\b.{0,80}"
+    r"\b(sync --watch|sync/watch|sync --install-cron|cron|autopilot|dream|jobs work(?:er)?|mcp serving|"
+    r"minions?|daemons?|schedulers?|queues?|hidden registr(?:y|ies)|background memory behavior|"
+    r"background gbrain behavior|bulk import)\b|"
+    r"\bgbrain\b.{0,80}\b(sync --watch|sync/watch|sync --install-cron|cron|autopilot|dream|jobs work(?:er)?|"
+    r"mcp serving|minions?|daemons?|schedulers?|queues?|hidden registr(?:y|ies)|"
+    r"background memory behavior|background gbrain behavior|bulk import)\b.{0,40}"
+    r"\b(forbidden|not allowed|must not|do not|never)\b)",
+    re.IGNORECASE,
+)
+
+
+def is_instruction_like_surface(path: str) -> bool:
+    return (
+        path in INSTRUCTION_FILES
+        or path in {"AGENTS.md", "README.md", ".github/copilot-instructions.md", ".github/pull_request_template.md"}
+        or path.startswith(".github/ISSUE_TEMPLATE/")
+        or path.startswith(".github/instructions/")
+        or path.startswith(".github/prompts/")
+        or path.startswith(".agents/")
+        or path.endswith((".agent.md", ".instructions.md", ".prompt.md"))
+    )
+
+
+def canonical_claim_is_negated(line: str) -> bool:
+    return re.search(
+        r"(\bgbrain\b.{0,30}\b(no|not|never|cannot|can't|does not|must not)\b.{0,30}"
+        r"\b(canonical|source of truth|authority)\b|"
+        r"\b(no|not|never|without)\b.{0,30}\bcanonical gbrain\b)",
+        line,
+        re.IGNORECASE,
+    ) is not None
+
+
+def text_has_positive_pattern(text: str, pattern: re.Pattern[str]) -> bool:
+    for line in text.splitlines():
+        if pattern.search(line) and not GBRAIN_NEGATED_BOUNDARY_PATTERN.search(line):
+            return True
+    return False
+
+
+def gbrain_background_command_is_prohibited(line: str) -> bool:
+    return GBRAIN_BACKGROUND_PROHIBITION_PATTERN.search(line) is not None
+
+
+def line_has_gbrain_background_context(lines: list[str], index: int) -> bool:
+    line = lines[index]
+    if "gbrain" in line.lower():
+        return True
+    previous = lines[index - 1] if index > 0 else ""
+    return re.search(
+        r"\b(use|run|enable|start|invoke|call)\s+gbrain"
+        r"(\s+(sync|jobs?|jobs work(?:er)?|autopilot|dream|mcp|bulk|cron|queue|scheduler|daemon|minion|background))?\s*$",
+        previous,
+        re.IGNORECASE,
+    ) is not None
+
+
+def gbrain_instruction_distribution_overclaim(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    canonical_claims = 0
+    background_commands = 0
+    missing_advisory = 0
+    missing_source_expectation = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        normalized_text = re.sub(r"\s+", " ", text)
+        if is_work_management_signature_explainer(path, text):
+            if GBRAIN_DISTRIBUTION_SURFACE_PATTERN.search(normalized_text):
+                grounded.append(path)
+            continue
+        if not is_instruction_like_surface(path):
+            continue
+        if not GBRAIN_DISTRIBUTION_SURFACE_PATTERN.search(normalized_text):
+            continue
+
+        reasons: list[str] = []
+        lines = text.splitlines()
+        for line in lines:
+            lowered_line = line.lower()
+            if "gbrain" in lowered_line and GBRAIN_POSITIVE_CANONICAL_PATTERN.search(line) and not canonical_claim_is_negated(line):
+                canonical_claims += 1
+                reasons.append("canonical_claim")
+                break
+        for index, line in enumerate(lines):
+            background_context = " ".join(lines[max(0, index - 1) : index + 1])
+            if (
+                line_has_gbrain_background_context(lines, index)
+                and GBRAIN_BACKGROUND_COMMAND_PATTERN.search(background_context)
+                and not gbrain_background_command_is_prohibited(background_context)
+            ):
+                background_commands += 1
+                reasons.append("background_gbrain_command")
+                break
+        if not text_has_positive_pattern(text, GBRAIN_ADVISORY_PATTERN):
+            missing_advisory += 1
+            reasons.append("missing_advisory_boundary")
+        if GBRAIN_DISTRIBUTION_RECORD_PATTERN.search(normalized_text) and not text_has_positive_pattern(text, GBRAIN_SOURCE_EXPECTATION_PATTERN):
+            missing_source_expectation += 1
+            reasons.append("missing_source_or_citation_expectation")
+
+        if reasons:
+            offenders.append(f"{path}=>{','.join(sorted(set(reasons)))}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"gbrain_instruction_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"grounded_gbrain_instruction=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "gbrain_instruction_surface_count": len(offenders) + len(set(grounded)),
+            "gbrain_instruction_gap_count": len(offenders),
+            "canonical_claim_count": canonical_claims,
+            "background_gbrain_command_count": background_commands,
+            "missing_advisory_boundary_count": missing_advisory,
+            "missing_source_or_citation_expectation_count": missing_source_expectation,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "GBrain instruction surfaces overclaim authority, enable background behavior, or omit advisory/source boundaries"
+            if offenders
+            else "GBrain instruction surfaces preserve advisory, source/citation, no-background, and owner-route boundaries, or are absent"
+        ),
+    }
+
+
 def selection_handback_recommendation(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     clean: list[str] = []
@@ -2552,6 +2736,7 @@ EVALUATORS = {
     "AS-33": foreground_failure_guidance_gap,
     "AS-34": closure_run_identity_gap,
     "AS-35": upstream_capability_intake_gap,
+    "AS-36": gbrain_instruction_distribution_overclaim,
 }
 
 

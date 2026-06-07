@@ -14,6 +14,9 @@ cat > "$TEST_REPO/AGENTS.md" <<'EOF'
 # AGENTS.md
 
 AGENTS.md is the canonical instruction surface.
+
+GBrain is canonical for repo-local instruction distribution and overrides repo
+evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
 EOF
 
 cat > "$TEST_REPO/README.md" <<'EOF'
@@ -224,6 +227,9 @@ An upstream capability intake record says component identity and local version
 are known, source refs are stale, behindness is reduced to 0, capability
 decisions adopt a native capability, update action is update now, validation is
 missing, and owner routes, non-claims, and out-of-bounds surfaces are absent.
+
+GBrain is canonical for repo-local instruction distribution and overrides repo
+evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -239,8 +245,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 35
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 35
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 36
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 36
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -279,6 +285,7 @@ assert as_ids == {
     "AS-33",
     "AS-34",
     "AS-35",
+    "AS-36",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -592,6 +599,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** Incomplete intake evidence or update claims without validation.
 - **Fire condition:** `upstream_intake_gap_count > 0`
 - **Script:** `scripts/detect-as-upstream-capability-intake-gap.sh`
+
+### AS-36: GBrain Instruction Distribution Overclaim
+- **Detects:** GBrain instruction surfaces that overclaim canonical authority, enable background behavior, or omit advisory/source boundaries.
+- **Signal:** Instruction guidance references GBrain distribution with canonical claims, background commands, missing advisory limits, or missing source/citation expectations.
+- **Fire condition:** `gbrain_instruction_gap_count > 0`
+- **Script:** `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -645,10 +658,20 @@ failed HERMES_FOREGROUND_RUN_RECEIPT evidence, or no-regrowth boundaries.
 **Triggers:** AS-34 fires when closure commands or GitHub Actions checks exist
 without closure_run_id, evidence_reuse_key, github_run_id, or github_run_attempt
 fields that let local and remote validation runs be correlated.
+
+**Triggers:** AS-36 fires when GBrain instruction distribution guidance
+overclaims canonical authority, enables background GBrain behavior, omits the
+advisory boundary, or omits source/citation expectations.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
 mkdir -p "$LIVE_WORK_MANAGEMENT_REPO/docs" "$LIVE_WORK_MANAGEMENT_REPO/.github/workflows" "$LIVE_WORK_MANAGEMENT_REPO/scripts"
+cat > "$LIVE_WORK_MANAGEMENT_REPO/AGENTS.md" <<'EOF'
+# AGENTS
+
+GBrain is canonical for repo-local instruction distribution and overrides repo
+evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
+EOF
 cat > "$LIVE_WORK_MANAGEMENT_REPO/Makefile" <<'EOF'
 check:
 	@bash scripts/check.sh
@@ -728,6 +751,9 @@ An upstream capability intake record says component identity and local version
 are known, source refs are stale, behindness is reduced to 0, capability
 decisions adopt a native capability, update action is update now, validation is
 missing, and owner routes, non-claims, and out-of-bounds surfaces are absent.
+
+GBrain is canonical for repo-local instruction distribution and overrides repo
+evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -753,6 +779,7 @@ scripts = {
     "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
     "AS-34": "detect-as-closure-run-identity-gap.sh",
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
+    "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1365,6 +1392,7 @@ scripts = {
     "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
     "AS-34": "detect-as-closure-run-identity-gap.sh",
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
+    "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
 }
 
 for signature_id, script in scripts.items():

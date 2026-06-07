@@ -298,3 +298,23 @@
 - **Prevention tier:** T2
 - **Severity:** MEDIUM
 - **Script:** `scripts/detect-as-closure-run-identity-gap.sh`
+
+### AS-35: Upstream Capability Intake Gap
+- **Detects:** Upstream capability intake records missing required fields, validation, source refs, owner routes, or non-claims.
+- **Signal:** Incomplete intake evidence or update claims without validation.
+- **Phase range:** Upstream capability intake, default-capability decisions, and owner-route recommendation surfaces.
+- **Check:** Scan intake records for component identity, version, source refs, validation, owner routes, non-claims, out-of-bounds surfaces, behindness, and update-action consistency.
+- **Fire condition:** `upstream_intake_gap_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-upstream-capability-intake-gap.sh`
+
+### AS-36: GBrain Instruction Distribution Overclaim
+- **Detects:** GBrain instruction surfaces that overclaim canonical authority, enable background behavior, or omit advisory/source boundaries.
+- **Signal:** Repo-local instruction guidance references GBrain distribution with canonical claims, unbounded background commands, missing advisory limits, or missing source/citation expectations.
+- **Phase range:** Repo-local instruction surfaces, GitHub instruction/template surfaces, and agent skill surfaces.
+- **Check:** Scan instruction-like surfaces for GBrain distribution references; require advisory boundary wording and source/citation/provenance expectations, reject canonical override claims, and flag GBrain-tied background command enablement while allowing explicit prohibition lists.
+- **Fire condition:** `gbrain_instruction_gap_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh`
