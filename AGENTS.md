@@ -25,6 +25,17 @@ agent, skill, script, output, and token-budget inventories live in
   GitHub issue/PR-backed work, use `scripts/work-close.sh
   --github-native-closeout` so GitHub closure truth is not re-graded as local
   session ceremony.
+- Advisory GBrain distribution into repo-local instructions consumes
+  repo-agent-core `docs/gbrain-repo-local-instruction-distribution-contract.md`
+  and `templates/gbrain-repo-local-instruction-distribution.md` by copy-sync or
+  citation only. GBrain remains advisory: use records only with
+  source/citation/provenance or GitHub surface references, never as canonical
+  truth, and never to override operator intent, GitHub issue/PR/check/merge
+  truth, target/repo evidence, or repo-local instructions. Route stale,
+  missing, uncited, or overclaiming guidance to the owner surface. Do not use
+  GBrain bulk import, sync/watch, cron, autopilot, dream, jobs worker, MCP
+  serving, minions, daemons, schedulers, queues, hidden registries, or
+  background memory behavior.
 - Governed surface edits under `.agents/`, `.github/agents/`,
   `scripts/detect-*.sh`, or `schemas/*.json` require paired `tests/` or
   `fixtures/` changes in the same change set.
