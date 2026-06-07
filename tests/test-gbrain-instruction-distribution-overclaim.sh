@@ -9,7 +9,12 @@ trap 'rm -rf "$TMPDIR"' EXIT
 
 CANONICAL_REPO="$TMPDIR/canonical-repo"
 CANONICAL_UNRELATED_NEGATION_REPO="$TMPDIR/canonical-unrelated-negation-repo"
+CANONICAL_PRIOR_NEGATION_REPO="$TMPDIR/canonical-prior-negation-repo"
+CANONICAL_PRIOR_NO_PERIOD_NEGATION_REPO="$TMPDIR/canonical-prior-no-period-negation-repo"
+CANONICAL_PRIOR_BULLET_NEGATION_REPO="$TMPDIR/canonical-prior-bullet-negation-repo"
 BACKGROUND_REPO="$TMPDIR/background-repo"
+BACKGROUND_CRON_REPO="$TMPDIR/background-cron-repo"
+BACKGROUND_COMMAND_FIRST_REPO="$TMPDIR/background-command-first-repo"
 JOBS_WORKER_REPO="$TMPDIR/jobs-worker-repo"
 WRAPPED_BACKGROUND_REPO="$TMPDIR/wrapped-background-repo"
 WRAPPED_SYNC_BACKGROUND_REPO="$TMPDIR/wrapped-sync-background-repo"
@@ -23,7 +28,8 @@ UNRELATED_BACKGROUND_REPO="$TMPDIR/unrelated-background-repo"
 UNRELATED_GBRAIN_REPO="$TMPDIR/unrelated-gbrain-repo"
 SOURCE_NOT_REQUIRED_REPO="$TMPDIR/source-not-required-repo"
 HEALTHY_REPO="$TMPDIR/healthy-repo"
-mkdir -p "$CANONICAL_REPO" "$CANONICAL_UNRELATED_NEGATION_REPO" "$BACKGROUND_REPO" "$JOBS_WORKER_REPO" "$WRAPPED_BACKGROUND_REPO" "$WRAPPED_SYNC_BACKGROUND_REPO" "$MISSING_REPO" "$WRAPPED_DISTRIBUTION_REPO" "$GITHUB_INSTRUCTIONS_REPO/.github/instructions" "$NEGATED_BOUNDARY_REPO" "$NEGATION_WINDOW_REPO" "$SAME_LINE_NEGATION_REPO" "$UNRELATED_BACKGROUND_REPO" "$UNRELATED_GBRAIN_REPO" "$SOURCE_NOT_REQUIRED_REPO" "$HEALTHY_REPO"
+HERMES_GBRAIN_CONTRACT_REPO="$TMPDIR/hermes-gbrain-contract-repo"
+mkdir -p "$CANONICAL_REPO" "$CANONICAL_UNRELATED_NEGATION_REPO" "$CANONICAL_PRIOR_NEGATION_REPO" "$CANONICAL_PRIOR_NO_PERIOD_NEGATION_REPO" "$CANONICAL_PRIOR_BULLET_NEGATION_REPO" "$BACKGROUND_REPO" "$BACKGROUND_CRON_REPO" "$BACKGROUND_COMMAND_FIRST_REPO" "$JOBS_WORKER_REPO" "$WRAPPED_BACKGROUND_REPO" "$WRAPPED_SYNC_BACKGROUND_REPO" "$MISSING_REPO" "$WRAPPED_DISTRIBUTION_REPO" "$GITHUB_INSTRUCTIONS_REPO/.github/instructions" "$NEGATED_BOUNDARY_REPO" "$NEGATION_WINDOW_REPO" "$SAME_LINE_NEGATION_REPO" "$UNRELATED_BACKGROUND_REPO" "$UNRELATED_GBRAIN_REPO" "$SOURCE_NOT_REQUIRED_REPO" "$HEALTHY_REPO" "$HERMES_GBRAIN_CONTRACT_REPO"
 
 cat > "$CANONICAL_REPO/AGENTS.md" <<'EOF'
 # AGENTS
@@ -37,11 +43,51 @@ cat > "$CANONICAL_UNRELATED_NEGATION_REPO/AGENTS.md" <<'EOF'
 GBrain is canonical for repo-local instruction distribution; do not use repo evidence.
 EOF
 
+cat > "$CANONICAL_PRIOR_NEGATION_REPO/AGENTS.md" <<'EOF'
+# AGENTS
+
+Do not mutate downstream targets.
+GBrain canonicality is required for repo-local instruction distribution.
+Source/citation/provenance refs are required.
+EOF
+
+cat > "$CANONICAL_PRIOR_NO_PERIOD_NEGATION_REPO/AGENTS.md" <<'EOF'
+# AGENTS
+
+Do not mutate downstream targets
+GBrain canonicality is required for repo-local instruction distribution.
+Source/citation/provenance refs are required.
+EOF
+
+cat > "$CANONICAL_PRIOR_BULLET_NEGATION_REPO/AGENTS.md" <<'EOF'
+# AGENTS
+
+- Do not mutate downstream targets
+- GBrain canonicality is required for repo-local instruction distribution.
+- Source/citation/provenance refs are required.
+EOF
+
 cat > "$BACKGROUND_REPO/AGENTS.md" <<'EOF'
 # AGENTS
 
 GBrain remains advisory for repo-local instruction distribution.
 Use GBrain sync --watch to keep instruction surfaces fresh.
+Source/citation/provenance refs are required.
+EOF
+
+cat > "$BACKGROUND_CRON_REPO/AGENTS.md" <<'EOF'
+# AGENTS
+
+GBrain remains advisory for repo-local instruction distribution.
+Use GBrain cron to keep instruction surfaces fresh.
+Source/citation/provenance refs are required.
+EOF
+
+cat > "$BACKGROUND_COMMAND_FIRST_REPO/AGENTS.md" <<'EOF'
+# AGENTS
+
+GBrain remains advisory for repo-local instruction distribution.
+Use cron to refresh GBrain instruction surfaces.
 Source/citation/provenance refs are required.
 EOF
 
@@ -148,6 +194,24 @@ import, sync/watch, cron, autopilot, dream, jobs worker, MCP serving, minions,
 daemons, schedulers, queues, hidden registries, or background memory behavior.
 EOF
 
+cat > "$HERMES_GBRAIN_CONTRACT_REPO/README.md" <<'EOF'
+# Hermes Doer With GBrain-Distributed Instructions
+
+Hermes remains a bounded foreground first-attempt doer while consuming
+repo-local instruction surfaces that cite advisory GBrain distribution guidance.
+GBrain remains advisory and may be used only with source/citation/provenance or
+GitHub surface references. The contract forbids claims that promote GBrain
+canonicality, source-of-truth status, or a canonical GBrain memory claim.
+It also forbids background GBrain behavior, bulk import, sync/watch, cron,
+autopilot, dream, jobs worker, MCP serving, minions, daemons, schedulers,
+queues, hidden registries, or background memory behavior.
+
+This episode does not make GBrain canonical, does not let GBrain override
+operator intent, and does not run `gbrain sync --watch`, cron, autopilot, dream,
+jobs worker, MCP serving, minions, daemons, schedulers, queues, hidden
+registries, or background memory behavior.
+EOF
+
 canonical_json=$(bash "$SCRIPT" "$CANONICAL_REPO")
 printf '%s' "$canonical_json" | python3 -c '
 import json, sys
@@ -168,6 +232,36 @@ assert data["signals"]["canonical_claim_count"] >= 1
 '
 echo "  PASS: AS-36 does not let unrelated same-line negation suppress canonical claims"
 
+canonical_prior_negation_json=$(bash "$SCRIPT" "$CANONICAL_PRIOR_NEGATION_REPO")
+printf '%s' "$canonical_prior_negation_json" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["ds_id"] == "AS-36"
+assert data["fired"] is True
+assert data["signals"]["canonical_claim_count"] >= 1
+'
+echo "  PASS: AS-36 does not let unrelated prior-sentence negation suppress canonical claims"
+
+canonical_prior_no_period_negation_json=$(bash "$SCRIPT" "$CANONICAL_PRIOR_NO_PERIOD_NEGATION_REPO")
+printf '%s' "$canonical_prior_no_period_negation_json" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["ds_id"] == "AS-36"
+assert data["fired"] is True
+assert data["signals"]["canonical_claim_count"] >= 1
+'
+echo "  PASS: AS-36 does not let unrelated prior no-period negation suppress canonical claims"
+
+canonical_prior_bullet_negation_json=$(bash "$SCRIPT" "$CANONICAL_PRIOR_BULLET_NEGATION_REPO")
+printf '%s' "$canonical_prior_bullet_negation_json" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["ds_id"] == "AS-36"
+assert data["fired"] is True
+assert data["signals"]["canonical_claim_count"] >= 1
+'
+echo "  PASS: AS-36 does not let unrelated prior bullet negation suppress canonical claims"
+
 background_json=$(bash "$SCRIPT" "$BACKGROUND_REPO")
 printf '%s' "$background_json" | python3 -c '
 import json, sys
@@ -177,6 +271,26 @@ assert data["fired"] is True
 assert data["signals"]["background_gbrain_command_count"] >= 1
 '
 echo "  PASS: AS-36 fires on un-negated background GBrain commands"
+
+background_cron_json=$(bash "$SCRIPT" "$BACKGROUND_CRON_REPO")
+printf '%s' "$background_cron_json" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["ds_id"] == "AS-36"
+assert data["fired"] is True
+assert data["signals"]["background_gbrain_command_count"] >= 1
+'
+echo "  PASS: AS-36 fires on un-negated GBrain cron guidance"
+
+background_command_first_json=$(bash "$SCRIPT" "$BACKGROUND_COMMAND_FIRST_REPO")
+printf '%s' "$background_command_first_json" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["ds_id"] == "AS-36"
+assert data["fired"] is True
+assert data["signals"]["background_gbrain_command_count"] >= 1
+'
+echo "  PASS: AS-36 fires on command-first GBrain background guidance"
 
 jobs_worker_json=$(bash "$SCRIPT" "$JOBS_WORKER_REPO")
 printf '%s' "$jobs_worker_json" | python3 -c '
@@ -309,5 +423,17 @@ assert data["fired"] is False
 assert data["signals"]["gbrain_instruction_surface_count"] >= 1
 '
 echo "  PASS: AS-36 accepts bounded advisory GBrain instruction guidance"
+
+hermes_gbrain_contract_json=$(bash "$SCRIPT" "$HERMES_GBRAIN_CONTRACT_REPO")
+printf '%s' "$hermes_gbrain_contract_json" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["ds_id"] == "AS-36"
+assert data["fired"] is False, data
+assert data["signals"]["gbrain_instruction_surface_count"] >= 1
+assert data["signals"]["canonical_claim_count"] == 0
+assert data["signals"]["background_gbrain_command_count"] == 0
+'
+echo "  PASS: AS-36 accepts bounded Hermes/GBrain contract non-claims"
 
 echo "  VERDICT: PASS"

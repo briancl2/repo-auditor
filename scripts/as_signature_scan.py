@@ -1579,10 +1579,12 @@ GBRAIN_BACKGROUND_COMMAND_PATTERN = re.compile(
 )
 GBRAIN_BACKGROUND_PROHIBITION_PATTERN = re.compile(
     r"(\b(do not|must not|never|cannot|can't|does not|forbid|forbidden|without)\b\s*"
-    r"(use|run|enable|start|invoke|call)?\s*gbrain\b.{0,80}"
+    r"(use|run|enable|start|invoke|call)?\s*`?gbrain`?\b.{0,80}"
     r"\b(sync --watch|sync/watch|sync --install-cron|cron|autopilot|dream|jobs work(?:er)?|mcp serving|"
     r"minions?|daemons?|schedulers?|queues?|hidden registr(?:y|ies)|background memory behavior|"
     r"background gbrain behavior|bulk import)\b|"
+    r"\b(forbid|forbids|forbidden)\b.{0,40}"
+    r"\b(background gbrain behavior|background memory behavior|bulk import|sync/watch|sync --watch)\b|"
     r"\bgbrain\b.{0,80}\b(sync --watch|sync/watch|sync --install-cron|cron|autopilot|dream|jobs work(?:er)?|"
     r"mcp serving|minions?|daemons?|schedulers?|queues?|hidden registr(?:y|ies)|"
     r"background memory behavior|background gbrain behavior|bulk import)\b.{0,40}"
@@ -1606,11 +1608,33 @@ def is_instruction_like_surface(path: str) -> bool:
 def canonical_claim_is_negated(line: str) -> bool:
     return re.search(
         r"(\bgbrain\b.{0,30}\b(no|not|never|cannot|can't|does not|must not)\b.{0,30}"
-        r"\b(canonical|source of truth|authority)\b|"
-        r"\b(no|not|never|without)\b.{0,30}\bcanonical gbrain\b)",
+        r"\b(canonical(?:ity)?|source of truth|authority)\b|"
+        r"\bdoes not make\b.{0,30}\bgbrain\b.{0,30}\bcanonical(?:ity)?\b|"
+        r"\b(no|not|never|without|must not|forbid(?:s|den)?|does not(?: authorize)?)\b[^.]{0,240}"
+        r"\b(gbrain canonicality|canonical[- ]gbrain|canonical gbrain)\b)",
         line,
         re.IGNORECASE,
     ) is not None
+
+
+def canonical_claim_negation_context(lines: list[str], index: int) -> str:
+    context = [lines[index]]
+    current_is_bullet = re.match(r"\s*[-*]\s+", lines[index]) is not None
+    current_starts_lower = lines[index].lstrip()[:1].islower()
+    for prior_index in range(index - 1, max(-1, index - 4), -1):
+        prior_line = lines[prior_index]
+        if not prior_line.strip():
+            break
+        prior_is_bullet = re.match(r"\s*[-*]\s+", prior_line) is not None
+        if current_is_bullet and prior_is_bullet:
+            break
+        prior_continues_clause = re.search(r"(,|\bor\b|\band\b)\s*$", prior_line.strip(), re.IGNORECASE) is not None
+        if not prior_continues_clause and not current_starts_lower:
+            break
+        context.insert(0, prior_line)
+        if "." in prior_line:
+            break
+    return " ".join(context)
 
 
 def text_has_positive_pattern(text: str, pattern: re.Pattern[str]) -> bool:
@@ -1622,6 +1646,24 @@ def text_has_positive_pattern(text: str, pattern: re.Pattern[str]) -> bool:
 
 def gbrain_background_command_is_prohibited(line: str) -> bool:
     return GBRAIN_BACKGROUND_PROHIBITION_PATTERN.search(line) is not None
+
+
+def is_gbrain_background_command_context(text: str) -> bool:
+    return re.search(
+        r"(\bgbrain\b.{0,100}\b(sync --watch|sync/watch|sync --install-cron|autopilot|dream|"
+        r"jobs work(?:er)?|mcp serving|cron|minions?|daemons?|schedulers?|queues?|"
+        r"hidden registr(?:y|ies)|bulk import|background (?:gbrain )?(?:memory )?behavior)\b|"
+        r"\b(use|run|enable|start|invoke|call)\s+`?gbrain`?\b.{0,100}"
+        r"\b(sync --watch|sync/watch|sync --install-cron|cron|autopilot|dream|jobs work(?:er)?|"
+        r"mcp serving|minions?|daemons?|schedulers?|queues?|hidden registr(?:y|ies)|"
+        r"background memory behavior|background gbrain behavior|bulk import)\b|"
+        r"\b(use|run|enable|start|invoke|call)\s+"
+        r"(sync --watch|sync/watch|sync --install-cron|cron|autopilot|dream|jobs work(?:er)?|"
+        r"mcp serving|minions?|daemons?|schedulers?|queues?|hidden registr(?:y|ies)|"
+        r"background memory behavior|background gbrain behavior|bulk import)\b.{0,100}\bgbrain\b)",
+        text,
+        re.IGNORECASE,
+    ) is not None
 
 
 def line_has_gbrain_background_context(lines: list[str], index: int) -> bool:
@@ -1658,9 +1700,14 @@ def gbrain_instruction_distribution_overclaim(texts: dict[str, str]) -> dict[str
 
         reasons: list[str] = []
         lines = text.splitlines()
-        for line in lines:
+        for index, line in enumerate(lines):
             lowered_line = line.lower()
-            if "gbrain" in lowered_line and GBRAIN_POSITIVE_CANONICAL_PATTERN.search(line) and not canonical_claim_is_negated(line):
+            canonical_context = canonical_claim_negation_context(lines, index)
+            if (
+                "gbrain" in lowered_line
+                and GBRAIN_POSITIVE_CANONICAL_PATTERN.search(line)
+                and not canonical_claim_is_negated(canonical_context)
+            ):
                 canonical_claims += 1
                 reasons.append("canonical_claim")
                 break
@@ -1669,6 +1716,7 @@ def gbrain_instruction_distribution_overclaim(texts: dict[str, str]) -> dict[str
             if (
                 line_has_gbrain_background_context(lines, index)
                 and GBRAIN_BACKGROUND_COMMAND_PATTERN.search(background_context)
+                and is_gbrain_background_command_context(background_context)
                 and not gbrain_background_command_is_prohibited(background_context)
             ):
                 background_commands += 1
@@ -2011,7 +2059,13 @@ FOREGROUND_FAILURE_GUIDANCE_CLAIM_PATTERN = re.compile(
 )
 FOREGROUND_FAILURE_GUIDANCE_CONSUMPTION_PATTERN = re.compile(
     r"\b(HERMES_FOREGROUND_FAILURE_GUIDANCE|--from-hermes-guidance|"
-    r"foreground recovery runtime contract)\b",
+    r"foreground recovery runtime contract)\b|"
+    r"\b(consumes?|uses?|requires?|records?|includes?)\b.{0,80}\bfailure_guidance\b|"
+    r"\bfailure_guidance\b.{0,80}\b(receipt field|path|url|not-applicable reason)\b",
+    re.IGNORECASE,
+)
+FOREGROUND_FAILURE_GUIDANCE_NEGATED_CONSUMPTION_PATTERN = re.compile(
+    r"\b(does not|without|missing|omit(?:s|ted)?|lacks?)\b.{0,80}$",
     re.IGNORECASE,
 )
 ROUTE_CHANGING_GITHUB_OWNER_TRUTH_PATTERN = re.compile(
@@ -2055,6 +2109,15 @@ def is_foreground_failure_guidance_surface(path: str) -> bool:
         or lowered.startswith(".github/")
         or lowered.startswith(".agents/")
     )
+
+
+def has_foreground_failure_guidance_consumption(text: str) -> bool:
+    for match in FOREGROUND_FAILURE_GUIDANCE_CONSUMPTION_PATTERN.finditer(text):
+        prefix = text[max(0, match.start() - 100) : match.start()]
+        if FOREGROUND_FAILURE_GUIDANCE_NEGATED_CONSUMPTION_PATTERN.search(prefix):
+            continue
+        return True
+    return False
 RESERVED_STATUS_ASSIGNMENT_PATTERN = re.compile(r"(^|[;&|({\s\"'])status=")
 AS27_REPLAY_EVIDENCE_PATH_PATTERN = re.compile(
     r"(^|/)acceptance/replays/[^/]+/(AS_WORK_MANAGEMENT_FINDINGS\.json|advisor-stdout\.txt)$|"
@@ -2552,7 +2615,7 @@ def foreground_failure_guidance_gap(texts: dict[str, str]) -> dict[str, Any]:
         if not FOREGROUND_FAILURE_GUIDANCE_CLAIM_PATTERN.search(text):
             continue
 
-        has_guidance_consumption = FOREGROUND_FAILURE_GUIDANCE_CONSUMPTION_PATTERN.search(text) is not None
+        has_guidance_consumption = has_foreground_failure_guidance_consumption(text)
         has_github_owner_truth = ROUTE_CHANGING_GITHUB_OWNER_TRUTH_PATTERN.search(text) is not None
         has_failed_receipt_evidence = FAILED_FOREGROUND_RECEIPT_EVIDENCE_PATTERN.search(text) is not None
         control_term_count = sum(1 for pattern in NO_REGROWTH_CONTROL_TERMS.values() if pattern.search(text))
