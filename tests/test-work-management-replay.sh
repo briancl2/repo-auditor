@@ -110,6 +110,21 @@ queue, daemon, retry loop, background watcher, or target-repo mutation; this is
 not a runtime dependency and does not authorize downstream mutation.
 EOF
 
+cat > "$CLEAN_REPO/docs/hermes-doer-gbrain-distributed-instructions-contract.md" <<'EOF'
+# Hermes Doer With GBrain-Distributed Instructions Contract
+
+Hermes foreground recovery for route-changing foreground failures must remain
+bounded to a foreground first-attempt doer. The contract consumes a
+failure_guidance receipt field and routes failure to GitHub issue truth plus
+owner truth before Codex fallback.
+
+Failed HERMES_FOREGROUND_RUN_RECEIPT evidence includes status_code, stderr_tail,
+exit code, and failed run receipt evidence. No-regrowth boundaries forbid
+controller, scheduler, queue, daemon, retry loop, background behavior, hidden
+registry, and downstream mutation. This does not authorize target-repo mutation,
+automatic issue creation, or campaign ownership by Hermes.
+EOF
+
 commit_git_fixture "$CLEAN_REPO" "clean replay fixture"
 
 cat > "$REGROWTH_REPO/docs/retained-local-closeout.md" <<'EOF'
@@ -140,8 +155,9 @@ workflow.
 
 Hermes foreground recovery for a route-changing foreground failure is now
 recommended, but the guidance omits the failure guidance environment contract,
-owner issue truth, failed foreground run receipt evidence, and no-regrowth
-boundaries.
+owner issue truth, failed foreground run receipt evidence, failure_guidance,
+and no-regrowth boundaries. It does not consume a failure_guidance receipt
+field.
 EOF
 
 commit_git_fixture "$STALE_REPO" "stale replay fixture"
