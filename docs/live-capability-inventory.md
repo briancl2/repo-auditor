@@ -11,7 +11,7 @@ The calibrated detector separates live surfaces from retained, archive, test-fix
 
 | Field | Value |
 |---|---|
-| Calibrated detector live paths | 114 |
+| Calibrated detector live paths | 115 |
 | Additional active helpers tracked by owner review | 3 |
 | Calibrated tracking-surface gaps closed by this PR | 98 |
 | Delete/archive candidates selected here | 0 |
@@ -73,6 +73,7 @@ The calibrated detector separates live surfaces from retained, archive, test-fix
 | `scripts/detect-as-forbidden-public-customernewsletter-mutation.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-foreground-failure-guidance-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-fractured-serial-continuation.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
+| `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh` | runtime-loaded deterministic detector | Issue #164 owner-route addition for GBrain repo-local instruction distribution overclaims | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-github-native-closure-regrowth.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-goal-runtime-evidence-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-hermes-foreground-receipt-adoption-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |

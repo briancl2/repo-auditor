@@ -224,6 +224,10 @@ An upstream capability intake record says component identity and local version
 are known, source refs are stale, behindness is reduced to 0, capability
 decisions adopt a native capability, update action is update now, validation is
 missing, and owner routes, non-claims, and out-of-bounds surfaces are absent.
+
+GBrain distribution should be canonical memory for repo-local instruction
+surfaces, and agents should enable sync --watch so background memory stays
+current.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -239,8 +243,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 35
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 35
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 36
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 36
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -279,6 +283,7 @@ assert as_ids == {
     "AS-33",
     "AS-34",
     "AS-35",
+    "AS-36",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -592,6 +597,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** Incomplete intake evidence or update claims without validation.
 - **Fire condition:** `upstream_intake_gap_count > 0`
 - **Script:** `scripts/detect-as-upstream-capability-intake-gap.sh`
+
+### AS-36: GBrain Instruction Distribution Overclaim
+- **Detects:** Repo-local instruction surfaces that cite GBrain distribution as canonical, enable background GBrain behavior, or omit advisory/citation/no-background boundaries.
+- **Signal:** GBrain instruction distribution guidance lacks advisory, citation, no-background, or authority boundaries.
+- **Fire condition:** `gbrain_instruction_distribution_gap_count > 0`
+- **Script:** `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -728,6 +739,10 @@ An upstream capability intake record says component identity and local version
 are known, source refs are stale, behindness is reduced to 0, capability
 decisions adopt a native capability, update action is update now, validation is
 missing, and owner routes, non-claims, and out-of-bounds surfaces are absent.
+
+GBrain distribution should be canonical memory for repo-local instruction
+surfaces, and agents should enable sync --watch so background memory stays
+current.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -753,6 +768,7 @@ scripts = {
     "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
     "AS-34": "detect-as-closure-run-identity-gap.sh",
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
+    "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1365,6 +1381,7 @@ scripts = {
     "AS-33": "detect-as-foreground-failure-guidance-gap.sh",
     "AS-34": "detect-as-closure-run-identity-gap.sh",
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
+    "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1500,6 +1517,161 @@ operations_inventory = subprocess.run(["bash", script, operations_inventory_repo
 payload = json.loads(operations_inventory.stdout)
 assert payload["ds_id"] == "AS-28", payload
 assert payload["fired"] is False, payload
+PY
+
+GBRAIN_OVERCLAIM_REPO="$TMPDIR/as-gbrain-overclaim-repo"
+mkdir -p "$GBRAIN_OVERCLAIM_REPO"
+cat > "$GBRAIN_OVERCLAIM_REPO/AGENTS.md" <<'EOF'
+# GBrain Distribution
+
+Use GBrain distribution as canonical memory for repo-local instruction surfaces.
+Enable sync --watch so agents always receive the latest distributed memory.
+EOF
+
+GBRAIN_BOUNDED_REPO="$TMPDIR/as-gbrain-bounded-repo"
+mkdir -p "$GBRAIN_BOUNDED_REPO"
+cat > "$GBRAIN_BOUNDED_REPO/AGENTS.md" <<'EOF'
+# GBrain Distribution
+
+GBrain distribution records are advisory memory for repo-local instruction
+surfaces. GBrain remains advisory and cites the repo-agent-core
+docs/gbrain-repo-local-instruction-distribution-contract.md contract. GBrain
+does not override operator intent, GitHub issue/PR/check/merge truth, repo
+files, or repo-native tests. Decision-changing retrieval cites the slug and
+source refs, or records a no-hit/no-capture reason on the GitHub issue or PR
+surface. Do not enable sync --watch, bulk import, cron, autopilot, dream, jobs
+worker, MCP serving, minions, daemons, queues, schedulers, hidden registries,
+background behavior, or background memory behavior. This does not make GBrain
+canonical and does not write canonical records. GBrain is advisory, not
+canonical. Enable retrieval. Do not run sync --watch.
+EOF
+
+GBRAIN_CONTRADICTORY_REPO="$TMPDIR/as-gbrain-contradictory-repo"
+mkdir -p "$GBRAIN_CONTRADICTORY_REPO"
+cat > "$GBRAIN_CONTRADICTORY_REPO/AGENTS.md" <<'EOF'
+# GBrain Distribution
+
+GBrain distribution records are advisory memory for repo-local instruction
+surfaces. GBrain remains advisory and cites the repo-agent-core
+docs/gbrain-repo-local-instruction-distribution-contract.md contract. GBrain
+does not override operator intent, GitHub issue/PR/check/merge truth, repo
+files, or repo-native tests. Decision-changing retrieval cites the slug and
+source refs, or records a no-hit/no-capture reason on the GitHub issue or PR
+surface. Do not run sync --watch, cron, autopilot, dream, jobs worker, MCP
+serving, minions, daemons, queues, schedulers, hidden registries, or background
+memory behavior. This does not make GBrain canonical. Enable cron background
+memory after the advisory distribution lands.
+Run bulk import and install hidden registries for automatic distribution.
+EOF
+
+GBRAIN_MISSING_AUTHORITY_REPO="$TMPDIR/as-gbrain-missing-authority-repo"
+mkdir -p "$GBRAIN_MISSING_AUTHORITY_REPO"
+cat > "$GBRAIN_MISSING_AUTHORITY_REPO/AGENTS.md" <<'EOF'
+# GBrain Distribution
+
+GBrain distribution records are advisory memory for repo-local instruction
+surfaces. GBrain remains advisory and cites the repo-agent-core
+docs/gbrain-repo-local-instruction-distribution-contract.md contract. GBrain
+does not override GitHub truth. Retrieval cites the slug and source refs, or
+records a no-hit/no-capture reason. Operator intent, repo files, and
+repo-native tests are mentioned elsewhere as ordinary context. Do not run sync
+--watch, cron, autopilot, dream, jobs worker, MCP serving, minions, daemons,
+queues, schedulers, hidden registries, or background memory behavior. This does
+not make GBrain canonical and does not write canonical records.
+EOF
+
+GBRAIN_MISSING_CONTRACT_REPO="$TMPDIR/as-gbrain-missing-contract-repo"
+mkdir -p "$GBRAIN_MISSING_CONTRACT_REPO"
+cat > "$GBRAIN_MISSING_CONTRACT_REPO/AGENTS.md" <<'EOF'
+# GBrain Distribution
+
+GBrain distribution records are advisory memory for repo-local instruction
+surfaces. GBrain remains advisory and does not override operator intent, GitHub
+issue/PR/check/merge truth, repo files, or repo-native tests. Decision-changing
+retrieval cites the slug and source refs, or records a no-hit/no-capture reason
+on the GitHub issue or PR surface. Do not run sync --watch, cron, autopilot,
+dream, jobs worker, MCP serving, minions, daemons, queues, schedulers, hidden
+registries, or background memory behavior. This does not make GBrain canonical
+and does not write canonical records.
+EOF
+
+GBRAIN_NEGATED_BOUNDARY_REPO="$TMPDIR/as-gbrain-negated-boundary-repo"
+mkdir -p "$GBRAIN_NEGATED_BOUNDARY_REPO"
+cat > "$GBRAIN_NEGATED_BOUNDARY_REPO/AGENTS.md" <<'EOF'
+# GBrain Distribution
+
+GBrain distribution records are not advisory memory for repo-local instruction
+surfaces. The guidance cites the repo-agent-core
+docs/gbrain-repo-local-instruction-distribution-contract.md contract. GBrain
+does not override operator intent, GitHub issue/PR/check/merge truth, repo
+files, or repo-native tests. No citation is required and no source refs are
+needed for retrieval. Do not run sync --watch, cron, autopilot, dream, jobs
+worker, MCP serving, minions, daemons, queues, schedulers, hidden registries, or
+background memory behavior. This does not make GBrain canonical and does not
+write canonical records.
+EOF
+
+GBRAIN_ACTIVE_DOC_OVERCLAIM_REPO="$TMPDIR/as-gbrain-active-doc-overclaim-repo"
+mkdir -p "$GBRAIN_ACTIVE_DOC_OVERCLAIM_REPO/docs"
+cat > "$GBRAIN_ACTIVE_DOC_OVERCLAIM_REPO/docs/agent-operations.md" <<'EOF'
+# Agent Operations
+
+Use GBrain distribution as canonical memory for repo-local instruction surfaces.
+Enable sync --watch so every agent receives fresh memory without owner review.
+EOF
+
+python3 - "$REPO_ROOT" "$GBRAIN_OVERCLAIM_REPO" "$GBRAIN_BOUNDED_REPO" "$GBRAIN_CONTRADICTORY_REPO" "$GBRAIN_MISSING_AUTHORITY_REPO" "$GBRAIN_MISSING_CONTRACT_REPO" "$GBRAIN_NEGATED_BOUNDARY_REPO" "$GBRAIN_ACTIVE_DOC_OVERCLAIM_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, overclaim_repo, bounded_repo, contradictory_repo, missing_authority_repo, missing_contract_repo, negated_boundary_repo, active_doc_overclaim_repo = sys.argv[1:9]
+script = f"{repo_root}/scripts/detect-as-gbrain-instruction-distribution-overclaim.sh"
+
+overclaim = subprocess.run(["bash", script, overclaim_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(overclaim.stdout)
+assert payload["ds_id"] == "AS-36", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["canonical_claim_count"] == 1, payload
+assert payload["signals"]["background_gbrain_claim_count"] == 1, payload
+
+bounded = subprocess.run(["bash", script, bounded_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(bounded.stdout)
+assert payload["ds_id"] == "AS-36", payload
+assert payload["fired"] is False, payload
+assert payload["signals"]["gbrain_instruction_distribution_surface_count"] == 1, payload
+
+contradictory = subprocess.run(["bash", script, contradictory_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(contradictory.stdout)
+assert payload["ds_id"] == "AS-36", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["background_gbrain_claim_count"] == 1, payload
+
+missing_authority = subprocess.run(["bash", script, missing_authority_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(missing_authority.stdout)
+assert payload["ds_id"] == "AS-36", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["missing_authority_boundary_count"] == 1, payload
+
+missing_contract = subprocess.run(["bash", script, missing_contract_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(missing_contract.stdout)
+assert payload["ds_id"] == "AS-36", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["missing_contract_citation_count"] == 1, payload
+
+negated_boundary = subprocess.run(["bash", script, negated_boundary_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(negated_boundary.stdout)
+assert payload["ds_id"] == "AS-36", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["missing_advisory_boundary_count"] == 1, payload
+assert payload["signals"]["missing_citation_expectation_count"] == 1, payload
+
+active_doc_overclaim = subprocess.run(["bash", script, active_doc_overclaim_repo], check=True, text=True, stdout=subprocess.PIPE)
+payload = json.loads(active_doc_overclaim.stdout)
+assert payload["ds_id"] == "AS-36", payload
+assert payload["fired"] is True, payload
+assert payload["signals"]["canonical_claim_count"] == 1, payload
+assert payload["signals"]["background_gbrain_claim_count"] == 1, payload
 PY
 
 NOISE_REPO="$TMPDIR/as-noise-only-repo"

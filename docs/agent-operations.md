@@ -32,13 +32,14 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 |---|---|
 | `scripts/repo-auditor.sh` | Main orchestrator: pre-scan, score, report |
 | `scripts/score-audit-dimensions.sh` | Five-dimension scorer |
-| `scripts/replay-work-management-signatures.py` | Bounded read-only AS-20 through AS-34 replay across named targets, including core-five recovery-runtime AS-29 through AS-33 precision examples and downstream read-only pilot receipt fields |
+| `scripts/replay-work-management-signatures.py` | Bounded read-only AS-20 through AS-36 replay across named targets, including core-five recovery-runtime AS-29 through AS-33 precision examples and downstream read-only pilot receipt fields |
 | `scripts/detect-as-interrupted-goal-recovery-gap.sh` | AS-30 interrupted Goal recovery contract-field detector |
 | `scripts/detect-as-fractured-serial-continuation.sh` | AS-31 fractured serial continuation detector |
 | `scripts/detect-as-unanchored-self-learning-claim.sh` | AS-32 unanchored self-learning/self-healing claim detector |
 | `scripts/detect-as-foreground-failure-guidance-gap.sh` | AS-33 foreground failure guidance gap detector |
 | `scripts/detect-as-closure-run-identity-gap.sh` | AS-34 closure-run identity gap detector |
 | `scripts/detect-as-upstream-capability-intake-gap.sh` | AS-35 upstream capability intake evidence completeness detector |
+| `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh` | AS-36 GBrain instruction distribution overclaim detector |
 | `scripts/compare-scorecards.sh` | Pre/post scorecard deltas |
 | `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
 | `scripts/stall-risk-score.sh` | Six-signal stall risk predictor |
@@ -64,7 +65,7 @@ status-variable launch snippets, stale/default capability guidance, Hermes
 foreground receipt adoption gaps, interruption recovery gaps, fractured serial
 continuation, unanchored self-learning claims, foreground failure guidance gaps,
 and closure-run identity gaps. The work-management replay harness emits
-`AS_WORK_MANAGEMENT_REPLAY.json` for bounded AS-20 through AS-34 detector
+`AS_WORK_MANAGEMENT_REPLAY.json` for bounded AS-20 through AS-36 detector
 precision checks, plus per-target
 `DOWNSTREAM_READ_ONLY_RECOVERY_RUNTIME_PILOT_RECEIPT` fields that record target
 identity, before/after git state, retained auditor replay artifact path, pending

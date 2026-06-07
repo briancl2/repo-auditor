@@ -223,6 +223,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-upstream-capability-intake-gap.sh",
     },
+    "AS-36": {
+        "name": "GBrain instruction distribution overclaim",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-gbrain-instruction-distribution-overclaim.sh",
+    },
 }
 
 
@@ -1320,7 +1326,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[0-4]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-6]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1335,6 +1341,7 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"closure-run identity gap|closure run identity gap|closure_run_identity_gap|"
     r"closure-run identity|closure run identity|"
     r"upstream capability intake gap|upstream capability intake|"
+    r"gbrain instruction distribution overclaim|gbrain instruction distribution|"
     r"foreground recovery runtime contract)\b",
     re.IGNORECASE,
 )
@@ -1521,6 +1528,210 @@ def upstream_capability_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
             "upstream capability intake records are incomplete, stale, or claim updates without validation"
             if offenders
             else "upstream capability intake records are field-complete and bounded, or absent"
+        ),
+    }
+
+
+GBRAIN_DISTRIBUTION_SURFACE_PATTERN = re.compile(
+    r"\bgbrain\b(?=[\s\S]{0,220}\b(distribution|repo-local instruction|instruction surface|"
+    r"AGENTS\.md|copilot-instructions|memory|retrieval|citation)\b)",
+    re.IGNORECASE,
+)
+GBRAIN_ADVISORY_BOUNDARY_PATTERN = re.compile(
+    r"\b(gbrain\s+(?:distribution records\s+)?(?:remains|is)\s+advisory|"
+    r"advisory gbrain|advisory memory)\b",
+    re.IGNORECASE,
+)
+GBRAIN_AUTHORITY_NEGATION_PATTERN = re.compile(
+    r"\b(does\s+not\s+override|do\s+not\s+override|not\s+override|must\s+not\s+override)\b",
+    re.IGNORECASE,
+)
+GBRAIN_AUTHORITY_REQUIRED_PATTERNS = {
+    "operator_intent": re.compile(r"\boperator intent\b", re.IGNORECASE),
+    "github_truth": re.compile(r"\b(github\s+issue/pr/check/merge truth|github truth)\b", re.IGNORECASE),
+    "repo_files": re.compile(r"\brepo\s+files\b", re.IGNORECASE),
+    "repo_native_tests": re.compile(r"\brepo-native\s+tests\b", re.IGNORECASE),
+}
+GBRAIN_CITATION_EXPECTATION_PATTERN = re.compile(
+    r"\b(?:retrieval|gbrain|records?|guidance|distribution)\b.{0,140}"
+    r"\b(?:cites?|records?|requires?|expects?)\b.{0,140}"
+    r"\b(slug|source refs?|citations?|no-hit|no-capture)\b",
+    re.IGNORECASE,
+)
+GBRAIN_CONTRACT_CITATION_PATTERN = re.compile(
+    r"\b(repo-agent-core\b[\s\S]{0,160})?docs/gbrain-repo-local-instruction-distribution-contract\.md\b",
+    re.IGNORECASE,
+)
+GBRAIN_FORBIDDEN_BEHAVIOR_PATTERN = (
+    r"sync --watch|bulk import|cron|autopilot|dream|jobs worker|mcp serving|mcp server|"
+    r"minions|daemons?|queues?|schedulers?|hidden registries|background memory|"
+    r"background behavior|background sync"
+)
+GBRAIN_NO_BACKGROUND_PATTERN = re.compile(
+    r"\b(no|do not|does not|must not|forbidden|forbid(?:s|den)?)\b.{0,180}"
+    rf"\b({GBRAIN_FORBIDDEN_BEHAVIOR_PATTERN})\b",
+    re.IGNORECASE | re.DOTALL,
+)
+GBRAIN_CANONICAL_CLAIM_PATTERN = re.compile(
+    r"\b(gbrain\b.{0,80}\b(?:is|becomes|as|serves as|should be|must be)\s+"
+    r"(?:the\s+)?(?:canonical|authoritative)|canonical gbrain|"
+    r"gbrain canonicality|canonical memory)\b",
+    re.IGNORECASE,
+)
+GBRAIN_CANONICAL_NONCLAIM_PATTERN = re.compile(
+    r"\b(does not|do not|not|never|no)\b.{0,80}\b(gbrain canonical|canonical records|canonical memory|canonicality)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+GBRAIN_BACKGROUND_POSITIVE_PATTERN = re.compile(
+    r"\b(enable|start|run|use|adopt|install|schedule)\b[^.!?]{0,80}"
+    rf"\b({GBRAIN_FORBIDDEN_BEHAVIOR_PATTERN})\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def has_unnegated_match(text: str, pattern: re.Pattern[str]) -> bool:
+    for match in pattern.finditer(text):
+        prefix_start = max(
+            text.rfind(".", 0, match.start()),
+            text.rfind("!", 0, match.start()),
+            text.rfind("?", 0, match.start()),
+        )
+        prefix = text[prefix_start + 1:match.start()]
+        if re.search(r"\b(no|do not|does not|must not|never|forbid(?:s|den)?)\b.{0,35}$", prefix, re.IGNORECASE | re.DOTALL):
+            continue
+        return True
+    return False
+
+
+def has_positive_boundary(text: str, pattern: re.Pattern[str]) -> bool:
+    for match in pattern.finditer(text):
+        prefix_start = max(
+            text.rfind(".", 0, match.start()),
+            text.rfind("!", 0, match.start()),
+            text.rfind("?", 0, match.start()),
+        )
+        prefix = text[prefix_start + 1:match.start()]
+        if re.search(r"\b(no|not|without|does not|do not|must not|never)\b.{0,45}$", prefix, re.IGNORECASE | re.DOTALL):
+            continue
+        return True
+    return False
+
+
+def is_gbrain_instruction_surface(path: str) -> bool:
+    lowered = path.lower()
+    return (
+        path in INSTRUCTION_FILES
+        or lowered.startswith("docs/")
+        or lowered.startswith(".github/")
+        or lowered.startswith(".agents/")
+    )
+
+
+def is_gbrain_distribution_detector_explainer(path: str, text: str) -> bool:
+    if path not in {"docs/live-capability-inventory.md", "docs/agent-operations.md"}:
+        return False
+    return (
+        "AS-36" in text
+        or "detect-as-gbrain-instruction-distribution-overclaim.sh" in text
+        or "GBrain instruction distribution overclaim detector" in text
+    )
+
+
+def has_gbrain_authority_boundary(text: str) -> bool:
+    for match in GBRAIN_AUTHORITY_NEGATION_PATTERN.finditer(text):
+        sentence_end_candidates = [
+            index for index in (
+                text.find(".", match.end()),
+                text.find("!", match.end()),
+                text.find("?", match.end()),
+            )
+            if index != -1
+        ]
+        sentence_end = min(sentence_end_candidates) if sentence_end_candidates else match.start() + 350
+        segment = text[match.start():sentence_end]
+        if all(pattern.search(segment) is not None for pattern in GBRAIN_AUTHORITY_REQUIRED_PATTERNS.values()):
+            return True
+    return False
+
+
+def gbrain_instruction_distribution_overclaim(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    canonical_claim_count = 0
+    background_claim_count = 0
+    missing_advisory_count = 0
+    missing_citation_count = 0
+    missing_contract_count = 0
+    missing_no_background_count = 0
+    missing_authority_boundary_count = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if not is_gbrain_instruction_surface(path):
+            continue
+        if is_work_management_signature_explainer(path, text) or is_gbrain_distribution_detector_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not GBRAIN_DISTRIBUTION_SURFACE_PATTERN.search(text):
+            continue
+
+        reasons: list[str] = []
+        has_canonical_claim = has_unnegated_match(text, GBRAIN_CANONICAL_CLAIM_PATTERN)
+        has_background_claim = has_unnegated_match(text, GBRAIN_BACKGROUND_POSITIVE_PATTERN)
+        has_advisory = has_positive_boundary(text, GBRAIN_ADVISORY_BOUNDARY_PATTERN)
+        has_citation = has_positive_boundary(text, GBRAIN_CITATION_EXPECTATION_PATTERN)
+        has_contract = GBRAIN_CONTRACT_CITATION_PATTERN.search(text) is not None
+        has_no_background = GBRAIN_NO_BACKGROUND_PATTERN.search(text) is not None
+        has_authority_boundary = has_gbrain_authority_boundary(text)
+
+        if has_canonical_claim:
+            canonical_claim_count += 1
+            reasons.append("canonical_claim")
+        if has_background_claim:
+            background_claim_count += 1
+            reasons.append("background_gbrain_claim")
+        if not has_advisory:
+            missing_advisory_count += 1
+            reasons.append("missing_advisory_boundary")
+        if not has_citation:
+            missing_citation_count += 1
+            reasons.append("missing_citation_expectation")
+        if not has_contract:
+            missing_contract_count += 1
+            reasons.append("missing_contract_citation")
+        if not has_no_background:
+            missing_no_background_count += 1
+            reasons.append("missing_no_background_boundary")
+        if not has_authority_boundary:
+            missing_authority_boundary_count += 1
+            reasons.append("missing_authority_boundary")
+
+        if reasons:
+            offenders.append(f"{path}=>{','.join(reasons)}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"gbrain_instruction_distribution_overclaim=>{';'.join(offenders[:4]) or 'none'}",
+        f"gbrain_instruction_distribution_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "gbrain_instruction_distribution_surface_count": len(offenders) + len(set(grounded)),
+            "gbrain_instruction_distribution_gap_count": len(offenders),
+            "canonical_claim_count": canonical_claim_count,
+            "background_gbrain_claim_count": background_claim_count,
+            "missing_advisory_boundary_count": missing_advisory_count,
+            "missing_citation_expectation_count": missing_citation_count,
+            "missing_contract_citation_count": missing_contract_count,
+            "missing_no_background_boundary_count": missing_no_background_count,
+            "missing_authority_boundary_count": missing_authority_boundary_count,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "GBrain instruction distribution guidance is canonical, background-enabled, or missing advisory/citation/contract/no-background/authority boundaries"
+            if offenders
+            else "GBrain instruction distribution guidance is advisory and bounded, or absent"
         ),
     }
 
@@ -2552,6 +2763,7 @@ EVALUATORS = {
     "AS-33": foreground_failure_guidance_gap,
     "AS-34": closure_run_identity_gap,
     "AS-35": upstream_capability_intake_gap,
+    "AS-36": gbrain_instruction_distribution_overclaim,
 }
 
 

@@ -28,6 +28,15 @@ agent, skill, script, output, and token-budget inventories live in
 - Governed surface edits under `.agents/`, `.github/agents/`,
   `scripts/detect-*.sh`, or `schemas/*.json` require paired `tests/` or
   `fixtures/` changes in the same change set.
+- GBrain distribution records are advisory memory only. When repo-local
+  instruction guidance cites GBrain distribution, cite the repo-agent-core
+  `docs/gbrain-repo-local-instruction-distribution-contract.md` contract,
+  require retrieval to cite the slug and source refs or record a no-hit/no-capture
+  reason, and state that GBrain does not override operator intent, GitHub
+  issue/PR/check/merge truth, repo files, or repo-native tests. Do not use
+  GBrain canonicality, bulk import,
+  `sync --watch`, cron, autopilot, dream, jobs worker, MCP serving, minions,
+  daemons, queues, schedulers, hidden registries, or background memory.
 
 ## Commands
 
