@@ -67,7 +67,7 @@ make install-hooks
 - `PRE_SCAN.md`: file inventory and AI-surface analysis.
 - `DS-34-plus-results.json`: extended deterministic signature bundle.
 - `TARGET_NATIVE_QUALITY_GATES.json`: additive target-local quality-gate
-  receipt when retained evidence exists.
+  classification for retained gates, no retained gate, or partial-run states.
 
 ## Stop Rules
 

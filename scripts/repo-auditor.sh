@@ -607,7 +607,7 @@ echo ""
 
 # --- Additive target-native quality gate receipt ---
 TARGET_NATIVE_SCRIPT="$SCRIPT_DIR/collect-target-native-quality-gates.py"
-if [ -f "$TARGET_NATIVE_SCRIPT" ] && [ -f "$OUTPUT_DIR/SCORECARD.json" ] && [ -f "$OUTPUT_DIR/SCORECARD_RECEIPTS.json" ]; then
+if [ -f "$TARGET_NATIVE_SCRIPT" ]; then
     echo "--- Collecting target-native quality gate evidence ---"
     echo ""
     TARGET_NATIVE_MISSING="$(required_artifacts_missing)"
@@ -624,13 +624,13 @@ if [ -f "$TARGET_NATIVE_SCRIPT" ] && [ -f "$OUTPUT_DIR/SCORECARD.json" ] && [ -f
         if [ -f "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" ]; then
             TARGET_NATIVE_CONTRADICTION=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("contradiction", "unknown"))' "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" 2>/dev/null || echo "unknown")
             TARGET_NATIVE_STATE=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("target_gate_state", "unknown"))' "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" 2>/dev/null || echo "unknown")
-            echo "  [target-native] ✅ receipt written ($TARGET_NATIVE_CONTRADICTION)"
+            echo "  [target-native] ✅ receipt written ($TARGET_NATIVE_STATE; $TARGET_NATIVE_CONTRADICTION)"
             if [ -f "$OUTPUT_DIR/AUDIT_REPORT.md" ]; then
                 printf '\n## Target-Native Quality Gates\n\n| Field | Value |\n|---|---|\n| Receipt | TARGET_NATIVE_QUALITY_GATES.json |\n| Target gate state | %s |\n| Contradiction | %s |\n\nTarget-native quality gate evidence is parallel truth; it does not replace the generic fleet score.\n' \
                     "$TARGET_NATIVE_STATE" "$TARGET_NATIVE_CONTRADICTION" >> "$OUTPUT_DIR/AUDIT_REPORT.md"
             fi
         else
-            echo "  [target-native] no retained local gate found"
+            echo "  [target-native] no target-native receipt written"
         fi
     else
         rc=$?

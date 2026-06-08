@@ -45,7 +45,7 @@ inventory scan limits.
 | SCORECARD.json | JSON (schemas/SCORECARD.schema.json) | 5-dimension composite score (0-100) |
 | SCORECARD_RECEIPTS.json | JSON | Raw dimension receipts plus count reconciliation and inventory metadata |
 | AUDIT_RUN_RECEIPT.json | JSON | Run-level receipt with `status`, `reason`, required artifact presence, and exit code |
-| TARGET_NATIVE_QUALITY_GATES.json | JSON | Additive target-local quality gate receipt emitted only when retained local gate evidence is present |
+| TARGET_NATIVE_QUALITY_GATES.json | JSON | Additive target-local quality gate receipt emitted when retained local gate evidence, no retained gate, or partial-run evidence must be classified |
 | CLEAN_HEAD_SNAPSHOT_RECEIPT.json | JSON | Snapshot-mode provenance receipt emitted only by explicit clean HEAD snapshot invocation |
 | AUDIT_REPORT.md | Markdown | Human-readable audit summary |
 | pre-scan/PRE_SCAN.md | Markdown | File inventory and AI surface analysis |
@@ -215,17 +215,33 @@ for consumers that do not read the full receipt.
 
 ## Target-Native Quality Gates
 
-When a target already retains a recognizable local quality gate artifact, the
-auditor emits `TARGET_NATIVE_QUALITY_GATES.json` and adds pointers to
+The auditor emits `TARGET_NATIVE_QUALITY_GATES.json` and adds pointers to
 `SCORECARD.json.receipts.target_native_quality_gates` and
-`SCORECARD_RECEIPTS.json.target_native_quality_gates`.
+`SCORECARD_RECEIPTS.json.target_native_quality_gates` when it can classify the
+target-local gate relationship. Recognizable retained gate artifacts record a
+`raw_target_gate_state`; targets without a retained gate record
+`no_retained_gate`; incomplete or failed artifact sets record `partial_run`
+instead of silently omitting the receipt.
 
 This receipt is parallel evidence only. It does not replace
 `SCORECARD.json.composite`, dimensions, or Tier-1/Tier-2 checks. If the generic
-audit output is partial or missing required artifacts, the contradiction is
-`partial_run_no_verdict` and the receipt states that the partial diagnostic is
-not a target-quality verdict. If gate-like evidence is present but unclassified,
-the contradiction is `unclassified_requires_amendment`.
+audit output is partial or missing required artifacts, `target_gate_state` is
+`partial_run`, the contradiction is `partial_run_no_verdict`, and the receipt
+states that the partial diagnostic is not a target-quality verdict. If
+gate-like evidence is present but unclassified, `target_gate_state` is
+`amendment_required_unknown` and the contradiction is
+`unclassified_requires_amendment`.
+
+Target gate state values:
+
+- `parseable_pass`
+- `parseable_fail`
+- `parseable_warning`
+- `partial_run`
+- `no_retained_gate`
+- `stale_fleet_metric`
+- `true_target_risk`
+- `amendment_required_unknown`
 
 Provisional contradiction values:
 
