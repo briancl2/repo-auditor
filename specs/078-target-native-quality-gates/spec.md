@@ -55,28 +55,31 @@ with a bounded non-claim.
 
 ### User Story 3 - Preserve Non-Vault and Unknown-Gate Behavior (Priority: P2)
 
-Targets without local gates remain unchanged, and gate-like artifacts that the
-adapter cannot classify require amendment instead of silent success.
+Targets without local gates receive explicit no-gate receipts, and gate-like
+artifacts that the adapter cannot classify require amendment instead of silent
+success.
 
 **Why this priority**: The adapter must not hardcode Vault doctrine or force all
 targets into Vault-shaped categories.
 
 **Independent Test**: Run the adapter against a no-gate fixture and an
-unclassified gate-like fixture; verify the no-gate fixture emits no detail and
-the unclassified fixture emits `unclassified_requires_amendment`.
+unclassified gate-like fixture; verify the no-gate fixture emits
+`no_retained_gate` and the unclassified fixture emits
+`unclassified_requires_amendment`.
 
 **Acceptance Scenarios**:
 
 1. **Given** a non-Vault target with no retained local gate, **When** the adapter
-   runs, **Then** no target-native receipt detail is emitted.
+   runs, **Then** a `no_retained_gate` target-native receipt is emitted without
+   changing the generic score.
 2. **Given** a target with a gate-like artifact that cannot be classified,
    **When** the adapter runs, **Then** it emits
    `unclassified_requires_amendment`.
 
 ### Edge Cases
 
-- Missing `SCORECARD.json` or `SCORECARD_RECEIPTS.json` fails closed without
-  fabricating target-native output.
+- Missing `SCORECARD.json` or `SCORECARD_RECEIPTS.json` emits `partial_run`
+  evidence from the run receipt without fabricating a target-quality verdict.
 - Multiple local gate candidates are recorded as sources; classification uses
   parseable evidence only.
 - Completed generic audits with local gate conflicts use provisional enums and
@@ -94,8 +97,8 @@ the unclassified fixture emits `unclassified_requires_amendment`.
 - **FR-003**: The system MUST label incomplete audit outputs as
   `partial_run_no_verdict` and state that partial diagnostics are not
   target-quality verdicts.
-- **FR-004**: The system MUST emit no target-native detail for targets with no
-  local gate evidence.
+- **FR-004**: The system MUST emit explicit `no_retained_gate` target-native
+  detail for targets with no local gate evidence.
 - **FR-005**: The system MUST route unclassified gate-like evidence to
   `unclassified_requires_amendment`.
 - **FR-006**: The system MUST use only deterministic retained artifact parsing
@@ -121,7 +124,8 @@ the unclassified fixture emits `unclassified_requires_amendment`.
   unclassified gate-like fixtures.
 - **SC-002**: In the partial fixture, `SCORECARD.json.composite` remains `28`
   and contradiction is `partial_run_no_verdict`.
-- **SC-003**: In the no-gate fixture, no `TARGET_NATIVE_QUALITY_GATES.json` is
-  emitted and `SCORECARD.json` lacks a target-native pointer.
+- **SC-003**: In the no-gate fixture, `TARGET_NATIVE_QUALITY_GATES.json` is
+  emitted with `target_gate_state=no_retained_gate` and `SCORECARD.json`
+  carries a target-native pointer.
 - **SC-004**: In the unclassified fixture, contradiction is
   `unclassified_requires_amendment` and amendment is required.

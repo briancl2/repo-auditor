@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-ADAPTER_VERSION = "0.1.0"
+ADAPTER_VERSION = "0.2.0"
 CONTRADICTION_ENUM = {
     "target_policy_explained",
     "unresolved",
@@ -207,7 +207,9 @@ def generic_score_summary(scorecard: dict[str, Any], audit_state: str, missing: 
     }
 
 
-def target_gate_state(sources: list[dict[str, Any]]) -> str:
+def raw_target_gate_state(sources: list[dict[str, Any]]) -> str:
+    if not sources:
+        return "no_retained_gate"
     states = [str(source.get("state", "unknown")) for source in sources]
     if "fail" in states:
         return "fail"
@@ -218,16 +220,17 @@ def target_gate_state(sources: list[dict[str, Any]]) -> str:
     return "unknown"
 
 
-def choose_contradiction(
-    gate_state: str,
+def classify_target_gate_state(
+    raw_gate_state: str,
     generic_score: dict[str, Any],
     policy_sources: list[dict[str, str]],
-    unclassified: bool,
-) -> str:
+) -> tuple[str, str]:
     if generic_score["partial_artifact_contract"]:
-        return "partial_run_no_verdict"
-    if unclassified:
-        return "unclassified_requires_amendment"
+        return "partial_run", "partial_run_no_verdict"
+    if raw_gate_state == "no_retained_gate":
+        return "no_retained_gate", "unresolved"
+    if raw_gate_state == "unknown":
+        return "amendment_required_unknown", "unclassified_requires_amendment"
 
     composite = generic_score.get("composite")
     try:
@@ -236,13 +239,19 @@ def choose_contradiction(
         composite_value = 0
     tier1_failed = int(generic_score.get("tier1_failed") or 0)
 
-    if gate_state == "pass" and (tier1_failed > 0 or composite_value < 60):
+    if raw_gate_state == "pass" and (tier1_failed > 0 or composite_value < 60):
         if policy_sources:
-            return "unresolved"
-        return "fleet_metric_stale"
-    if gate_state == "fail" and tier1_failed == 0 and composite_value >= 60:
-        return "true_target_risk"
-    return "unresolved"
+            return "parseable_pass", "unresolved"
+        return "stale_fleet_metric", "fleet_metric_stale"
+    if raw_gate_state == "fail" and tier1_failed == 0 and composite_value >= 60:
+        return "true_target_risk", "true_target_risk"
+    if raw_gate_state == "pass":
+        return "parseable_pass", "unresolved"
+    if raw_gate_state == "fail":
+        return "parseable_fail", "unresolved"
+    if raw_gate_state == "warning":
+        return "parseable_warning", "unresolved"
+    return "amendment_required_unknown", "unclassified_requires_amendment"
 
 
 def build_receipt(
@@ -251,26 +260,30 @@ def build_receipt(
     scorecard: dict[str, Any],
     status_override: str | None = None,
     missing_override: list[str] | None = None,
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
     gate_sources = collect_gate_sources(target)
-    if not gate_sources:
-        return None
-
     policy_sources = collect_policy_sources(target)
     audit_state, missing = audit_status(output_dir, scorecard, status_override, missing_override)
     generic_score = generic_score_summary(scorecard, audit_state, missing)
-    gate_state = target_gate_state(gate_sources)
-    unclassified = gate_state == "unknown"
-    contradiction = choose_contradiction(gate_state, generic_score, policy_sources, unclassified)
+    raw_gate_state = raw_target_gate_state(gate_sources)
+    gate_state, contradiction = classify_target_gate_state(raw_gate_state, generic_score, policy_sources)
     if contradiction not in CONTRADICTION_ENUM:
         contradiction = "unclassified_requires_amendment"
+        gate_state = "amendment_required_unknown"
+
+    status = "present"
+    if generic_score["partial_artifact_contract"]:
+        status = "partial"
+    elif not gate_sources:
+        status = "no_retained_gate"
 
     return {
         "adapter_version": ADAPTER_VERSION,
-        "status": "present",
+        "status": status,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "sources": gate_sources,
         "policy_sources": policy_sources,
+        "raw_target_gate_state": raw_gate_state,
         "target_gate_state": gate_state,
         "generic_score": generic_score,
         "contradiction": contradiction,
@@ -336,27 +349,24 @@ def main() -> int:
     scorecard_path = output_dir / "SCORECARD.json"
     receipts_path = output_dir / "SCORECARD_RECEIPTS.json"
 
-    if not scorecard_path.is_file() or not receipts_path.is_file():
-        print("target-native: missing scorecard or receipts; no receipt emitted", file=sys.stderr)
-        return 2
-
-    scorecard = load_json(scorecard_path)
-    if not isinstance(scorecard, dict):
-        print("target-native: SCORECARD.json root is not an object", file=sys.stderr)
-        return 2
+    scorecard: dict[str, Any] = {}
+    if scorecard_path.is_file():
+        loaded_scorecard = load_json(scorecard_path)
+        if not isinstance(loaded_scorecard, dict):
+            print("target-native: SCORECARD.json root is not an object", file=sys.stderr)
+            return 2
+        scorecard = loaded_scorecard
     missing_override = [item for item in args.missing_required_artifacts.split() if item]
     receipt = build_receipt(target, output_dir, scorecard, args.audit_status, missing_override)
-    if receipt is None:
-        clear_previous_output(output_dir)
-        print("target-native: no retained target-local quality gate found")
-        return 0
 
     write_json(output_dir / "TARGET_NATIVE_QUALITY_GATES.json", receipt)
-    update_scorecard_pointer(scorecard_path, receipt)
-    update_receipts(receipts_path, receipt)
+    if scorecard_path.is_file():
+        update_scorecard_pointer(scorecard_path, receipt)
+    if receipts_path.is_file():
+        update_receipts(receipts_path, receipt)
     print(
         "target-native: emitted TARGET_NATIVE_QUALITY_GATES.json "
-        f"({receipt['contradiction']})"
+        f"({receipt['target_gate_state']}; {receipt['contradiction']})"
     )
     return 0
 

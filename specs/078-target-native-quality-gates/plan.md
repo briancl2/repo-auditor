@@ -71,8 +71,9 @@ No constitution violations.
 ## Implementation Notes
 
 1. Parse a finite set of retained quality-gate artifact names.
-2. Write `TARGET_NATIVE_QUALITY_GATES.json` only when local gate evidence is
-   found or a gate-like artifact requires amendment.
+2. Write `TARGET_NATIVE_QUALITY_GATES.json` when local gate evidence is found,
+   a gate-like artifact requires amendment, no retained gate is present, or a
+   partial run must be classified.
 3. Update `SCORECARD_RECEIPTS.json.target_native_quality_gates` with detailed
    receipt data and `SCORECARD.json.receipts.target_native_quality_gates` with a
    small pointer.

@@ -53,8 +53,17 @@ if [ -d ".github/workflows" ]; then
 fi
 MAKEFILE_TESTS=0
 if [ -f "Makefile" ]; then
-    MAKEFILE_TESTS=$(grep -cE '^(test|check|lint|validate|score|review):' Makefile 2>/dev/null)
-    MAKEFILE_TESTS=${MAKEFILE_TESTS:-0}
+    if MAKEFILE_TESTS=$(grep -cE '^(test|check|lint|validate|score|review):' Makefile 2>/dev/null); then
+        :
+    else
+        grep_status=$?
+        if [ "$grep_status" -eq 1 ]; then
+            MAKEFILE_TESTS=0
+        else
+            echo "ERROR: unable to inspect Makefile validation targets" >&2
+            exit "$grep_status"
+        fi
+    fi
 fi
 PYTEST_EXISTS=0
 if [ -f "pytest.ini" ] || [ -f "pyproject.toml" ]; then

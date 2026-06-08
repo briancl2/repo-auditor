@@ -75,8 +75,20 @@
           "properties": {
             "file": { "type": "string", "const": "TARGET_NATIVE_QUALITY_GATES.json" },
             "version": { "type": "string" },
-            "status": { "type": "string", "enum": ["present"] },
-            "target_gate_state": { "type": "string", "enum": ["pass", "fail", "warning", "unknown"] },
+            "status": { "type": "string", "enum": ["present", "partial", "no_retained_gate"] },
+            "target_gate_state": {
+              "type": "string",
+              "enum": [
+                "parseable_pass",
+                "parseable_fail",
+                "parseable_warning",
+                "partial_run",
+                "no_retained_gate",
+                "stale_fleet_metric",
+                "true_target_risk",
+                "amendment_required_unknown"
+              ]
+            },
             "contradiction": {
               "type": "string",
               "enum": [

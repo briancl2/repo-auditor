@@ -51,11 +51,15 @@ cat > "$FIX_A/.agents/generic.agent.md" <<'EOF'
 name: generic-helper
 description: does basic repository chores
 EOF
+cat > "$FIX_A/Makefile" <<'EOF'
+build:
+	@echo build
+EOF
 set +e
 CLASSIFY_OUTPUT=$(bash "$REPO_ROOT/scripts/classify-repo-maturity.sh" "$FIX_A" 2>&1)
 CLASSIFY_CODE=$?
 set -e
-check "classify exits 0 on generic agent repo" "0" "$CLASSIFY_CODE"
+check "classify exits 0 on generic agent repo with zero matching Makefile gates" "0" "$CLASSIFY_CODE"
 SELF_AUDIT_LINE=0
 if printf '%s\n' "$CLASSIFY_OUTPUT" | grep -q "Self-audit:      no"; then
     SELF_AUDIT_LINE=1
