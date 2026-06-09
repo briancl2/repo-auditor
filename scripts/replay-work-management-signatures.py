@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay AS-20..AS-34 work-management signatures against bounded targets."""
+"""Replay AS-20..AS-37 work-management signatures against bounded targets."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 
-SIGNATURE_IDS = [f"AS-{index}" for index in range(20, 35)]
+SIGNATURE_IDS = [f"AS-{index}" for index in range(20, 38)]
 CORE_FIVE_RECOVERY_RUNTIME_SIGNATURE_IDS = [f"AS-{index}" for index in range(29, 34)]
 DEFAULT_MAX_TARGETS = 8
 DOWNSTREAM_PILOT_CONTRACT_REFERENCE = (
@@ -202,7 +202,7 @@ def parse_repo(value: str) -> tuple[str, Path]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run AS-20..AS-34 against a bounded set of read-only target repositories.",
+        description="Run AS-20..AS-37 against a bounded set of read-only target repositories.",
     )
     parser.add_argument(
         "--repo",
@@ -437,7 +437,7 @@ def main() -> int:
         "error_target_count": error_target_count,
         "bounded_non_claims": [
             "Replay is read-only and does not mutate target repositories.",
-            "Replay is bounded to AS-20 through AS-34 and the per-signature text scan limit.",
+            "Replay is bounded to AS-20 through AS-37 and the per-signature text scan limit.",
             "AS-29 through AS-33 replay is bounded core-five recovery-runtime detector precision evidence only.",
             "A clean replay is detector precision evidence, not proof of issue or PR closure.",
         ],
