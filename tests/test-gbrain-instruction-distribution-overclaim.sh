@@ -29,7 +29,9 @@ UNRELATED_GBRAIN_REPO="$TMPDIR/unrelated-gbrain-repo"
 SOURCE_NOT_REQUIRED_REPO="$TMPDIR/source-not-required-repo"
 HEALTHY_REPO="$TMPDIR/healthy-repo"
 HERMES_GBRAIN_CONTRACT_REPO="$TMPDIR/hermes-gbrain-contract-repo"
-mkdir -p "$CANONICAL_REPO" "$CANONICAL_UNRELATED_NEGATION_REPO" "$CANONICAL_PRIOR_NEGATION_REPO" "$CANONICAL_PRIOR_NO_PERIOD_NEGATION_REPO" "$CANONICAL_PRIOR_BULLET_NEGATION_REPO" "$BACKGROUND_REPO" "$BACKGROUND_CRON_REPO" "$BACKGROUND_COMMAND_FIRST_REPO" "$JOBS_WORKER_REPO" "$WRAPPED_BACKGROUND_REPO" "$WRAPPED_SYNC_BACKGROUND_REPO" "$MISSING_REPO" "$WRAPPED_DISTRIBUTION_REPO" "$GITHUB_INSTRUCTIONS_REPO/.github/instructions" "$NEGATED_BOUNDARY_REPO" "$NEGATION_WINDOW_REPO" "$SAME_LINE_NEGATION_REPO" "$UNRELATED_BACKGROUND_REPO" "$UNRELATED_GBRAIN_REPO" "$SOURCE_NOT_REQUIRED_REPO" "$HEALTHY_REPO" "$HERMES_GBRAIN_CONTRACT_REPO"
+EXACT_REPLAY_MISSING_REPO="$TMPDIR/exact-replay-missing-repo"
+EXACT_REPLAY_HEALTHY_REPO="$TMPDIR/exact-replay-healthy-repo"
+mkdir -p "$CANONICAL_REPO" "$CANONICAL_UNRELATED_NEGATION_REPO" "$CANONICAL_PRIOR_NEGATION_REPO" "$CANONICAL_PRIOR_NO_PERIOD_NEGATION_REPO" "$CANONICAL_PRIOR_BULLET_NEGATION_REPO" "$BACKGROUND_REPO" "$BACKGROUND_CRON_REPO" "$BACKGROUND_COMMAND_FIRST_REPO" "$JOBS_WORKER_REPO" "$WRAPPED_BACKGROUND_REPO" "$WRAPPED_SYNC_BACKGROUND_REPO" "$MISSING_REPO" "$WRAPPED_DISTRIBUTION_REPO" "$GITHUB_INSTRUCTIONS_REPO/.github/instructions" "$NEGATED_BOUNDARY_REPO" "$NEGATION_WINDOW_REPO" "$SAME_LINE_NEGATION_REPO" "$UNRELATED_BACKGROUND_REPO" "$UNRELATED_GBRAIN_REPO" "$SOURCE_NOT_REQUIRED_REPO" "$HEALTHY_REPO" "$HERMES_GBRAIN_CONTRACT_REPO" "$EXACT_REPLAY_MISSING_REPO" "$EXACT_REPLAY_HEALTHY_REPO"
 
 cat > "$CANONICAL_REPO/AGENTS.md" <<'EOF'
 # AGENTS
@@ -210,6 +212,26 @@ This episode does not make GBrain canonical, does not let GBrain override
 operator intent, and does not run `gbrain sync --watch`, cron, autopilot, dream,
 jobs worker, MCP serving, minions, daemons, schedulers, queues, hidden
 registries, or background memory behavior.
+EOF
+
+cat > "$EXACT_REPLAY_MISSING_REPO/AGENTS.md" <<'EOF'
+# AGENTS
+
+Use GBrain exact-handle replay for operator-intent defaults before launch.
+Record the broad search result and exact-get result.
+EOF
+
+cat > "$EXACT_REPLAY_HEALTHY_REPO/AGENTS.md" <<'EOF'
+# AGENTS
+
+Use GBrain exact-handle replay only as advisory memory for operator-intent
+defaults. Record broad search/query disposition, exact-get evidence, GBrain
+slug or no-capture reason, and fallback without memory. Record raw GitHub
+surface evidence and owner action. Record source/citation/provenance refs.
+GBrain remains advisory. canonical_records_written=0; this does not make GBrain canonical.
+Do not use GBrain sync --watch, cron, autopilot, dream, jobs worker, MCP
+serving, minions, daemons, schedulers, queues, hidden registries, or background
+memory behavior.
 EOF
 
 canonical_json=$(bash "$SCRIPT" "$CANONICAL_REPO")
@@ -413,6 +435,36 @@ assert data["fired"] is True
 assert data["signals"]["missing_source_or_citation_expectation_count"] >= 1
 '
 echo "  PASS: AS-36 rejects source/citation terms that are explicitly not required"
+
+exact_replay_missing_json=$(bash "$SCRIPT" "$EXACT_REPLAY_MISSING_REPO")
+printf '%s' "$exact_replay_missing_json" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["ds_id"] == "AS-36"
+assert data["fired"] is True, data
+signals = data["signals"]
+assert signals["exact_replay_gap_count"] >= 1, signals
+assert signals["missing_advisory_boundary_count"] >= 1, signals
+assert signals["missing_source_or_citation_expectation_count"] >= 1, signals
+assert signals["missing_exact_replay_fallback_count"] >= 1, signals
+assert signals["missing_exact_replay_no_canonical_count"] >= 1, signals
+assert signals["missing_exact_replay_no_background_count"] >= 1, signals
+'
+echo "  PASS: AS-36 fires on exact-handle replay surfaces missing advisory/source/fallback/no-canonical/no-background boundaries"
+
+exact_replay_healthy_json=$(bash "$SCRIPT" "$EXACT_REPLAY_HEALTHY_REPO")
+printf '%s' "$exact_replay_healthy_json" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["ds_id"] == "AS-36"
+assert data["fired"] is False, data
+signals = data["signals"]
+assert signals["gbrain_instruction_surface_count"] >= 1, signals
+assert signals["exact_replay_gap_count"] == 0, signals
+assert signals["canonical_claim_count"] == 0, signals
+assert signals["background_gbrain_command_count"] == 0, signals
+'
+echo "  PASS: AS-36 accepts bounded GBrain exact-handle replay instruction guidance"
 
 healthy_json=$(bash "$SCRIPT" "$HEALTHY_REPO")
 printf '%s' "$healthy_json" | python3 -c '

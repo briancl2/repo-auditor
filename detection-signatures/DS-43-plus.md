@@ -310,10 +310,10 @@
 - **Script:** `scripts/detect-as-upstream-capability-intake-gap.sh`
 
 ### AS-36: GBrain Instruction Distribution Overclaim
-- **Detects:** GBrain instruction surfaces that overclaim canonical authority, enable background behavior, or omit advisory/source boundaries.
-- **Signal:** Repo-local instruction guidance references GBrain distribution with canonical claims, unbounded background commands, missing advisory limits, or missing source/citation expectations.
+- **Detects:** GBrain instruction or exact-handle replay surfaces that overclaim canonical authority, enable background behavior, or omit advisory/source/exact-replay boundaries.
+- **Signal:** Repo-local instruction guidance references GBrain distribution or exact-handle replay with canonical claims, unbounded background commands, missing advisory limits, missing source/citation expectations, missing fallback/no-capture evidence, missing no-canonical boundary, or missing no-background boundary.
 - **Phase range:** Repo-local instruction surfaces, GitHub instruction/template surfaces, and agent skill surfaces.
-- **Check:** Scan instruction-like surfaces for GBrain distribution references; require advisory boundary wording and source/citation/provenance expectations, reject canonical override claims, and flag GBrain-tied background command enablement while allowing explicit prohibition lists.
+- **Check:** Scan instruction-like surfaces for GBrain distribution and exact-handle replay references; require advisory boundary wording, source/citation/provenance expectations, fallback/no-capture evidence for replay, no-canonical boundaries, and no-background boundaries; reject canonical override claims and flag GBrain-tied background command enablement while allowing explicit prohibition lists.
 - **Fire condition:** `gbrain_instruction_gap_count > 0`
 - **Prevention tier:** T1
 - **Severity:** HIGH

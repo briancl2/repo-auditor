@@ -1538,6 +1538,13 @@ GBRAIN_DISTRIBUTION_SURFACE_PATTERN = re.compile(
     r"(distribution|repo-local instructions?|instruction surfaces?)\b.{0,120}\bgbrain)\b",
     re.IGNORECASE,
 )
+GBRAIN_EXACT_REPLAY_SURFACE_PATTERN = re.compile(
+    r"\b(gbrain\b.{0,160}\b(exact[- ]handle|exact[- ]get|exact replay|operator[- ]intent exact|"
+    r"advisor memory|advisory memory)|"
+    r"(exact[- ]handle|exact[- ]get|exact replay|operator[- ]intent exact|advisor memory|"
+    r"advisory memory)\b.{0,160}\bgbrain)\b",
+    re.IGNORECASE,
+)
 GBRAIN_DISTRIBUTION_RECORD_PATTERN = re.compile(
     r"\b(distribution|repo-local instructions?|instruction surfaces?|"
     r"gbrain-repo-local-instruction-distribution)\b",
@@ -1589,6 +1596,17 @@ GBRAIN_BACKGROUND_PROHIBITION_PATTERN = re.compile(
     r"mcp serving|minions?|daemons?|schedulers?|queues?|hidden registr(?:y|ies)|"
     r"background memory behavior|background gbrain behavior|bulk import)\b.{0,40}"
     r"\b(forbidden|not allowed|must not|do not|never)\b)",
+    re.IGNORECASE,
+)
+GBRAIN_FALLBACK_EXPECTATION_PATTERN = re.compile(
+    r"\b(fallback without memory|no[- ]memory fallback|fallback disposition|fallback path|"
+    r"no[-_ ]capture reason|no_capture_reason|slug or no[- ]capture|without memory)\b",
+    re.IGNORECASE,
+)
+GBRAIN_NO_CANONICAL_BOUNDARY_PATTERN = re.compile(
+    r"\b(canonical_records_written\s*[:=]\s*0|no canonical|not canonical|never canonical|"
+    r"does not make gbrain canonical|gbrain remains advisory|never as canonical truth|"
+    r"not as canonical truth|not a canonical|no canonical promotion)\b",
     re.IGNORECASE,
 )
 
@@ -1686,16 +1704,24 @@ def gbrain_instruction_distribution_overclaim(texts: dict[str, str]) -> dict[str
     background_commands = 0
     missing_advisory = 0
     missing_source_expectation = 0
+    exact_replay_gaps = 0
+    missing_exact_replay_fallback = 0
+    missing_exact_replay_no_canonical = 0
+    missing_exact_replay_no_background = 0
 
     for path, text in owner_evidence_texts(texts).items():
         normalized_text = re.sub(r"\s+", " ", text)
         if is_work_management_signature_explainer(path, text):
-            if GBRAIN_DISTRIBUTION_SURFACE_PATTERN.search(normalized_text):
+            if GBRAIN_DISTRIBUTION_SURFACE_PATTERN.search(normalized_text) or GBRAIN_EXACT_REPLAY_SURFACE_PATTERN.search(
+                normalized_text
+            ):
                 grounded.append(path)
             continue
         if not is_instruction_like_surface(path):
             continue
-        if not GBRAIN_DISTRIBUTION_SURFACE_PATTERN.search(normalized_text):
+        distribution_context = GBRAIN_DISTRIBUTION_SURFACE_PATTERN.search(normalized_text) is not None
+        exact_replay_context = GBRAIN_EXACT_REPLAY_SURFACE_PATTERN.search(normalized_text) is not None
+        if not distribution_context and not exact_replay_context:
             continue
 
         reasons: list[str] = []
@@ -1725,9 +1751,27 @@ def gbrain_instruction_distribution_overclaim(texts: dict[str, str]) -> dict[str
         if not text_has_positive_pattern(text, GBRAIN_ADVISORY_PATTERN):
             missing_advisory += 1
             reasons.append("missing_advisory_boundary")
-        if GBRAIN_DISTRIBUTION_RECORD_PATTERN.search(normalized_text) and not text_has_positive_pattern(text, GBRAIN_SOURCE_EXPECTATION_PATTERN):
+        if (GBRAIN_DISTRIBUTION_RECORD_PATTERN.search(normalized_text) or exact_replay_context) and not text_has_positive_pattern(
+            text, GBRAIN_SOURCE_EXPECTATION_PATTERN
+        ):
             missing_source_expectation += 1
             reasons.append("missing_source_or_citation_expectation")
+        if exact_replay_context:
+            exact_replay_reasons = 0
+            if not text_has_positive_pattern(text, GBRAIN_FALLBACK_EXPECTATION_PATTERN):
+                missing_exact_replay_fallback += 1
+                exact_replay_reasons += 1
+                reasons.append("missing_exact_replay_fallback")
+            if not text_has_positive_pattern(text, GBRAIN_NO_CANONICAL_BOUNDARY_PATTERN):
+                missing_exact_replay_no_canonical += 1
+                exact_replay_reasons += 1
+                reasons.append("missing_exact_replay_no_canonical_boundary")
+            if not any(gbrain_background_command_is_prohibited(" ".join(lines[max(0, i - 1) : i + 1])) for i in range(len(lines))):
+                missing_exact_replay_no_background += 1
+                exact_replay_reasons += 1
+                reasons.append("missing_exact_replay_no_background_boundary")
+            if exact_replay_reasons:
+                exact_replay_gaps += 1
 
         if reasons:
             offenders.append(f"{path}=>{','.join(sorted(set(reasons)))}")
@@ -1747,12 +1791,16 @@ def gbrain_instruction_distribution_overclaim(texts: dict[str, str]) -> dict[str
             "background_gbrain_command_count": background_commands,
             "missing_advisory_boundary_count": missing_advisory,
             "missing_source_or_citation_expectation_count": missing_source_expectation,
+            "exact_replay_gap_count": exact_replay_gaps,
+            "missing_exact_replay_fallback_count": missing_exact_replay_fallback,
+            "missing_exact_replay_no_canonical_count": missing_exact_replay_no_canonical,
+            "missing_exact_replay_no_background_count": missing_exact_replay_no_background,
         },
         "evidence": evidence_join(details),
         "reason": (
-            "GBrain instruction surfaces overclaim authority, enable background behavior, or omit advisory/source boundaries"
+            "GBrain instruction surfaces overclaim authority, enable background behavior, or omit advisory/source/exact-replay boundaries"
             if offenders
-            else "GBrain instruction surfaces preserve advisory, source/citation, no-background, and owner-route boundaries, or are absent"
+            else "GBrain instruction surfaces preserve advisory, source/citation, exact-replay, no-background, and owner-route boundaries, or are absent"
         ),
     }
 
