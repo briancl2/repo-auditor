@@ -69,6 +69,7 @@ scripts=(
     "detect-as-closure-run-identity-gap.sh"
     "detect-as-upstream-capability-intake-gap.sh"
     "detect-as-gbrain-instruction-distribution-overclaim.sh"
+    "detect-as-issue164-runtime-drift.sh"
 )
 
 idx=0

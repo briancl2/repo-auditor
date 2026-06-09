@@ -319,3 +319,14 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh`
+
+### AS-37: Issue 164 Runtime Drift
+- **Detects:** Issue #164 coordinator or campaign-runtime surfaces that omit the required fresh-thread launch, Goal/Goal-null, run-root, heartbeat, CI polling, or concrete next-action discipline.
+- **Signal:** An Issue #164 runtime surface names coordinator launch, Goal state, run roots, heartbeat, CI polling, merge discipline, or next action but lacks transfer mode, live-truth checks, Goal or Goal-null fallback, canonical `/tmp/issue164-*` run root plus `progress-ledger.jsonl`, heartbeat-after-child/run-root ordering, CI polling or merge-or-blocker discipline, or a concrete owner-surface next action.
+- **Phase range:** Issue #164 child launch prompts, coordinator handoffs, campaign sync runtime digests, heartbeat prompts, and owner-surface recommendation notes.
+- **Check:** Scan Issue #164 runtime/coordinator evidence text for the required launch and merge-discipline fields; suppress detector docs/templates and the shared repo-agent-core closure/runtime distribution contract or template.
+- **Shared contract:** repo-agent-core `docs/repo-star-closure-runtime-distribution-contract.md` defines the runtime drift classes used for repo-star detector/advisor distribution.
+- **Fire condition:** `issue164_runtime_drift_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-issue164-runtime-drift.sh`

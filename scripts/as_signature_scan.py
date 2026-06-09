@@ -229,6 +229,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-gbrain-instruction-distribution-overclaim.sh",
     },
+    "AS-37": {
+        "name": "Issue 164 runtime drift",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-issue164-runtime-drift.sh",
+    },
 }
 
 
@@ -1363,7 +1369,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[0-4]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-7]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1378,6 +1384,7 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"closure-run identity gap|closure run identity gap|closure_run_identity_gap|"
     r"closure-run identity|closure run identity|"
     r"upstream capability intake gap|upstream capability intake|"
+    r"issue 164 runtime drift|issue #164 runtime drift|"
     r"foreground recovery runtime contract)\b",
     re.IGNORECASE,
 )
@@ -1978,6 +1985,135 @@ def github_native_closure_regrowth(texts: dict[str, str]) -> dict[str, Any]:
         },
         "evidence": evidence_join(details),
         "reason": "GitHub issue/PR truth coexists with local closeout authority" if offenders else "GitHub-native closure is not duplicated by local closeout authority",
+    }
+
+
+ISSUE164_RUNTIME_SURFACE_PATTERN = re.compile(
+    r"\b(issue\s*#?164|issue164)\b.{0,240}"
+    r"\b(fresh coordinator|transfer mode|goal[- ]?null|goal state|run root|"
+    r"progress[- ]ledger|heartbeat|ci polling|green[- ]clean|merge-or-blocker|"
+    r"next owner action|next action)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+ISSUE164_TRANSFER_MODE_PATTERN = re.compile(
+    r"\b(transfer mode:\s*(?:fresh coordinator thread|fresh thread)|fresh coordinator thread|fresh thread)\b",
+    re.IGNORECASE,
+)
+ISSUE164_LIVE_TRUTH_PATTERN = re.compile(
+    r"\b(live truth|re-?check(?:ed)?|gh issue view|gh pr list|git status|"
+    r"open pr|active child|updatedAt|rev-parse)\b",
+    re.IGNORECASE,
+)
+ISSUE164_GOAL_PATTERN = re.compile(
+    r"\b(goal[- ]?null fallback|goal state|goal object|codex goal|goal mode|"
+    r"goal active|goal unavailable)\b",
+    re.IGNORECASE,
+)
+ISSUE164_RUN_ROOT_PATTERN = re.compile(
+    r"/tmp/issue164-[\w./-]+",
+    re.IGNORECASE,
+)
+ISSUE164_PROGRESS_LEDGER_PATTERN = re.compile(r"\bprogress[-_ ]ledger(?:\.jsonl)?\b", re.IGNORECASE)
+ISSUE164_HEARTBEAT_AFTER_PATTERN = re.compile(
+    r"\bheartbeat\b.{0,120}\b(after|only after|once)\b.{0,120}\b(child issue|child)\b.{0,120}\b(run root|progress[-_ ]ledger)\b|"
+    r"\b(after|only after|once)\b.{0,120}\b(child issue|child)\b.{0,120}\b(run root|progress[-_ ]ledger)\b.{0,120}\bheartbeat\b",
+    re.IGNORECASE | re.DOTALL,
+)
+ISSUE164_HEARTBEAT_BEFORE_PATTERN = re.compile(
+    r"\bheartbeat\b.{0,80}\bbefore\b.{0,120}\b(child issue|child|run root|progress[-_ ]ledger)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+ISSUE164_CI_MERGE_PATTERN = re.compile(
+    r"\b(ci polling|poll(?:ing)? (?:pr )?checks?|github checks?|green[- ]clean|"
+    r"merge-or-blocker|merge if green|checks and merge|pr/check/merge truth|"
+    r"check failure requiring human decision)\b",
+    re.IGNORECASE,
+)
+ISSUE164_CONCRETE_NEXT_PATTERN = re.compile(
+    r"\b(next_owner_action|next owner action|exact next owner[- ]surface action|"
+    r"first deliverable|first owner pr|owner pr|"
+    r"github issue routing|owner action)\b",
+    re.IGNORECASE,
+)
+ISSUE164_FIELD_NEGATION_PATTERN = re.compile(
+    r"\b(omit(?:s|ted)?|missing|lacks?|without|absent|not include|"
+    r"does not include|do not include|not recorded|not required|no)\b",
+    re.IGNORECASE,
+)
+
+
+def issue164_has_positive_field(text: str, pattern: re.Pattern[str]) -> bool:
+    for match in pattern.finditer(text):
+        start, end = match.span()
+        sentence_start = max(text.rfind(".", 0, start), text.rfind(";", 0, start)) + 1
+        next_bounds = [idx for idx in (text.find(".", end), text.find(";", end)) if idx != -1]
+        sentence_end = min(next_bounds) if next_bounds else len(text)
+        context = text[sentence_start:sentence_end]
+        if ISSUE164_FIELD_NEGATION_PATTERN.search(context):
+            continue
+        return True
+    return False
+
+
+def issue164_runtime_missing_fields(text: str) -> list[str]:
+    missing: list[str] = []
+    if not issue164_has_positive_field(text, ISSUE164_TRANSFER_MODE_PATTERN):
+        missing.append("transfer_mode")
+    if not issue164_has_positive_field(text, ISSUE164_LIVE_TRUTH_PATTERN):
+        missing.append("live_truth")
+    if not issue164_has_positive_field(text, ISSUE164_GOAL_PATTERN):
+        missing.append("goal_or_goal_null")
+    if not (
+        issue164_has_positive_field(text, ISSUE164_RUN_ROOT_PATTERN)
+        and issue164_has_positive_field(text, ISSUE164_PROGRESS_LEDGER_PATTERN)
+    ):
+        missing.append("run_root_progress_ledger")
+    if ISSUE164_HEARTBEAT_BEFORE_PATTERN.search(text) or not ISSUE164_HEARTBEAT_AFTER_PATTERN.search(text):
+        missing.append("heartbeat_after_child_run_root")
+    if not issue164_has_positive_field(text, ISSUE164_CI_MERGE_PATTERN):
+        missing.append("ci_polling_merge_or_blocker")
+    has_selection_handback = (
+        SELECTION_HANDBACK_PATTERN.search(text) is not None
+        and SELECTION_HANDBACK_NEGATION_PATTERN.search(text) is None
+    )
+    if has_selection_handback or not issue164_has_positive_field(text, ISSUE164_CONCRETE_NEXT_PATTERN):
+        missing.append("concrete_next_action")
+    return missing
+
+
+def issue164_runtime_drift(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_closure_runtime_distribution_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")):
+            continue
+        if not ISSUE164_RUNTIME_SURFACE_PATTERN.search(text):
+            continue
+        missing = issue164_runtime_missing_fields(text)
+        if missing:
+            offenders.append(f"{path}=>missing:{','.join(missing)}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"issue164_runtime_drift=>{';'.join(offenders[:4]) or 'none'}",
+        f"issue164_runtime_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "issue164_runtime_drift_count": len(offenders),
+            "issue164_runtime_grounded_count": len(set(grounded)),
+        },
+        "evidence": evidence_join(details),
+        "reason": "Issue #164 runtime launch or merge discipline is missing required coordinator fields" if offenders else "Issue #164 runtime surfaces are complete or absent",
     }
 
 
@@ -2903,6 +3039,7 @@ EVALUATORS = {
     "AS-34": closure_run_identity_gap,
     "AS-35": upstream_capability_intake_gap,
     "AS-36": gbrain_instruction_distribution_overclaim,
+    "AS-37": issue164_runtime_drift,
 }
 
 
