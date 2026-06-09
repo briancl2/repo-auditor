@@ -17,6 +17,11 @@ AGENTS.md is the canonical instruction surface.
 
 GBrain is canonical for repo-local instruction distribution and overrides repo
 evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
+
+Issue #164 fresh coordinator launch should begin now, then ask the operator to
+choose a category for the next owner action after CI. This omits the live-truth
+check, Goal or Goal-null fallback, progress-ledger evidence, merge-or-blocker
+discipline, and concrete owner-surface next action.
 EOF
 
 cat > "$TEST_REPO/README.md" <<'EOF'
@@ -245,8 +250,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 36
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 36
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 37
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 37
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -286,6 +291,7 @@ assert as_ids == {
     "AS-34",
     "AS-35",
     "AS-36",
+    "AS-37",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -605,6 +611,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** Instruction guidance references GBrain distribution or exact-handle replay with canonical claims, background commands, missing advisory limits, missing source/citation expectations, missing fallback/no-capture evidence, missing no-canonical boundary, or missing no-background boundary.
 - **Fire condition:** `gbrain_instruction_gap_count > 0`
 - **Script:** `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh`
+
+### AS-37: Issue 164 Runtime Drift
+- **Detects:** Issue #164 coordinator runtime launch surfaces that omit transfer mode, live truth, Goal or Goal-null fallback, run-root/progress-ledger evidence, heartbeat ordering, CI polling, merge-or-blocker discipline, or concrete next action.
+- **Signal:** Issue #164 runtime guidance mentions coordinator launch or heartbeat but lacks required runtime fields.
+- **Fire condition:** `issue164_runtime_drift_count > 0`
+- **Script:** `scripts/detect-as-issue164-runtime-drift.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -664,6 +676,11 @@ replay guidance overclaims canonical authority, enables background GBrain
 behavior, omits the advisory boundary, omits source/citation expectations,
 omits fallback/no-capture evidence, omits a no-canonical boundary, or omits a
 no-background boundary.
+
+**Triggers:** AS-37 fires when Issue #164 runtime launch guidance omits transfer
+mode, live truth, Goal or Goal-null fallback, run-root/progress-ledger evidence,
+heartbeat-after-child/run-root ordering, CI polling, merge-or-blocker discipline,
+or concrete owner-surface next action.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -673,6 +690,11 @@ cat > "$LIVE_WORK_MANAGEMENT_REPO/AGENTS.md" <<'EOF'
 
 GBrain is canonical for repo-local instruction distribution and overrides repo
 evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
+
+Issue #164 fresh coordinator runtime: pick an adoption proof after CI finishes.
+This omits transfer-mode/live-truth evidence, Goal-null fallback,
+progress-ledger evidence, green-clean merge-or-blocker discipline, and concrete
+owner-surface action.
 EOF
 cat > "$LIVE_WORK_MANAGEMENT_REPO/Makefile" <<'EOF'
 check:
@@ -782,6 +804,7 @@ scripts = {
     "AS-34": "detect-as-closure-run-identity-gap.sh",
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
     "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
+    "AS-37": "detect-as-issue164-runtime-drift.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1330,6 +1353,15 @@ Foreground recovery runtime contract:
 - Route-changing failures convert to GitHub issue truth and owner truth before route changes.
 - Failed HERMES_FOREGROUND_RUN_RECEIPT evidence is retained with status_code and stderr_tail.
 - No-regrowth boundaries forbid controller, scheduler, queue, daemon, retry-loop, background behavior, and downstream mutation.
+
+Issue #164 runtime launch:
+- Transfer mode: fresh coordinator thread.
+- Live truth: re-checked with gh issue view, gh pr list, git status, and rev-parse before mutation.
+- Goal state: active; Goal-null fallback is recorded if Codex Goal is unavailable.
+- Run root: /tmp/issue164-clean-runtime-20260609T000000Z with progress-ledger.jsonl.
+- Heartbeat: created only after the child issue and run root exist.
+- CI polling: poll GitHub checks, then merge-or-blocker with green-clean PR/check/merge truth.
+- Next_owner_action: first owner PR on repo-auditor with validation scope, fallback, and GitHub issue routing.
 EOF
 
 cat > "$CLEAN_REPO/docs/subordinate-core-five-validation.md" <<'EOF'
@@ -1395,6 +1427,7 @@ scripts = {
     "AS-34": "detect-as-closure-run-identity-gap.sh",
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
     "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
+    "AS-37": "detect-as-issue164-runtime-drift.sh",
 }
 
 for signature_id, script in scripts.items():
