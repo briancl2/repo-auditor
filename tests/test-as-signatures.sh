@@ -1272,6 +1272,9 @@ cat > "$CLEAN_REPO/docs/bma-work-management-clean.md" <<'EOF'
 
 Recommendations name owner_surface and github_issue_candidate disposition
 directly; there is no category-only recommendation or selection handback.
+For Issue 164 recommendations, do not answer with a category such as "do real
+delivery" or "adoption/delivery proof"; name one exact next owner-surface
+action instead.
 
 Goal-mode episode recommendation is reserved for a batch of eight issues across
 multiple repos with a retained acceptance contract, not for tiny one-file work.

@@ -1265,7 +1265,9 @@ SELECTION_HANDBACK_PATTERN = re.compile(
 )
 SELECTION_HANDBACK_NEGATION_PATTERN = re.compile(
     r"\b(no|not|never|without|rejects?|invalid|forbid(?:s|den)?|prevents?)\b.{0,40}"
-    r"\b(category[- ]?only|selection handback|hand back selection|operator (?:choose|pick|select))\b",
+    r"\b(category[- ]?only|selection handback|hand back selection|operator (?:choose|pick|select)|"
+    r"choose a category|pick an adoption proof|do real delivery|adoption/delivery proof|"
+    r"work on repo-star)\b",
     re.IGNORECASE,
 )
 GOAL_MODE_PATTERN = re.compile(r"\b(goal[- ]?mode|codex goal|goal episode)\b", re.IGNORECASE)
