@@ -1282,19 +1282,56 @@ GITHUB_CLOSURE_TRUTH_PATTERN = re.compile(
 LOCAL_CLOSEOUT_AUTHORITY_PATTERN = re.compile(
     r"\b(local closeout|completion[- ]manifest|work-close|score-session|handoff|"
     r"ser\b|session[- ]end[- ]review|closeout authority|authoritative closeout|"
-    r"closure authority)\b",
+    r"closure authority|local work packages?|work packages? as (?:closure|task) truth|"
+    r"retained report packages?|handoff[- ]sync facts?|local duplicate closure receipts?|"
+    r"duplicate closure receipts?|pointer[- ]file compatibility|pointer files?|"
+    r"direct[- ]closure self[- ]heal artifacts?|self[- ]heal receipts?|"
+    r"local receipt writers?|local receipts? as (?:closure|task) truth)\b",
     re.IGNORECASE,
 )
 LOCAL_CLOSEOUT_BYPASS_PATTERN = re.compile(
     r"\b(github-native-closeout|github[- ]native closeout|bypass(?:ed)?|"
     r"explicitly bypass(?:ed)?|not re-graded|no local completion authority|"
     r"no local closeout authority|no new local closeout|issue/pr truth is closure authority|"
-    r"except for qualifying|do not run|do not add|not required|not authoritative|not used|"
+    r"except for qualifying|do not run|do not add|"
     r"no new.{0,80}local closeout|not for.{0,80}direct closure|"
     r"instead of [`'\"]?(?:make )?work-close|"
     r"score[_-]session[_-]not[_-]authoritative|session grader skipped)\b",
     re.IGNORECASE,
 )
+
+
+def local_authority_match_is_negated(text: str, match: re.Match[str]) -> bool:
+    """Return true when the matched local-closeout authority is locally negated."""
+
+    start, end = match.span()
+    sentence_start = max(text.rfind(".", 0, start), text.rfind("\n", 0, start), text.rfind(";", 0, start)) + 1
+    next_bounds = [idx for idx in (text.find(".", end), text.find("\n", end), text.find(";", end)) if idx != -1]
+    sentence_end = min(next_bounds) if next_bounds else len(text)
+    prefix = text[sentence_start:start].lower()
+    suffix = text[end:sentence_end].lower()
+    if re.search(r"\b(no|without)\s+(?:[\w`'\"/-]+\s+){0,4}$", prefix):
+        return True
+    if re.search(
+        r"\b(?:do|does|must|should|may|is|are)\s+not\s+"
+        r"(?:(?:require|use|treat|add|make|keep|run)\s+)?(?:[\w`'\"/-]+\s+){0,4}$",
+        prefix,
+    ):
+        return True
+    if re.match(
+        r"\s+(?:is|are|remains?|remain)?\s*not\s+"
+        r"(?:required|authoritative|used|closure authority|task truth)\b",
+        suffix,
+    ):
+        return True
+    return False
+
+
+def has_unnegated_local_closeout_authority(text: str) -> bool:
+    return any(
+        not local_authority_match_is_negated(text, match)
+        for match in LOCAL_CLOSEOUT_AUTHORITY_PATTERN.finditer(text)
+    )
 CORE_FIVE_SURFACE_PATTERN = re.compile(
     r"\b(core[- ]five|repo[- ]star|fleet repos?|repo[- ]family|"
     r"repo-auditor|repo-upgrade-advisor|repo-optimizer|repo-agent-core)\b",
@@ -1362,6 +1399,21 @@ def is_work_management_signature_explainer(path: str, text: str) -> bool:
     if "template" in lowered_path and SIGNATURE_DEFINITION_MARKER_PATTERN.search(text):
         return True
     return "signature" in lowered_path and SIGNATURE_DEFINITION_MARKER_PATTERN.search(text)
+
+
+def is_closure_runtime_distribution_explainer(path: str, text: str) -> bool:
+    """Suppress only the shared closure/runtime distribution contract itself."""
+
+    lowered_path = path.lower()
+    if not (
+        lowered_path.endswith("repo-star-closure-runtime-distribution-contract.md")
+        or lowered_path.endswith("repo-star-closure-runtime-distribution.md")
+    ):
+        return False
+    return bool(
+        re.search(r"\brepo-star closure runtime distribution\b", text, re.I)
+        and re.search(r"\bclosure[- ]ceremony regrowth classes\b", text, re.I)
+    )
 
 
 def source_intelligence_intake_gap(texts: dict[str, str]) -> dict[str, Any]:
@@ -1886,6 +1938,9 @@ def github_native_closure_regrowth(texts: dict[str, str]) -> dict[str, Any]:
         if is_work_management_signature_explainer(path, text):
             bypassed.append(path)
             continue
+        if is_closure_runtime_distribution_explainer(path, text):
+            bypassed.append(path)
+            continue
         if "AS_WORK_MANAGEMENT_SIGNATURES" in text:
             bypassed.append(path)
             continue
@@ -1901,7 +1956,7 @@ def github_native_closure_regrowth(texts: dict[str, str]) -> dict[str, Any]:
             lowered = chunk.lower()
             if not GITHUB_CLOSURE_TRUTH_PATTERN.search(lowered):
                 continue
-            if not LOCAL_CLOSEOUT_AUTHORITY_PATTERN.search(lowered):
+            if not has_unnegated_local_closeout_authority(lowered):
                 continue
             if LOCAL_CLOSEOUT_BYPASS_PATTERN.search(lowered):
                 path_bypassed = True
