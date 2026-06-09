@@ -601,8 +601,8 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Script:** `scripts/detect-as-upstream-capability-intake-gap.sh`
 
 ### AS-36: GBrain Instruction Distribution Overclaim
-- **Detects:** GBrain instruction surfaces that overclaim canonical authority, enable background behavior, or omit advisory/source boundaries.
-- **Signal:** Instruction guidance references GBrain distribution with canonical claims, background commands, missing advisory limits, or missing source/citation expectations.
+- **Detects:** GBrain instruction or exact-handle replay surfaces that overclaim canonical authority, enable background behavior, or omit advisory/source/exact-replay boundaries.
+- **Signal:** Instruction guidance references GBrain distribution or exact-handle replay with canonical claims, background commands, missing advisory limits, missing source/citation expectations, missing fallback/no-capture evidence, missing no-canonical boundary, or missing no-background boundary.
 - **Fire condition:** `gbrain_instruction_gap_count > 0`
 - **Script:** `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh`
 EOF
@@ -659,9 +659,11 @@ failed HERMES_FOREGROUND_RUN_RECEIPT evidence, or no-regrowth boundaries.
 without closure_run_id, evidence_reuse_key, github_run_id, or github_run_attempt
 fields that let local and remote validation runs be correlated.
 
-**Triggers:** AS-36 fires when GBrain instruction distribution guidance
-overclaims canonical authority, enables background GBrain behavior, omits the
-advisory boundary, or omits source/citation expectations.
+**Triggers:** AS-36 fires when GBrain instruction distribution or exact-handle
+replay guidance overclaims canonical authority, enables background GBrain
+behavior, omits the advisory boundary, omits source/citation expectations,
+omits fallback/no-capture evidence, omits a no-canonical boundary, or omits a
+no-background boundary.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
