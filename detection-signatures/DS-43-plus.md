@@ -207,9 +207,10 @@
 
 ### AS-22: GitHub-Native Closure Regrowth
 - **Detects:** GitHub issue/PR closure truth coexisting with local closeout authority.
-- **Signal:** A surface says GitHub issue/PR state is closed or merged while also requiring local completion manifests, work-close, score-session, SER, handoff, or other local closeout authority.
+- **Signal:** A surface says GitHub issue/PR state is closed or merged while also requiring local completion manifests, work-close, score-session, SER, handoff, local work packages, retained report packages, handoff-sync facts, local duplicate closure receipts, pointer-file compatibility, stale direct-closure self-heal artifacts, or other local closeout authority.
 - **Phase range:** Work-management, closeout, campaign, and agent-operation surfaces.
-- **Check:** Scan owner evidence text for GitHub closure truth plus local closeout authority, suppressing explicit `--github-native-closeout`, local-authority bypass language, and AS-20/AS-21/AS-22 detector-definition or recommendation-template explainers.
+- **Check:** Scan owner evidence text for GitHub closure truth plus local closeout authority, suppressing explicit `--github-native-closeout`, local-authority bypass language, normal non-qualifying fallback closeout, neutral contract/detector documentation, and AS-20/AS-21/AS-22 detector-definition or recommendation-template explainers.
+- **Shared contract:** repo-agent-core `docs/repo-star-closure-runtime-distribution-contract.md` defines the closure-ceremony regrowth classes used for repo-star detector/advisor distribution.
 - **Fire condition:** `github_native_closure_regrowth_count > 0`
 - **Prevention tier:** T1
 - **Severity:** HIGH
