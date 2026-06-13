@@ -330,3 +330,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-issue164-runtime-drift.sh`
+
+### AS-38: Self-Authored Campaign Pause Authority
+- **Detects:** Campaign-sync or active-track surfaces that pause, stop, or clear active GitHub-native work using self-authored negative proof instead of operator-approved pause evidence or true campaign closure.
+- **Signal:** A surface says `Next active track: None selected`, pauses/stops/completes the campaign, or asserts that no admissible owner-surface action remains while relying on no open issue/PR search results, stale downstream references, or an agent-authored no-action assertion.
+- **Phase range:** Issue #164 campaign sync, active-track selection, selector dispositions, owner-surface routing notes, and campaign closeout/status updates.
+- **Check:** Scan owner evidence text for campaign pause/stop dispositions and require explicit operator-approved pause evidence or true campaign closure with no unresolved campaign families. Suppress detector definitions, fixtures, templates, explicit operator-approved pause examples, true closure examples, and ordinary non-pause next-track text.
+- **Fire condition:** `campaign_pause_authority_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-self-authored-campaign-pause-authority.sh`
