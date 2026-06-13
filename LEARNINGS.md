@@ -21,3 +21,21 @@
 | L17 | Co-evolution drift is easiest to prevent at the change-set boundary, not after a later scorecard warns. A BMA advisor pass promoted `T2-COEVO-LOW` because governed surfaces had grown faster than paired tests; wiring the expectation into `make check` gives contributors immediate feedback when agent, detection-signature, or schema edits are not paired with tests or fixtures. | 2026-05-10 BMA advisor-backed repo-auditor pilot. Evidence: `specs/083-coevolution-guard/spec.md`, `scripts/check-coevolution.sh`, `tests/test-check-coevolution.sh`. | Put co-evolution expectations into deterministic pre-commit gates for the highest-drift surfaces, and keep the guard narrow enough to avoid blocking unrelated implementation or docs changes. |
 | L18 | Optional action tuple fields reduce patch handoff ambiguity without invalidating legacy findings. Burst 174 showed `verification` can carry a retest command but not the edit surface, patch shape, or owner blocker needed by the next patching worker. | 2026-05-22 Burst 175 action tuple schema patch. Evidence: `schemas/FINDINGS.schema.json`, `.agents/*-auditor.agent.md`, `tests/fixtures/findings-schema/*.json`, and `tests/test-auditor-schemas.sh`. | Keep action tuple fields optional first, preserve the existing command field, and pair schema/prompt changes with fixtures proving both backward compatibility and invalid-type rejection. |
 | L19 | When GitHub issue/PR state is the intended closure authority, session-local scorecards should not grade delivered work as if local session ceremony were still the source of truth. The safer repair is an explicit bypass receipt for GitHub-native work, while preserving the normal scorer path for non-GitHub work. | 2026-05-27 Issue #22 self-healing closeout-regrowth repair, `work/20260527T023539Z`; regression coverage in `tests/test-work-close-github-native.sh`. | Add a GitHub-native closeout bypass only where issue/PR closure is explicit; keep `score-session.sh` unchanged for ordinary session-local work. |
+
+## AS-32 Learning / Recovery Anchors
+
+This learning surface may preserve useful self-learning observations only when
+they remain owner-repo local and evidence anchored:
+
+- `github_surface_or_owner_action`: cite the GitHub issue/PR/check/merge truth
+  or direct owner action that made the learning actionable.
+- `raw_evidence` / raw runtime evidence: cite the command transcript, run-root
+  artifact, replay output, CI run, or retained evidence path in the `Source`
+  column.
+- `gbrain_slug_or_no_capture_reason`: include a GBrain slug when captured, or an
+  explicit `no_capture_reason` when the learning is repo-local and needs no
+  advisory memory capture.
+- `bounded_non_claims` / bounded non-claims: these rows are decision support,
+  not proof of issue or PR closure, not target-repo mutation authority, and not
+  authorization for a controller, scheduler, queue, daemon, retry loop,
+  registry, dashboard, or background Hermes/GBrain behavior.

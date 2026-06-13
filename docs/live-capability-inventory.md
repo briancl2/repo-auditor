@@ -7,6 +7,24 @@ This document tracks the repo-auditor live capability surfaces that are intentio
 
 The calibrated detector separates live surfaces from retained, archive, test-fixture, and generated paths. This inventory records owner intent for the live paths; it does not authorize deleting, archiving, enabling, or mutating target repositories.
 
+## AS-32 Self-Learning Evidence Anchors
+
+Capability inventory guidance can describe self-improvement and live learning
+surfaces only as bounded owner-local tracking when the claim is anchored:
+
+- `github_surface_or_owner_action`: cite the GitHub issue/PR/check/merge truth
+  or direct owner action that changes this inventory.
+- `raw_evidence` / raw runtime evidence: cite the command transcript, run-root
+  artifact, replay output, CI run, or retained evidence path supporting the
+  inventory claim.
+- `gbrain_slug_or_no_capture_reason`: include a GBrain slug when captured, or an
+  explicit `no_capture_reason` when the inventory repair is repo-local and needs
+  no advisory memory capture.
+- `bounded_non_claims`: this inventory does not prove capability maturity, does
+  not authorize target mutation, and does not add a schema, generated registry,
+  runtime API, scheduler, controller, queue, watcher, daemon, retry loop, or
+  background sync.
+
 ## Triage Summary
 
 | Field | Value |
