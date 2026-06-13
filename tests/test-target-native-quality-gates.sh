@@ -216,6 +216,60 @@ assert receipt["contradiction"] == "unresolved"
 PY
 echo "  ✓ parseable warning gate stays distinct from fail/pass"
 
+MARKDOWN_STATUS_TARGET="$TMP_ROOT/markdown-status-target"
+MARKDOWN_STATUS_OUT="$TMP_ROOT/markdown-status-output"
+mkdir -p "$MARKDOWN_STATUS_TARGET/system/reports"
+cat > "$MARKDOWN_STATUS_TARGET/system/reports/QUALITY_GATE.md" <<'EOF'
+# Portfolio Advisor Quality Gate
+
+## Required checks
+
+- **Status:** ⚠️ WARN (exit code 0)
+  - Advisory finding retained for owner review.
+- **Status:** ✅ PASS (exit code 0)
+  - Deterministic lint completed successfully.
+EOF
+make_score_output "$MARKDOWN_STATUS_OUT" 70 0 yes
+
+python3 "$REPO_ROOT/scripts/collect-target-native-quality-gates.py" "$MARKDOWN_STATUS_TARGET" "$MARKDOWN_STATUS_OUT"
+python3 - "$MARKDOWN_STATUS_OUT" <<'PY'
+import json
+import pathlib
+import sys
+
+receipt = json.load(open(pathlib.Path(sys.argv[1]) / "TARGET_NATIVE_QUALITY_GATES.json"))
+assert receipt["sources"][0]["path"] == "system/reports/QUALITY_GATE.md"
+assert receipt["raw_target_gate_state"] == "warning"
+assert receipt["target_gate_state"] == "parseable_warning"
+assert receipt["contradiction"] == "unresolved"
+PY
+echo "  ✓ markdown status lines preserve warning precedence over pass"
+
+MARKDOWN_FAIL_TARGET="$TMP_ROOT/markdown-fail-target"
+MARKDOWN_FAIL_OUT="$TMP_ROOT/markdown-fail-output"
+mkdir -p "$MARKDOWN_FAIL_TARGET/system/reports"
+cat > "$MARKDOWN_FAIL_TARGET/system/reports/QUALITY_GATE.md" <<'EOF'
+# Quality Gate
+
+- **Status:** ✅ PASS (exit code 0)
+- **Status:** ⚠️ WARN (exit code 0)
+- **Status:** ❌ FAIL (exit code 1)
+EOF
+make_score_output "$MARKDOWN_FAIL_OUT" 28 1 yes
+
+python3 "$REPO_ROOT/scripts/collect-target-native-quality-gates.py" "$MARKDOWN_FAIL_TARGET" "$MARKDOWN_FAIL_OUT"
+python3 - "$MARKDOWN_FAIL_OUT" <<'PY'
+import json
+import pathlib
+import sys
+
+receipt = json.load(open(pathlib.Path(sys.argv[1]) / "TARGET_NATIVE_QUALITY_GATES.json"))
+assert receipt["raw_target_gate_state"] == "fail"
+assert receipt["target_gate_state"] == "parseable_fail"
+assert receipt["contradiction"] == "unresolved"
+PY
+echo "  ✓ markdown status lines preserve fail precedence over warning/pass"
+
 STALE_TARGET="$TMP_ROOT/stale-fleet-target"
 STALE_OUT="$TMP_ROOT/stale-fleet-output"
 mkdir -p "$STALE_TARGET"
@@ -295,6 +349,8 @@ python3 - "$REPO_ROOT" \
     "$JSON_UNKNOWN_OUT" \
     "$UNKNOWN_OUT" \
     "$WARNING_OUT" \
+    "$MARKDOWN_STATUS_OUT" \
+    "$MARKDOWN_FAIL_OUT" \
     "$STALE_OUT" \
     "$TRUE_RISK_OUT" <<'PY'
 import json
