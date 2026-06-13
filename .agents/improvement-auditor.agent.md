@@ -29,6 +29,23 @@ Evaluate the target repository's self-improvement and learning capabilities.
 4. **Handoff continuity** — HANDOFF-*.md or STATUS.md? Session context transfer?
 5. **Autonomous loops** — Evidence of self-audit → fix cycles?
 
+## AS-32 Evidence Anchor Requirement
+
+When reporting self-learning, self-healing, self-improvement, or learning /
+recovery findings, keep the claim owner-repo local and include these anchors or
+downgrade the statement to a bounded non-claim:
+
+- `github_surface_or_owner_action`: a concrete GitHub issue/PR, owner action, or
+  owner-surface edit path that would receive the repair.
+- `raw_evidence` / raw runtime evidence: retained AS replay, session log,
+  command transcript, CI run, or equivalent raw evidence path.
+- `gbrain_slug_or_no_capture_reason`: a GBrain slug only when captured, otherwise
+  an explicit `no_capture_reason`; do not create GBrain sync/watch behavior.
+- `bounded_non_claims`: state that the finding is detector evidence or owner
+  guidance, not proof of closure, target mutation authority, or authorization
+  for controllers, schedulers, queues, daemons, registries, retry loops,
+  dashboards, or background Hermes/GBrain behavior.
+
 ## Output Format
 
 Return a 7-column findings table following the FINDINGS schema.

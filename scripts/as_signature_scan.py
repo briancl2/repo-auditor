@@ -2998,6 +2998,9 @@ def unanchored_self_learning_claim(texts: dict[str, str]) -> dict[str, Any]:
     grounded: list[str] = []
 
     for path, text in owner_evidence_texts(texts).items():
+        # AS-32 audits owner guidance claims, not detector wrapper names.
+        if path.startswith("scripts/"):
+            continue
         if is_work_management_signature_explainer(path, text):
             grounded.append(path)
             continue

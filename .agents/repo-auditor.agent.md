@@ -70,3 +70,20 @@ After the script completes, verify:
 - Allowed dirty paths: `$OUTPUT_DIR/` only
 - Schema-validate SCORECARD.json before writing final output
 - Max 1000 files scanned per run by default; higher caps require explicit trusted-local environment override
+
+## AS-32 Self-Learning Claim Anchors
+
+If standard or deep mode describes self-learning, self-healing, self-improvement,
+or learning / recovery behavior, require the claim to carry all of these owner
+anchors or present it only as a bounded non-claim:
+
+- `github_surface_or_owner_action`: exact owner action, GitHub issue/PR, or
+  owner-surface path that would receive the repair.
+- `raw_evidence` / raw runtime evidence: retained replay log, command
+  transcript, session log, CI run, or equivalent path.
+- `gbrain_slug_or_no_capture_reason`: captured GBrain slug, or explicit
+  `no_capture_reason` when no memory capture is made.
+- `bounded_non_claims`: the anchor does not prove issue/PR closure, does not
+  authorize target-repo mutation, and does not create controllers, schedulers,
+  queues, daemons, registries, dashboards, retry loops, broad campaign sync, or
+  background Hermes/GBrain behavior.
