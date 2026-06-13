@@ -1082,6 +1082,76 @@ assert payload["scanned_files"] == 200, payload
 assert payload["scan_limited"] is True, payload
 PY
 
+AS33_FAILURE_TO_ISSUE_GAP_REPO="$TMPDIR/as33-failure-to-issue-gap-repo"
+AS33_FAILURE_TO_ISSUE_HEALTHY_REPO="$TMPDIR/as33-failure-to-issue-healthy-repo"
+mkdir -p "$AS33_FAILURE_TO_ISSUE_GAP_REPO/docs" "$AS33_FAILURE_TO_ISSUE_HEALTHY_REPO/docs"
+cat > "$AS33_FAILURE_TO_ISSUE_GAP_REPO/docs/foreground-failure.md" <<'EOF'
+# Foreground Failure Conversion
+
+When a Hermes foreground failure hits a route-changing failure, convert the
+foreground failure to a GitHub failure issue. The guidance mentions
+HERMES_FOREGROUND_FAILURE_GUIDANCE and an owner action, but only says to create a
+failure issue and let the agent handle duplicates later.
+EOF
+cat > "$AS33_FAILURE_TO_ISSUE_HEALTHY_REPO/docs/foreground-failure.md" <<'EOF'
+# Foreground Failure-To-Issue Conversion
+
+For route-changing Hermes foreground failures, convert
+HERMES_FOREGROUND_FAILURE_GUIDANCE into explicit GitHub issue or GitHub issue
+comment truth on the owner surface. The accepted guidance input may be the
+source receipt evidence; record source receipt path, evidence path, dedupe key,
+and owner action.
+
+Exact marker search is authoritative. Include
+`<!-- issue164-foreground-failure-to-issue: hermes-foreground:timeout:pr-53 -->`
+and search for that exact marker before creating a new issue. If the exact
+marker already exists, add a GitHub issue comment truth instead of creating a
+duplicate. A bounded fallback body scan is only an index-lag guard across a
+small explicit set of likely issue bodies or comments; broad fallback saturation
+is not permanent authority after clean exact marker search.
+
+Conversion output fields: GitHub issue or GitHub issue comment truth, dedupe key,
+evidence path `/tmp/hermes/failure-guidance.json`, source receipt path
+`/tmp/hermes/HERMES_FOREGROUND_FAILURE_GUIDANCE.json`, owner action `create issue
+or comment on the existing owner issue`, and bounded non-claims. This conversion
+is not closure, not a repair, not CI proof, and not runtime proof beyond the
+cited evidence. It does not authorize automatic retry, automatic repair,
+controller, scheduler, queue, daemon, retry loop, registry, hidden registry,
+background GBrain behavior, automatic background issue creation, background
+behavior, auto-merge, downstream mutation, target-repo mutation, or
+Hermes/GBrain internals mutation.
+EOF
+
+python3 - "$REPO_ROOT" "$AS33_FAILURE_TO_ISSUE_GAP_REPO" "$AS33_FAILURE_TO_ISSUE_HEALTHY_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, gap_repo, healthy_repo = sys.argv[1:4]
+script = f"{repo_root}/scripts/detect-as-foreground-failure-guidance-gap.sh"
+
+gap = subprocess.run(["bash", script, gap_repo], check=True, text=True, stdout=subprocess.PIPE)
+gap_payload = json.loads(gap.stdout)
+assert gap_payload["ds_id"] == "AS-33", gap_payload
+assert gap_payload["fired"] is True, gap_payload
+assert isinstance(gap_payload.get("evidence"), str), gap_payload
+assert "failed_foreground_run_receipt" in gap_payload["evidence"], gap_payload
+assert "no_regrowth_boundaries" in gap_payload["evidence"], gap_payload
+assert "exact_marker_dedupe" in gap_payload["evidence"], gap_payload
+assert "bounded_fallback_index_lag_guard" in gap_payload["evidence"], gap_payload
+assert "evidence_and_source_receipt_path" in gap_payload["evidence"], gap_payload
+
+healthy = subprocess.run(["bash", script, healthy_repo], check=True, text=True, stdout=subprocess.PIPE)
+healthy_payload = json.loads(healthy.stdout)
+assert healthy_payload["ds_id"] == "AS-33", healthy_payload
+assert healthy_payload["fired"] is False, healthy_payload
+assert healthy_payload["signals"]["foreground_failure_guidance_grounded_count"] == 1, healthy_payload
+assert isinstance(healthy_payload.get("evidence"), str), healthy_payload
+assert "exact_marker_dedupe" not in healthy_payload.get("evidence", ""), healthy_payload
+assert "bounded_fallback_index_lag_guard" not in healthy_payload.get("evidence", ""), healthy_payload
+assert "evidence_and_source_receipt_path" not in healthy_payload.get("evidence", ""), healthy_payload
+PY
+
 AS27_REPLAY_ONLY_REPO="$TMPDIR/as27-replay-only-repo"
 mkdir -p "$AS27_REPLAY_ONLY_REPO/acceptance/replays/20260601T005144Z-real-hermes-chat-as-scorecard"
 cat > "$AS27_REPLAY_ONLY_REPO/acceptance/replays/20260601T005144Z-real-hermes-chat-as-scorecard/AS_WORK_MANAGEMENT_FINDINGS.json" <<'EOF'
