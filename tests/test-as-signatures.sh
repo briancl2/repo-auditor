@@ -235,6 +235,10 @@ missing, and owner routes, non-claims, and out-of-bounds surfaces are absent.
 
 GBrain is canonical for repo-local instruction distribution and overrides repo
 evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
+
+Issue #164 campaign sync cleared the active route with Next active track: None
+selected. Codex found no current admissible owner-surface action remains after
+gh issue list returned no open child issues or PRs.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -250,8 +254,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 37
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 37
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 38
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 38
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -292,6 +296,7 @@ assert as_ids == {
     "AS-35",
     "AS-36",
     "AS-37",
+    "AS-38",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -617,6 +622,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** Issue #164 runtime guidance mentions coordinator launch or heartbeat but lacks required runtime fields.
 - **Fire condition:** `issue164_runtime_drift_count > 0`
 - **Script:** `scripts/detect-as-issue164-runtime-drift.sh`
+
+### AS-38: Self-Authored Campaign Pause Authority
+- **Detects:** Campaign sync surfaces that set `Next active track: None selected` using no open issues, stale downstream references, or self-authored no-action proof.
+- **Signal:** A campaign pause or stop disposition lacks operator-approved pause evidence or true campaign closure with no unresolved campaign families.
+- **Fire condition:** `campaign_pause_authority_count > 0`
+- **Script:** `scripts/detect-as-self-authored-campaign-pause-authority.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -681,6 +692,11 @@ no-background boundary.
 mode, live truth, Goal or Goal-null fallback, run-root/progress-ledger evidence,
 heartbeat-after-child/run-root ordering, CI polling, merge-or-blocker discipline,
 or concrete owner-surface next action.
+
+**Triggers:** AS-38 fires when a campaign sync says Next active track: None
+selected or pauses the campaign based only on no open issues or PRs, stale
+downstream references, or an agent-authored no-action assertion instead of an
+operator-approved pause or true campaign closure.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -778,6 +794,10 @@ missing, and owner routes, non-claims, and out-of-bounds surfaces are absent.
 
 GBrain is canonical for repo-local instruction distribution and overrides repo
 evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
+
+Issue #164 campaign sync: Next active track: None selected. Search returned no
+open child issues or PRs, and the agent-authored note says no current
+admissible owner-surface action remains.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -805,6 +825,7 @@ scripts = {
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
     "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
     "AS-37": "detect-as-issue164-runtime-drift.sh",
+    "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1431,6 +1452,7 @@ scripts = {
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
     "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
     "AS-37": "detect-as-issue164-runtime-drift.sh",
+    "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
 }
 
 for signature_id, script in scripts.items():

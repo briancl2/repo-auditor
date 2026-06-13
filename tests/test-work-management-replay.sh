@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify bounded AS-20..AS-37 replay keeps direct closure and clean recovery runtime clean.
+# Verify bounded AS-20..AS-38 replay keeps direct closure and clean recovery runtime clean.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -224,7 +224,7 @@ import sys
 from_file = json.load(open(sys.argv[1]))
 from_stdout = json.load(open(sys.argv[2]))
 assert from_file == from_stdout
-assert from_file["signature_ids"] == [f"AS-{index}" for index in range(20, 38)]
+assert from_file["signature_ids"] == [f"AS-{index}" for index in range(20, 39)]
 assert from_file["target_count"] == 8
 assert from_file["contract_reference"] == "repo-agent-core/docs/downstream-read-only-recovery-runtime-pilot-contract.md"
 assert from_file["receipt_shape_reference"] == "DOWNSTREAM_READ_ONLY_RECOVERY_RUNTIME_PILOT_RECEIPT"
@@ -322,7 +322,7 @@ for target, expected_class in context_cases:
 assert from_file["closure_regrowth_target_count"] == 1
 assert from_file["error_target_count"] == 0
 assert any("read-only" in claim for claim in from_file["bounded_non_claims"])
-assert any("AS-20 through AS-37" in claim for claim in from_file["bounded_non_claims"])
+assert any("AS-20 through AS-38" in claim for claim in from_file["bounded_non_claims"])
 PY
 
 if python3 "$REPO_ROOT/scripts/replay-work-management-signatures.py" \

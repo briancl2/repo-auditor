@@ -70,6 +70,7 @@ scripts=(
     "detect-as-upstream-capability-intake-gap.sh"
     "detect-as-gbrain-instruction-distribution-overclaim.sh"
     "detect-as-issue164-runtime-drift.sh"
+    "detect-as-self-authored-campaign-pause-authority.sh"
 )
 
 idx=0

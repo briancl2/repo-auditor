@@ -235,6 +235,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-issue164-runtime-drift.sh",
     },
+    "AS-38": {
+        "name": "Self-authored campaign pause authority",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-self-authored-campaign-pause-authority.sh",
+    },
 }
 
 
@@ -1371,7 +1377,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[0-7]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-8]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1387,6 +1393,8 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"closure-run identity|closure run identity|"
     r"upstream capability intake gap|upstream capability intake|"
     r"issue 164 runtime drift|issue #164 runtime drift|"
+    r"self-authored campaign pause authority|self authored campaign pause authority|"
+    r"campaign pause authority|campaign pause-authority|"
     r"foreground recovery runtime contract)\b",
     re.IGNORECASE,
 )
@@ -2116,6 +2124,159 @@ def issue164_runtime_drift(texts: dict[str, str]) -> dict[str, Any]:
         },
         "evidence": evidence_join(details),
         "reason": "Issue #164 runtime launch or merge discipline is missing required coordinator fields" if offenders else "Issue #164 runtime surfaces are complete or absent",
+    }
+
+
+CAMPAIGN_PAUSE_SURFACE_PATTERN = re.compile(
+    r"\b(issue\s*#?164|issue164|campaign|github[- ]native|active tracks?|"
+    r"active child|next active track|owner[-_ ]surface|repo[- ]star)\b",
+    re.IGNORECASE,
+)
+CAMPAIGN_NONE_SELECTED_PATTERN = re.compile(
+    r"\b(next active track|next_active_track)\s*[:=]\s*[`\"']?"
+    r"(none selected|none|null|n/a|na)[`\"']?\b",
+    re.IGNORECASE,
+)
+CAMPAIGN_STOP_DISPOSITION_PATTERN = re.compile(
+    r"\b(no next active track|no active track remains|no further (?:campaign )?work|"
+    r"campaign (?:is |was )?(?:paused|stopped|complete|completed|closed|done)|"
+    r"(?:pause|paused|stop|stopped|park|parked|defer|deferred) (?:the )?campaign|"
+    r"no current admissible owner[-_ ]surface action remains|"
+    r"no admissible owner[-_ ]surface action remains|"
+    r"no owner[-_ ]surface action remains|nothing actionable remains)\b",
+    re.IGNORECASE,
+)
+CAMPAIGN_NEGATIVE_SEARCH_PATTERN = re.compile(
+    r"(\b(?:no|zero)\s+(?:matching\s+)?(?:open\s+)?"
+    r"(?:issues?|prs?|pull requests?|children|child issues?|results|hits)\b|"
+    r"\bno open (?:child\s+)?(?:issues?|prs?|pull requests?)\b|"
+    r"\b(?:gh|github)\s+(?:issue|pr)\s+(?:list|search|view)\b.{0,120}"
+    r"\b(?:returned|found|showed)\s+(?:no|zero|0|\[\])\b|"
+    r"\bsearch(?:es)?\s+(?:returned|found|showed)\s+(?:no|zero|0)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+CAMPAIGN_STALE_DOWNSTREAM_PATTERN = re.compile(
+    r"(\b(?:stale|old|prior|previous|archived)\b.{0,100}"
+    r"\b(?:downstream|final opportunity|retained artifact|reference|references|"
+    r"package|handoff|retrospective|replay)\b|"
+    r"\bdownstream references?\b.{0,100}"
+    r"\b(?:stale|old|prior|previous|archived|closed|missing)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+CAMPAIGN_SELF_AUTHORED_NO_ACTION_PATTERN = re.compile(
+    r"\b(no current admissible owner[-_ ]surface action remains|"
+    r"no admissible owner[-_ ]surface action remains|"
+    r"no current owner[-_ ]surface action|"
+    r"no owner[-_ ]surface action remains|"
+    r"agent[- ]authored|self[- ]authored|codex found no|i found no|"
+    r"there is nothing actionable|nothing actionable remains)\b",
+    re.IGNORECASE,
+)
+CAMPAIGN_OPERATOR_APPROVED_PAUSE_PATTERN = re.compile(
+    r"\b(operator[- ]approved pause|operator approved pause|"
+    r"explicit operator approval (?:to|for) (?:pause|stop|defer|park)|"
+    r"operator[- ]directed (?:pause|stop|defer|park)|"
+    r"operator requested (?:a )?(?:pause|stop|defer|park)|"
+    r"owner approved pause|human approved pause|"
+    r"approved_by\s*[:=]\s*(?:operator|human|owner)|"
+    r"authorized_by\s*[:=]\s*(?:operator|human|owner))\b",
+    re.IGNORECASE,
+)
+CAMPAIGN_TRUE_CLOSURE_PATTERN = re.compile(
+    r"\b(true campaign closure|campaign closure evidence|campaign is closed|"
+    r"campaign closed|parent campaign closed|"
+    r"all campaign work (?:is |was )?(?:closed|complete|completed|resolved))\b",
+    re.IGNORECASE,
+)
+CAMPAIGN_NO_UNRESOLVED_FAMILIES_PATTERN = re.compile(
+    r"\b(no unresolved campaign families|"
+    r"unresolved campaign families\s*[:=]\s*(?:none|0|\[\])|"
+    r"all campaign families (?:are |were )?(?:resolved|closed|complete|completed)|"
+    r"zero unresolved campaign families)\b",
+    re.IGNORECASE,
+)
+
+
+def campaign_pause_authorized(chunk: str) -> str | None:
+    if CAMPAIGN_OPERATOR_APPROVED_PAUSE_PATTERN.search(chunk):
+        return "operator_approved_pause"
+    if CAMPAIGN_TRUE_CLOSURE_PATTERN.search(chunk) and CAMPAIGN_NO_UNRESOLVED_FAMILIES_PATTERN.search(chunk):
+        return "true_campaign_closure"
+    return None
+
+
+def campaign_pause_weak_reasons(chunk: str) -> list[str]:
+    reasons: list[str] = []
+    if CAMPAIGN_NONE_SELECTED_PATTERN.search(chunk):
+        reasons.append("none_selected_disposition")
+    if CAMPAIGN_NEGATIVE_SEARCH_PATTERN.search(chunk):
+        reasons.append("negative_search_or_no_open_owner_surface")
+    if CAMPAIGN_STALE_DOWNSTREAM_PATTERN.search(chunk):
+        reasons.append("stale_downstream_reference")
+    if CAMPAIGN_SELF_AUTHORED_NO_ACTION_PATTERN.search(chunk):
+        reasons.append("self_authored_no_action_assertion")
+    return reasons
+
+
+def self_authored_campaign_pause_authority(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    authorized_counts: Counter[str] = Counter()
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")):
+            continue
+
+        chunks = [chunk.strip() for chunk in re.split(r"\n\s*\n", text) if chunk.strip()]
+        for chunk in chunks:
+            if not CAMPAIGN_PAUSE_SURFACE_PATTERN.search(chunk):
+                continue
+            if not (
+                CAMPAIGN_NONE_SELECTED_PATTERN.search(chunk)
+                or CAMPAIGN_STOP_DISPOSITION_PATTERN.search(chunk)
+            ):
+                continue
+
+            authorized_reason = campaign_pause_authorized(chunk)
+            if authorized_reason:
+                authorized_counts[authorized_reason] += 1
+                grounded.append(f"{path}=>{authorized_reason}")
+                continue
+
+            weak_reasons = campaign_pause_weak_reasons(chunk)
+            if not weak_reasons:
+                continue
+            for reason in weak_reasons:
+                reason_counts[reason] += 1
+            offenders.append(f"{path}=>{','.join(weak_reasons[:4])}")
+            break
+
+    details = [
+        f"self_authored_pause=>{';'.join(offenders[:4]) or 'none'}",
+        f"authorized_pause_or_closure=>{';'.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "campaign_pause_authority_count": len(offenders),
+            "none_selected_disposition_count": reason_counts["none_selected_disposition"],
+            "negative_search_pause_authority_count": reason_counts["negative_search_or_no_open_owner_surface"],
+            "stale_downstream_pause_authority_count": reason_counts["stale_downstream_reference"],
+            "self_authored_no_action_count": reason_counts["self_authored_no_action_assertion"],
+            "operator_approved_pause_count": authorized_counts["operator_approved_pause"],
+            "true_campaign_closure_count": authorized_counts["true_campaign_closure"],
+            "authorized_pause_or_closure_count": sum(authorized_counts.values()),
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "campaign pause/stop disposition relies on self-authored negative proof instead of operator-approved pause or true closure"
+            if offenders
+            else "campaign pause/stop dispositions are operator-approved, true-closure grounded, absent, or not supported only by weak negative proof"
+        ),
     }
 
 
@@ -3042,6 +3203,7 @@ EVALUATORS = {
     "AS-35": upstream_capability_intake_gap,
     "AS-36": gbrain_instruction_distribution_overclaim,
     "AS-37": issue164_runtime_drift,
+    "AS-38": self_authored_campaign_pause_authority,
 }
 
 
