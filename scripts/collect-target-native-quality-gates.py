@@ -67,6 +67,13 @@ def normalize_status_text(value: str) -> str:
     return "unknown"
 
 
+def strongest_status(current: str, candidate: str) -> str:
+    precedence = {"unknown": 0, "pass": 1, "warning": 2, "fail": 3}
+    if precedence.get(candidate, 0) > precedence.get(current, 0):
+        return candidate
+    return current
+
+
 def gate_kind(path: Path) -> str:
     if path.suffix.lower() == ".json":
         return "retained_quality_gate_json"
@@ -77,10 +84,14 @@ def parse_text_gate(path: Path) -> dict[str, Any]:
     text = path.read_text(encoding="utf-8", errors="replace")
     state = "unknown"
     for line in text.splitlines():
-        match = re.match(r"\s*(status|state|verdict|result)\s*[:=-]\s*(.+?)\s*$", line, re.IGNORECASE)
+        match = re.match(
+            r"\s*(?:[-*+]\s*)?(?:\*\*)?\s*(status|state|verdict|result)\s*(?:\*\*)?\s*[:=-]\s*(?:\*\*)?\s*(.+?)\s*$",
+            line,
+            re.IGNORECASE,
+        )
         if match:
-            state = normalize_status_text(match.group(2))
-            if state != "unknown":
+            state = strongest_status(state, normalize_status_text(match.group(2)))
+            if state == "fail":
                 break
 
     lowered = text.lower()
@@ -213,10 +224,10 @@ def raw_target_gate_state(sources: list[dict[str, Any]]) -> str:
     states = [str(source.get("state", "unknown")) for source in sources]
     if "fail" in states:
         return "fail"
-    if "pass" in states:
-        return "pass"
     if "warning" in states:
         return "warning"
+    if "pass" in states:
+        return "pass"
     return "unknown"
 
 
