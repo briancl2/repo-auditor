@@ -2496,8 +2496,48 @@ NO_REGROWTH_CONTROL_TERMS = {
 }
 NO_REGROWTH_MUTATION_BOUNDARY_PATTERN = re.compile(
     r"\b(downstream mutation|downstream repos?|target[- ]repo mutation|mutating downstream|"
-    r"mutate target repos?|target repos?|Hermes internals|automatic GitHub issue creation)\b",
+    r"mutate target repos?|target repos?|Hermes internals|automatic GitHub issue creation|"
+    r"automatic background issue creation|Hermes/GBrain internals mutation)\b",
     re.IGNORECASE,
+)
+FAILURE_TO_ISSUE_CONVERSION_PATTERN = re.compile(
+    r"\b(foreground failure[- ]to[- ]issue conversion|failure[- ]to[- ]issue conversion|"
+    r"GitHub failure issue)\b",
+    re.IGNORECASE,
+)
+FOREGROUND_FAILURE_SOURCE_GUIDANCE_PATTERN = re.compile(
+    r"\b(HERMES_FOREGROUND_FAILURE_GUIDANCE|source receipt evidence|source receipt path|"
+    r"foreground run receipt|failed run receipt evidence)\b",
+    re.IGNORECASE,
+)
+GITHUB_ISSUE_COMMENT_TRUTH_PATTERN = re.compile(
+    r"(?=.*(?:\b(GitHub issue or GitHub issue comment truth|GitHub issue comment truth|"
+    r"issue comment truth|owner GitHub issue|GitHub issue truth)\b))"
+    r"(?=.*\b(owner[-_ ]surface|owner action|owner repo|owner repository|owner issue)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+EXACT_MARKER_DEDUPE_PATTERN = re.compile(
+    r"(?=.*\b(exact marker search|exact marker|exact[- ]marker|stable dedupe marker)\b)"
+    r"(?=.*\b(dedupe key|dedupe marker|dedupe-key|issue164-foreground-failure-to-issue)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+BOUNDED_FALLBACK_INDEX_LAG_PATTERN = re.compile(
+    r"(?=.*\bbounded fallback body scan\b)"
+    r"(?=.*\bindex[- ]lag guard\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+EVIDENCE_SOURCE_RECEIPT_PATH_PATTERN = re.compile(
+    r"(?=.*\b(evidence path|evidence file|evidence URL|evidence url)\b)"
+    r"(?=.*\b(source receipt path|source receipt evidence|HERMES_FOREGROUND_FAILURE_GUIDANCE source)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+CONVERSION_BOUNDED_NON_CLAIMS_PATTERN = re.compile(
+    # The conversion contract must mention non-claims, no-retry/no-repair
+    # language, and the control-plane terms it is disclaiming.
+    r"(?=.*\b(bounded non[- ]claims?|not closure|not a repair|not CI proof|not runtime proof)\b)"
+    r"(?=.*\b(no automatic retry/repair|automatic retry|retry the command|automatic repair|repair code)\b)"
+    r"(?=.*\b(controller|background behavior|background GBrain behavior|daemon|scheduler|queue)\b)",
+    re.IGNORECASE | re.DOTALL,
 )
 
 
@@ -3017,6 +3057,8 @@ def foreground_failure_guidance_gap(texts: dict[str, str]) -> dict[str, Any]:
         if not FOREGROUND_FAILURE_GUIDANCE_CLAIM_PATTERN.search(text):
             continue
 
+        is_failure_to_issue_conversion = FAILURE_TO_ISSUE_CONVERSION_PATTERN.search(text) is not None
+        has_evidence_source_receipt_path = False
         has_guidance_consumption = has_foreground_failure_guidance_consumption(text)
         has_github_owner_truth = ROUTE_CHANGING_GITHUB_OWNER_TRUTH_PATTERN.search(text) is not None
         has_failed_receipt_evidence = FAILED_FOREGROUND_RECEIPT_EVIDENCE_PATTERN.search(text) is not None
@@ -3027,6 +3069,25 @@ def foreground_failure_guidance_gap(texts: dict[str, str]) -> dict[str, Any]:
             and NO_REGROWTH_MUTATION_BOUNDARY_PATTERN.search(text) is not None
         )
 
+        if is_failure_to_issue_conversion:
+            has_evidence_source_receipt_path = EVIDENCE_SOURCE_RECEIPT_PATH_PATTERN.search(text) is not None
+            has_guidance_consumption = (
+                has_guidance_consumption
+                or FOREGROUND_FAILURE_SOURCE_GUIDANCE_PATTERN.search(text) is not None
+            )
+            has_github_owner_truth = (
+                has_github_owner_truth
+                or GITHUB_ISSUE_COMMENT_TRUTH_PATTERN.search(text) is not None
+            )
+            has_failed_receipt_evidence = (
+                has_failed_receipt_evidence
+                or has_evidence_source_receipt_path
+            )
+            has_no_regrowth_boundaries = (
+                has_no_regrowth_boundaries
+                or CONVERSION_BOUNDED_NON_CLAIMS_PATTERN.search(text) is not None
+            )
+
         missing: list[str] = []
         if not has_guidance_consumption:
             missing.append("guidance_consumption")
@@ -3036,6 +3097,13 @@ def foreground_failure_guidance_gap(texts: dict[str, str]) -> dict[str, Any]:
             missing.append("failed_foreground_run_receipt")
         if not has_no_regrowth_boundaries:
             missing.append("no_regrowth_boundaries")
+        if is_failure_to_issue_conversion:
+            if EXACT_MARKER_DEDUPE_PATTERN.search(text) is None:
+                missing.append("exact_marker_dedupe")
+            if BOUNDED_FALLBACK_INDEX_LAG_PATTERN.search(text) is None:
+                missing.append("bounded_fallback_index_lag_guard")
+            if not has_evidence_source_receipt_path:
+                missing.append("evidence_and_source_receipt_path")
 
         if missing:
             offenders.append(f"{path}=>missing:{','.join(missing)}")
