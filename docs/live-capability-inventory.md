@@ -21,6 +21,58 @@ Issue #164 owner-repair launches that touch this live inventory must stay bounde
 
 This block documents launch discipline only. It does not add a controller, scheduler, queue, daemon, registry, dashboard, retry loop, auto-merge machinery, background GBrain/Hermes behavior, target mutation, downstream mutation, or retained report package.
 
+## AS-35 Upstream Capability Intake Record
+
+This inventory entry records the bounded upstream capability intake evidence for
+the live AS-35 detector surface. It is owner-local documentation, not an
+automation trigger.
+
+- `component_identity` (Component identity): live repo-auditor AS-35 detector
+  surface, `scripts/detect-as-upstream-capability-intake-gap.sh`, backed by the
+  shared `scripts/as_signature_scan.py` evaluator.
+- `local_version` (Local version): repo-auditor Issue #164 replay target head
+  `f534548b612bd73658767d45b909872f00418261` from the supplied
+  `AS_WORK_MANAGEMENT_REPLAY.json` evidence.
+- `upstream_reference` (Upstream reference): repo-agent-core downstream
+  read-only recovery runtime pilot contract named in replay evidence as
+  `repo-agent-core/docs/downstream-read-only-recovery-runtime-pilot-contract.md`.
+- `behindness_signal` (Behindness signal): supplied AS-35 replay reports
+  `intake_gap=>docs/agent-operations.md` and
+  `docs/live-capability-inventory.md`, with two field-incomplete records before
+  this owner documentation backfill.
+- `source_refs` (Source refs): owner issue
+  `https://github.com/briancl2/repo-auditor/issues/118`; carrier issue
+  `https://github.com/briancl2/build-meta-analysis/issues/760`; AS replay
+  `/tmp/issue164-repo-auditor-closure-family-owner-repair-20260613T224503Z/as-replay/repo_auditor_after_as22_goal_wording/AS_WORK_MANAGEMENT_REPLAY.json`;
+  advisor opportunities
+  `/tmp/issue164-repo-auditor-closure-family-owner-repair-20260613T224503Z/advisor/repo_auditor_after_as22_goal_wording/OPPORTUNITIES.json`.
+- `delta_clusters` (Delta clusters): add complete intake-field tracking to this
+  live inventory and the operations inventory; preserve Issue #164 boundaries;
+  do not alter scripts, tests, schemas, CI, root instructions, BMA, or target
+  repositories.
+- `capability_decisions` (Capability decisions): keep the AS-35 detector tracked
+  as an existing deterministic detector and document owner-route intake fields
+  instead of adding runtime machinery.
+- `update_action` (Update action): docs-only owner-surface backfill for the two
+  named Markdown files.
+- `validation` (Validation): run the focused AS-35 detector against this repo and
+  run `bash tests/test-upstream-capability-intake-gap.sh`; Codex owns any later
+  review, commit, publish, merge/block, and next owner action.
+- `adoption_plan_refs` (Adoption-plan refs): Issue #164 closure-family
+  owner-repair carrier; repo-auditor owner issue #118; build-meta-analysis
+  carrier issue #760.
+- `owner_routes` (Owner routes / owner surface): repo-auditor documentation owner
+  surfaces are `docs/agent-operations.md` and
+  `docs/live-capability-inventory.md`; unresolved policy choices route back to
+  the owner issue rather than to automatic action.
+- `non_claims` (Bounded non-claims): this record does not claim closure,
+  exhaustive repo truth, target-local repair proof, production readiness,
+  cleanup/archive readiness, or permission to mutate downstream targets.
+- `out_of_bounds_surfaces` (Out-of-bounds surfaces): controllers, schedulers,
+  queues, daemons, registries, dashboards, retry loops, background behavior,
+  Campaign Sync, package-manager updates, scripts, tests, schemas, CI,
+  `AGENTS.md`, `LEARNINGS.md`, `Makefile`, BMA, and downstream repositories.
+
 ## AS-32 Self-Learning Evidence Anchors
 
 Capability inventory guidance can describe self-improvement and live learning

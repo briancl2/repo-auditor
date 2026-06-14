@@ -78,6 +78,62 @@ AS-29 through AS-33
 cover the core-five recovery-runtime examples and remain read-only, scan-limited,
 and non-claim evidence only.
 
+### AS-35 Upstream Capability Intake Record
+
+This record is the bounded owner-surface intake for upstream capability advice
+that reaches repo-auditor operations documentation.
+
+- `component_identity` (Component identity): AS-35 upstream capability intake
+  evidence completeness detector, exposed by
+  `scripts/detect-as-upstream-capability-intake-gap.sh` and evaluated through
+  `scripts/as_signature_scan.py`.
+- `local_version` (Local version): repo-auditor clean-head replay evidence at
+  git head `f534548b612bd73658767d45b909872f00418261` from the Issue #164
+  owner-repair evidence bundle.
+- `upstream_reference` (Upstream reference): repo-agent-core downstream
+  read-only recovery runtime pilot contract referenced by
+  `AS_WORK_MANAGEMENT_REPLAY.json` as
+  `repo-agent-core/docs/downstream-read-only-recovery-runtime-pilot-contract.md`.
+- `behindness_signal` (Behindness signal): AS-35 fired with
+  `upstream_intake_gap_count=2`, `missing_field_record_count=2`, and
+  `adoption_without_owner_or_nonclaims_count=1` against
+  `docs/agent-operations.md` and `docs/live-capability-inventory.md`.
+- `source_refs` (Source refs): owner issue
+  `https://github.com/briancl2/repo-auditor/issues/118`; carrier issue
+  `https://github.com/briancl2/build-meta-analysis/issues/760`; replay
+  artifact
+  `/tmp/issue164-repo-auditor-closure-family-owner-repair-20260613T224503Z/as-replay/repo_auditor_after_as22_goal_wording/AS_WORK_MANAGEMENT_REPLAY.json`;
+  advisor artifact
+  `/tmp/issue164-repo-auditor-closure-family-owner-repair-20260613T224503Z/advisor/repo_auditor_after_as22_goal_wording/OPPORTUNITIES.json`.
+- `delta_clusters` (Delta clusters): documentation-only intake completion for
+  AS-35; owner-surface/non-claim bounding for repo-auditor operations guidance;
+  no script, schema, CI, Makefile, target-repo, BMA, or downstream mutation.
+- `capability_decisions` (Capability decisions): retain the existing AS-35
+  detector and backfill only the two owner documentation surfaces named by the
+  replay evidence.
+- `update_action` (Update action): bounded docs patch only; no package manager
+  execution, generated registry, controller, scheduler, queue, daemon, retry
+  loop, dashboard, background behavior, issue creation, PR creation, push, merge,
+  or Campaign Sync.
+- `validation` (Validation): focused local detector replay with
+  `bash scripts/detect-as-upstream-capability-intake-gap.sh
+  /Users/briancl/repos/repo-auditor` and detector unit coverage with
+  `bash tests/test-upstream-capability-intake-gap.sh`.
+- `adoption_plan_refs` (Adoption-plan refs): Issue #164 closure-family
+  owner-repair carrier instructions for AS-35, owner issue #118, and carrier
+  issue #760.
+- `owner_routes` (Owner routes / owner surface): repo-auditor owns this
+  documentation record through `docs/agent-operations.md` and
+  `docs/live-capability-inventory.md`; Codex remains responsible for review,
+  validation, commit, publication, merge/block, and next owner action.
+- `non_claims` (Bounded non-claims): this intake record is scan-limited
+  field-signal repair evidence only; it does not prove exhaustive repository
+  health, closure, production readiness, cleanup/archive readiness, or safe
+  downstream action.
+- `out_of_bounds_surfaces` (Out-of-bounds surfaces): scripts, tests, schemas,
+  CI, `AGENTS.md`, `LEARNINGS.md`, `Makefile`, BMA, downstream target repos,
+  and any automation machinery remain outside this patch.
+
 ### Goal Runtime And Recovery Contract
 
 Any Goal-mode runtime improvement claim about autonomy, continuity, operator
