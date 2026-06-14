@@ -113,10 +113,10 @@ fields before continuing after a blocker:
 A blocker recovery must be a batch reconstitution, not a silent one-off drift.
 When a blocker would otherwise cause unplanned serial continuation, the recovery
 note must name the replacement objective, first owner PR or owner issue,
-intentional serial/parallel plan, fallback, and validation. This contract does
-not authorize retained report packages, controllers, schedulers, queues,
-daemons, registries, dashboards, retry loops, background behavior, downstream
-mutation, or automatic GitHub issue creation.
+intentional serial/parallel plan, fallback, and validation. No retained report
+package is required. This contract does not authorize controllers, schedulers,
+queues, daemons, registries, dashboards, retry loops, background behavior,
+downstream mutation, or automatic GitHub issue creation.
 
 Repo-star genericity proofs should read the DS bundle's
 `capability_metadata.repo_star_genericity` classification instead of treating
