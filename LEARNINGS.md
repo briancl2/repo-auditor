@@ -39,3 +39,26 @@ they remain owner-repo local and evidence anchored:
   not proof of issue or PR closure, not target-repo mutation authority, and not
   authorization for a controller, scheduler, queue, daemon, retry loop,
   registry, dashboard, or background Hermes/GBrain behavior.
+
+## AS-36 GBrain Advisory / Exact-Replay Boundaries
+
+This repo may cite advisory GBrain distribution or exact-handle replay only as
+bounded, foreground, owner-surface decision support:
+
+- GBrain remains advisory. GBrain records require source/citation/provenance or
+  GitHub surface references before they can inform repo-local instruction
+  surfaces.
+- GBrain exact-handle replay is a foreground, sequential replay of a named
+  handle; it records broad-search disposition, exact-get evidence, and a GBrain
+  slug or no_capture_reason. Do not use GBrain bulk import, sync/watch, cron,
+  autopilot, dream, jobs worker, MCP serving, minions, daemons, schedulers,
+  queues, hidden registries, or background memory behavior.
+- Exact-handle replay does not make GBrain canonical. It cannot override GitHub
+  issue/PR/check/merge truth, operator intent, repo evidence, target evidence,
+  or repo-local instructions; AGENTS.md remains the grounded citation reference
+  for these boundaries.
+- Missing, stale, uncited, failed, or no-capture GBrain cases route to owner
+  GitHub truth or bounded no-capture notes. They do not authorize wrappers,
+  controllers, schedulers, queues, daemons, registries, dashboards, retry loops,
+  hidden automation, background Hermes/GBrain behavior, or target mutation
+  authority.
