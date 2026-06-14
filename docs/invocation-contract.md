@@ -263,6 +263,8 @@ When `make audit-snapshot` is used, `CLEAN_HEAD_SNAPSHOT_RECEIPT.json` records:
 - `mode=clean-head-snapshot`
 - source path, branch, HEAD, tree, dirty state, and status counts
 - snapshot path, HEAD, tree, clone arguments, and clean status
+- clone timeout seconds and any clone failure details when snapshot creation
+  fails before audit execution
 - audit output directory and audit exit code
 - explicit non-authorization and scan-cap statements
 
@@ -272,6 +274,11 @@ Completed snapshot audits also add compact pointers at
 as committed-HEAD snapshot evidence, not live dirty-worktree evidence. Snapshot
 mode does not authorize target cleanup and does not convert scan-limited
 inventory into complete evidence.
+
+Snapshot clone attempts are bounded by `CLEAN_HEAD_SNAPSHOT_CLONE_TIMEOUT_SECONDS`
+when set, otherwise by the default clone timeout. A clone timeout or clone
+subprocess failure exits non-zero, leaves `audit.exit_code` unset, records
+`snapshot.clone_failure`, and does not create success scorecard pointers.
 
 ## Invocation Examples
 

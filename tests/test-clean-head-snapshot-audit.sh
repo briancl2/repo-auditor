@@ -3,6 +3,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REAL_GIT="$(command -v git)"
 TMP_PARENT="${TMPDIR:-$REPO_ROOT/work/test-tmp}"
 TMP_ROOT="$TMP_PARENT/clean-head-snapshot.$$"
 rm -rf "$TMP_ROOT"
@@ -60,6 +61,41 @@ if python3 "$REPO_ROOT/scripts/audit-clean-head-snapshot.py" "$SOURCE" "$TMP_ROO
     exit 1
 fi
 grep -q 'output dir and snapshot dir must be separate' "$TMP_ROOT/overlap-stderr.txt"
+
+CLONE_TIMEOUT_OUT="$TMP_ROOT/clone-timeout-out"
+CLONE_TIMEOUT_SNAPSHOT="$TMP_ROOT/clone-timeout-snapshot"
+FAKE_BIN="$TMP_ROOT/fake-bin"
+mkdir -p "$FAKE_BIN"
+cat > "$FAKE_BIN/git" <<EOF
+#!/usr/bin/env bash
+if [[ "\$1" == "clone" ]]; then
+    sleep 5
+fi
+exec "$REAL_GIT" "\$@"
+EOF
+chmod +x "$FAKE_BIN/git"
+if PATH="$FAKE_BIN:$PATH" CLEAN_HEAD_SNAPSHOT_CLONE_TIMEOUT_SECONDS=1 python3 "$REPO_ROOT/scripts/audit-clean-head-snapshot.py" "$SOURCE" "$CLONE_TIMEOUT_OUT" --snapshot-dir "$CLONE_TIMEOUT_SNAPSHOT" > "$TMP_ROOT/clone-timeout-stdout.txt" 2> "$TMP_ROOT/clone-timeout-stderr.txt"; then
+    echo "expected snapshot audit clone timeout to fail" >&2
+    exit 1
+fi
+grep -q 'git clone timed out' "$TMP_ROOT/clone-timeout-stderr.txt"
+test -f "$CLONE_TIMEOUT_OUT/CLEAN_HEAD_SNAPSHOT_RECEIPT.json"
+test ! -f "$CLONE_TIMEOUT_OUT/SCORECARD.json"
+python3 - "$CLONE_TIMEOUT_OUT" <<'PY'
+import json
+import pathlib
+import sys
+
+out = pathlib.Path(sys.argv[1])
+receipt = json.load(open(out / "CLEAN_HEAD_SNAPSHOT_RECEIPT.json"))
+assert receipt["snapshot"]["head"] is None, receipt
+assert receipt["snapshot"]["status_clean"] is None, receipt
+assert receipt["snapshot"]["clone_timeout_seconds"] == 1.0, receipt
+assert receipt["snapshot"]["clone_failure"]["type"] == "timeout", receipt
+assert receipt["snapshot"]["clone_failure"]["command"][:2] == ["git", "clone"], receipt
+assert receipt["audit"]["exit_code"] is None, receipt
+assert "completed_at" in receipt, receipt
+PY
 
 python3 "$REPO_ROOT/scripts/audit-clean-head-snapshot.py" "$SOURCE" "$SNAPSHOT_OUT" --snapshot-dir "$SNAPSHOT" > "$TMP_ROOT/snapshot-stdout.txt" 2> "$TMP_ROOT/snapshot-stderr.txt"
 
