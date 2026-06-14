@@ -7,6 +7,20 @@ This document tracks the repo-auditor live capability surfaces that are intentio
 
 The calibrated detector separates live surfaces from retained, archive, test-fixture, and generated paths. This inventory records owner intent for the live paths; it does not authorize deleting, archiving, enabling, or mutating target repositories.
 
+## Issue #164 Runtime Launch Discipline
+
+Issue #164 owner-repair launches that touch this live inventory must stay bounded and foreground-only:
+
+- Transfer mode: use a fresh coordinator thread or fresh thread before issuing child repair work.
+- Live truth: re-check with `gh issue view`, `gh pr list`, `git status`, and `rev-parse` before mutation so GitHub issue/PR/check/merge truth and local branch state are current.
+- Goal state or Goal-null fallback: record the active Goal state, or record the Goal-null fallback when Codex Goal state is unavailable.
+- Run root: use `/tmp/issue164-...` with `progress-ledger.jsonl` for runtime evidence and progress entries.
+- Heartbeat: create it only after the child issue and the run root/progress-ledger exist.
+- CI polling / green-clean merge-or-blocker discipline: poll checks through a clean green state, then merge only with green-clean evidence or record the exact blocker.
+- `next_owner_action` / exact next owner-surface action: route residual work through the GitHub issue owner surface with the concrete next action, not a category-only handback.
+
+This block documents launch discipline only. It does not add a controller, scheduler, queue, daemon, registry, dashboard, retry loop, auto-merge machinery, background GBrain/Hermes behavior, target mutation, downstream mutation, or retained report package.
+
 ## AS-32 Self-Learning Evidence Anchors
 
 Capability inventory guidance can describe self-improvement and live learning
