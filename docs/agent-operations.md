@@ -34,7 +34,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 | `scripts/score-audit-dimensions.sh` | Five-dimension scorer |
 | `scripts/replay-work-management-signatures.py` | Bounded read-only AS-20 through AS-38 replay across named targets, including core-five recovery-runtime AS-29 through AS-33 precision examples and downstream read-only pilot receipt fields |
 | `scripts/detect-as-interrupted-goal-recovery-gap.sh` | AS-30 interrupted Goal recovery contract-field detector |
-| `scripts/detect-as-fractured-serial-continuation.sh` | AS-31 fractured serial continuation detector |
+| `scripts/detect-as-fractured-serial-continuation.sh` | AS-31 recovery detector |
 | `scripts/detect-as-unanchored-self-learning-claim.sh` | AS-32 unanchored self-learning/self-healing claim detector |
 | `scripts/detect-as-foreground-failure-guidance-gap.sh` | AS-33 foreground failure guidance gap detector |
 | `scripts/detect-as-closure-run-identity-gap.sh` | AS-34 closure-run identity gap detector |
@@ -64,8 +64,8 @@ unauthorized default enablement, rollback proof, aggregate-only readiness,
 stale direct-token evidence, forbidden public `CustomerNewsletter` mutation,
 Goal-mode runtime evidence gaps, reactive self-healing loops, shell reserved
 status-variable launch snippets, stale/default capability guidance, Hermes
-foreground receipt adoption gaps, interruption recovery gaps, fractured serial
-continuation, unanchored self-learning claims, foreground failure guidance gaps,
+foreground receipt adoption gaps, interruption recovery gaps, AS-31 unplanned-serial recovery gaps,
+unanchored self-learning claims, foreground failure guidance gaps,
 closure-run identity gaps, upstream capability intake gaps, and GBrain
 instruction distribution overclaim gaps, Issue #164 runtime drift, and
 self-authored campaign pause authority. The work-management replay harness emits
@@ -77,6 +77,46 @@ advisor/optimizer artifact paths, and no-downstream-mutation non-claims.
 AS-29 through AS-33
 cover the core-five recovery-runtime examples and remain read-only, scan-limited,
 and non-claim evidence only.
+
+### Goal Runtime And Recovery Contract
+
+Any Goal-mode runtime improvement claim about autonomy, continuity, operator
+steering, runtime health, reduced burden, or self-healing must cite raw runtime
+evidence before it is presented as a claim. Acceptable evidence includes retained
+Goal metadata, a command transcript, a run-root `progress-ledger.jsonl`, a CI run
+or check run, a replay log or replay receipt, a runtime ledger, session logs, a
+Goal receipt, or another raw runtime receipt. When those artifacts cannot be
+produced, the statement must be demoted to a bounded non-claim that describes only
+the episode shape or intended doctrine, not observed runtime improvement.
+
+Interrupted Goal recovery and batch reconstitution records must include these
+fields before continuing after a blocker:
+
+- `original_objective` (Original objective): the approved Goal episode objective.
+- `blocker_class` (Blocker class): upstream, tool runtime, CI, permission,
+  validation, owner-surface blocker, timeout, hang, or other exact blocker class.
+- `goal_state` (Goal state): whether the Goal episode is stopped, partially
+  complete, needs replacement, or can safely continue inside the approved
+  boundary.
+- `replacement_objective` (Replacement objective): the reconstituted objective
+  chosen after the blocker.
+- `first_owner_pr` (First owner PR or owner issue): the first owner-surface PR or
+  issue that will carry the repair.
+- Intentional serial/parallel plan: whether the replacement proceeds as one PR,
+  parallel owner PRs, or an intentionally serial batch, with the reason.
+- Learning trigger: the exact condition that would require a durable learning
+  capture, or a no-capture reason.
+- Fallback: the owner-surface fallback if the replacement objective is blocked.
+- Validation: the focused detector, replay, check run, or local gate that proves
+  the replacement did not regress the original boundary.
+
+A blocker recovery must be a batch reconstitution, not a silent one-off drift.
+When a blocker would otherwise cause unplanned serial continuation, the recovery
+note must name the replacement objective, first owner PR or owner issue,
+intentional serial/parallel plan, fallback, and validation. This contract does
+not authorize retained report packages, controllers, schedulers, queues,
+daemons, registries, dashboards, retry loops, background behavior, downstream
+mutation, or automatic GitHub issue creation.
 
 Repo-star genericity proofs should read the DS bundle's
 `capability_metadata.repo_star_genericity` classification instead of treating
