@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -13,15 +15,30 @@ from typing import Any
 
 RECEIPT_VERSION = "1.0.0"
 MODE = "clean-head-snapshot"
+DEFAULT_CLONE_TIMEOUT_SECONDS = 300.0
+CLONE_TIMEOUT_ENV = "CLEAN_HEAD_SNAPSHOT_CLONE_TIMEOUT_SECONDS"
 
 
-def run(args: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
+class SnapshotCloneFailure(Exception):
+    def __init__(self, message: str, failure: dict[str, Any]) -> None:
+        super().__init__(message)
+        self.message = message
+        self.failure = failure
+
+
+def run(
+    args: list[str],
+    cwd: Path | None = None,
+    check: bool = True,
+    timeout: float | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         args,
         cwd=str(cwd) if cwd else None,
         check=check,
         capture_output=True,
         text=True,
+        timeout=timeout,
     )
 
 
@@ -177,12 +194,68 @@ def build_initial_receipt(source: dict[str, Any], snapshot_dir: Path, output_dir
     }
 
 
-def clone_snapshot(source: Path, snapshot_dir: Path, expected_head: str) -> dict[str, Any]:
+def parse_clone_timeout_seconds() -> float:
+    value = os.environ.get(CLONE_TIMEOUT_ENV)
+    if value is None or value == "":
+        return DEFAULT_CLONE_TIMEOUT_SECONDS
+    try:
+        timeout = float(value)
+    except ValueError as exc:
+        raise SystemExit(f"ERROR: {CLONE_TIMEOUT_ENV} must be a positive number") from exc
+    if timeout <= 0:
+        raise SystemExit(f"ERROR: {CLONE_TIMEOUT_ENV} must be a positive number")
+    return timeout
+
+
+def process_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
+def completed_process_failure(exc: subprocess.CalledProcessError, command: list[str]) -> dict[str, Any]:
+    return {
+        "type": "subprocess_exit",
+        "command": command,
+        "exit_code": exc.returncode,
+        "stdout": process_text(exc.stdout),
+        "stderr": process_text(exc.stderr),
+    }
+
+
+def clone_snapshot(source: Path, snapshot_dir: Path, expected_head: str, timeout_seconds: float) -> dict[str, Any]:
     if snapshot_dir.exists():
         raise SystemExit(f"ERROR: snapshot dir already exists: {snapshot_dir}")
     snapshot_dir.parent.mkdir(parents=True, exist_ok=True)
-    run(["git", "clone", "--quiet", "--no-local", "--no-hardlinks", str(source), str(snapshot_dir)])
-    git(snapshot_dir, "checkout", "--quiet", expected_head)
+    clone_args = ["git", "clone", "--quiet", "--no-local", "--no-hardlinks", str(source), str(snapshot_dir)]
+    try:
+        run(clone_args, timeout=timeout_seconds)
+    except subprocess.TimeoutExpired as exc:
+        raise SnapshotCloneFailure(
+            f"ERROR: git clone timed out after {timeout_seconds:g} seconds while creating clean HEAD snapshot: {snapshot_dir}",
+            {
+                "type": "timeout",
+                "command": clone_args,
+                "timeout_seconds": timeout_seconds,
+                "stdout": process_text(exc.stdout),
+                "stderr": process_text(exc.stderr),
+            },
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        raise SnapshotCloneFailure(
+            f"ERROR: git clone failed with exit code {exc.returncode} while creating clean HEAD snapshot: {snapshot_dir}",
+            completed_process_failure(exc, clone_args),
+        ) from exc
+    checkout_args = ["git", "-C", str(snapshot_dir), "checkout", "--quiet", expected_head]
+    try:
+        git(snapshot_dir, "checkout", "--quiet", expected_head)
+    except subprocess.CalledProcessError as exc:
+        raise SnapshotCloneFailure(
+            f"ERROR: snapshot checkout failed with exit code {exc.returncode}: {snapshot_dir}",
+            completed_process_failure(exc, checkout_args),
+        ) from exc
     status = status_entries(snapshot_dir)
     if status:
         raise SystemExit("ERROR: snapshot checkout is dirty")
@@ -207,15 +280,24 @@ def main() -> int:
     output_dir = Path(args.output_dir).expanduser().resolve()
     snapshot_dir = Path(args.snapshot_dir).expanduser().resolve()
     repo_root = Path(__file__).resolve().parents[1]
+    clone_timeout_seconds = parse_clone_timeout_seconds()
 
     validate_output_locations(target, output_dir, snapshot_dir)
     source = validate_source(target)
     output_dir.mkdir(parents=True, exist_ok=True)
     receipt_path = output_dir / "CLEAN_HEAD_SNAPSHOT_RECEIPT.json"
     receipt = build_initial_receipt(source, snapshot_dir, output_dir)
+    receipt["snapshot"]["clone_timeout_seconds"] = clone_timeout_seconds
     write_json(receipt_path, receipt)
 
-    snapshot = clone_snapshot(target, snapshot_dir, source["head"])
+    try:
+        snapshot = clone_snapshot(target, snapshot_dir, source["head"], clone_timeout_seconds)
+    except SnapshotCloneFailure as exc:
+        receipt["snapshot"]["clone_failure"] = exc.failure
+        receipt["completed_at"] = datetime.now(timezone.utc).isoformat()
+        write_json(receipt_path, receipt)
+        print(exc.message, file=sys.stderr)
+        return 2
     receipt["snapshot"].update(snapshot)
     write_json(receipt_path, receipt)
 
