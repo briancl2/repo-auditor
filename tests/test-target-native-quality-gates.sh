@@ -139,8 +139,9 @@ receipt = json.load(open(out / "TARGET_NATIVE_QUALITY_GATES.json"))
 
 assert receipt["raw_target_gate_state"] == "no_retained_gate"
 assert receipt["target_gate_state"] == "no_retained_gate"
-assert receipt["contradiction"] == "unresolved"
+assert receipt["contradiction"] == "no_retained_gate_no_verdict"
 assert scorecard["receipts"]["target_native_quality_gates"]["status"] == "no_retained_gate"
+assert scorecard["receipts"]["target_native_quality_gates"]["contradiction"] == "no_retained_gate_no_verdict"
 assert receipts["target_native_quality_gates"]["target_gate_state"] == "no_retained_gate"
 assert scorecard["composite"] == 70
 PY

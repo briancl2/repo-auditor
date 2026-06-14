@@ -97,6 +97,7 @@
                 "true_target_risk",
                 "fleet_metric_stale",
                 "partial_run_no_verdict",
+                "no_retained_gate_no_verdict",
                 "unclassified_requires_amendment"
               ]
             }

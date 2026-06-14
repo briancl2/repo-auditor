@@ -18,6 +18,7 @@ CONTRADICTION_ENUM = {
     "true_target_risk",
     "fleet_metric_stale",
     "partial_run_no_verdict",
+    "no_retained_gate_no_verdict",
     "unclassified_requires_amendment",
 }
 
@@ -239,7 +240,7 @@ def classify_target_gate_state(
     if generic_score["partial_artifact_contract"]:
         return "partial_run", "partial_run_no_verdict"
     if raw_gate_state == "no_retained_gate":
-        return "no_retained_gate", "unresolved"
+        return "no_retained_gate", "no_retained_gate_no_verdict"
     if raw_gate_state == "unknown":
         return "amendment_required_unknown", "unclassified_requires_amendment"
 

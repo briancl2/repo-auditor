@@ -227,7 +227,10 @@ This receipt is parallel evidence only. It does not replace
 `SCORECARD.json.composite`, dimensions, or Tier-1/Tier-2 checks. If the generic
 audit output is partial or missing required artifacts, `target_gate_state` is
 `partial_run`, the contradiction is `partial_run_no_verdict`, and the receipt
-states that the partial diagnostic is not a target-quality verdict. If
+states that the partial diagnostic is not a target-quality verdict. If no
+retained target-native quality gate exists, `target_gate_state` is
+`no_retained_gate`, the contradiction is `no_retained_gate_no_verdict`, and the
+receipt does not treat the missing retained gate as a target-quality failure. If
 gate-like evidence is present but unclassified, `target_gate_state` is
 `amendment_required_unknown` and the contradiction is
 `unclassified_requires_amendment`.
@@ -250,6 +253,7 @@ Provisional contradiction values:
 - `true_target_risk`
 - `fleet_metric_stale`
 - `partial_run_no_verdict`
+- `no_retained_gate_no_verdict`
 - `unclassified_requires_amendment`
 
 ## Clean HEAD Snapshot Receipts
