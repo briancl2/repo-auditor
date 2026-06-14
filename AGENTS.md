@@ -16,6 +16,11 @@ agent, skill, script, output, and token-budget inventories live in
 - Standard mode is default and deterministic. Deep mode is opt-in through
   `make audit-deep`.
 - Target repos are read-only. Do not edit, format, commit, or clean targets.
+- The core-five repos are reciprocal proving grounds for ordinary validation:
+  build-meta-analysis, repo-agent-core, repo-auditor, repo-upgrade-advisor, and
+  repo-optimizer may validate against each other as read-only targets. This
+  validation is not downstream adoption or write authority; each core-five repo
+  changes only through its own owner issue, branch, PR, checks, and merge.
 - `--no-verify` is never permitted.
 - `make check` runs before every commit; `make review` is recommended for
   larger or governed changes.
