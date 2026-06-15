@@ -247,6 +247,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-scheduled-evidence-boundary-gap.sh",
     },
+    "AS-40": {
+        "name": "Hermes/GitHub reliability boundary gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-hermes-github-reliability-boundary-gap.sh",
+    },
 }
 
 
@@ -2470,6 +2476,141 @@ def scheduled_evidence_boundary_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+HERMES_GITHUB_RELIABILITY_SURFACE_PATTERN = re.compile(
+    r"\b(hermes|HERMES_FOREGROUND|failure[- ]?guidance|provider_user_request_timeout|"
+    r"closingIssuesReferences|parsed[- ]closure|campaign sync|issue #164)\b",
+    re.IGNORECASE,
+)
+HERMES_GITHUB_RELIABILITY_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-40|Hermes/GitHub Reliability Boundary Gap)\b.{0,160}\b(detects|detector|signature)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+NEGATED_CLOSURE_KEYWORD_HAZARD_PATTERN = re.compile(
+    r"\b(?:does\s+not|do\s+not|not|never|without)\b.{0,60}"
+    r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b.{0,80}"
+    r"(?:#[0-9]+|https://github\.com/[^/\s]+/[^/\s]+/issues/[0-9]+)",
+    re.IGNORECASE | re.DOTALL,
+)
+NONFINAL_ISSUE164_CONTEXT_PATTERN = re.compile(
+    r"\b(non[- ]?final|intermediate|not\s+final)\b.{0,120}\b(issue\s*#?164|campaign sync|child)\b|"
+    r"\b(issue\s*#?164|campaign sync|child)\b.{0,120}\b(non[- ]?final|intermediate|not\s+final)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+HERMES_FAILURE_RESIDUE_PATTERN = re.compile(
+    r"\b(HERMES_FOREGROUND_FAILURE_GUIDANCE|provider_user_request_timeout|"
+    r"provider_request_body_timeout|failure[- ]to[- ]issue|Hermes failure residue)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_PATTERN = re.compile(
+    r"\b(fresh repro|fresh bounded repro|current repro|recovered_close_residue|"
+    r"provider_still_failing|upstream_issue_needed|bma_prompt_shape_repair|"
+    r"failure residue classification|failure residue disposition)\b",
+    re.IGNORECASE,
+)
+HERMES_DISPOSITION_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|without|missing|lacks?|unrecorded|absent)\b",
+    re.IGNORECASE,
+)
+HERMES_COORDINATOR_OVERCLAIM_PATTERN = re.compile(
+    r"\bHermes\b.{0,80}\b(owns|coordinates|merges|auto[- ]?merges|polls|retries|"
+    r"schedules|queues|runs\s+background|operates\s+as\s+coordinator)\b|"
+    r"\b(background Hermes|Hermes retry loop|Hermes scheduler|Hermes queue|Hermes daemon|Hermes controller)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+HERMES_BOUNDARY_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|boundary|non[- ]claim)\b.{0,120}"
+    r"\b(Hermes|auto[- ]?merge|retry loop|scheduler|queue|daemon|controller|background)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def is_hermes_github_reliability_explainer(text: str) -> bool:
+    return HERMES_GITHUB_RELIABILITY_EXPLAINER_PATTERN.search(text) is not None
+
+
+def hermes_coordinator_overclaim(text: str) -> bool:
+    for match in HERMES_COORDINATOR_OVERCLAIM_PATTERN.finditer(text):
+        start, end = match.span()
+        line_start = text.rfind("\n", 0, start) + 1
+        line_end = text.find("\n", end)
+        if line_end == -1:
+            line_end = len(text)
+        line = text[line_start:line_end]
+        if HERMES_BOUNDARY_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def has_positive_hermes_failure_disposition(text: str) -> bool:
+    for match in HERMES_FAILURE_DISPOSITION_PATTERN.finditer(text):
+        start, end = match.span()
+        line_start = text.rfind("\n", 0, start) + 1
+        line_end = text.find("\n", end)
+        if line_end == -1:
+            line_end = len(text)
+        line = text[line_start:line_end]
+        if HERMES_DISPOSITION_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def hermes_github_reliability_boundary_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_hermes_github_reliability_explainer(text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")):
+            continue
+        if not HERMES_GITHUB_RELIABILITY_SURFACE_PATTERN.search(text):
+            continue
+
+        reasons: list[str] = []
+        if NEGATED_CLOSURE_KEYWORD_HAZARD_PATTERN.search(text) and NONFINAL_ISSUE164_CONTEXT_PATTERN.search(text):
+            reasons.append("negated_closure_keyword_parse_hazard")
+            reason_counts["negated_closure_keyword_parse_hazard"] += 1
+        if HERMES_FAILURE_RESIDUE_PATTERN.search(text) and not has_positive_hermes_failure_disposition(text):
+            reasons.append("missing_fresh_hermes_failure_disposition")
+            reason_counts["missing_fresh_hermes_failure_disposition"] += 1
+        if hermes_coordinator_overclaim(text):
+            reasons.append("hermes_coordinator_or_background_overclaim")
+            reason_counts["hermes_coordinator_or_background_overclaim"] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:4])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"hermes_github_reliability_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"hermes_github_reliability_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "hermes_github_reliability_gap_count": len(offenders),
+            "hermes_github_reliability_grounded_count": len(set(grounded)),
+            "negated_closure_keyword_parse_hazard_count": reason_counts["negated_closure_keyword_parse_hazard"],
+            "missing_fresh_hermes_failure_disposition_count": reason_counts["missing_fresh_hermes_failure_disposition"],
+            "hermes_coordinator_or_background_overclaim_count": reason_counts["hermes_coordinator_or_background_overclaim"],
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Hermes/GitHub reliability material has parsed-closure hazards, stale failure residue, or Hermes coordinator/background overclaim wording"
+            if offenders
+            else "Hermes/GitHub reliability boundaries are complete or absent"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -3466,6 +3607,7 @@ EVALUATORS = {
     "AS-37": issue164_runtime_drift,
     "AS-38": self_authored_campaign_pause_authority,
     "AS-39": scheduled_evidence_boundary_gap,
+    "AS-40": hermes_github_reliability_boundary_gap,
 }
 
 

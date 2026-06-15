@@ -242,6 +242,12 @@ gh issue list returned no open child issues or PRs.
 
 Runtime Learning Shadow scheduled readback package: comments and artifacts are
 closure truth for #798. This starts a scheduler that owns future readbacks.
+
+Issue #164 Hermes/GitHub reliability note for a non-final child PR says it does
+not close #798. HERMES_FOREGROUND_FAILURE_GUIDANCE records
+provider_user_request_timeout with no fresh repro or failure residue
+disposition. Hermes owns merge polling and retries the PR until green as a
+background Hermes worker.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -257,8 +263,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 39
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 39
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 40
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 40
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -301,6 +307,7 @@ assert as_ids == {
     "AS-37",
     "AS-38",
     "AS-39",
+    "AS-40",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the

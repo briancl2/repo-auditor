@@ -350,3 +350,12 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-scheduled-evidence-boundary-gap.sh`
+
+### AS-40: Hermes/GitHub Reliability Boundary Gap
+- **Signal:** Issue #164 Hermes/GitHub reliability material uses negated closure-keyword wording in a non-final child/PR context, records Hermes foreground failure guidance without a fresh repro/disposition, or describes Hermes as coordinator, merger, retry loop, scheduler, queue, daemon, controller, or background worker.
+- **Phase range:** Issue #164 carrier PRs, Hermes foreground failure residue, GitHub parsed-closure readbacks, Campaign Sync preparation, and BMA/repo-star reliability adoption docs.
+- **Check:** Scan owner evidence text for Hermes/GitHub reliability surfaces and require parsed-closure-safe wording, current Hermes failure disposition evidence, and foreground-only Hermes boundaries. Suppress detector docs/templates/tests/fixtures and clean explicit non-claim examples.
+- **Fire condition:** `hermes_github_reliability_gap_count > 0`
+- **Prevention tier:** T1
+- **Owner:** Repo-owner Issue #164 / Hermes foreground coordinator surfaces.
+- **Script:** `scripts/detect-as-hermes-github-reliability-boundary-gap.sh`
