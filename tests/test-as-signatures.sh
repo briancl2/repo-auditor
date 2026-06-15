@@ -239,6 +239,9 @@ evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
 Issue #164 campaign sync cleared the active route with Next active track: None
 selected. Codex found no current admissible owner-surface action remains after
 gh issue list returned no open child issues or PRs.
+
+Runtime Learning Shadow scheduled readback package: comments and artifacts are
+closure truth for #798. This starts a scheduler that owns future readbacks.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -254,8 +257,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 38
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 38
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 39
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 39
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -297,6 +300,7 @@ assert as_ids == {
     "AS-36",
     "AS-37",
     "AS-38",
+    "AS-39",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -628,6 +632,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** A campaign pause or stop disposition lacks operator-approved pause evidence or true campaign closure with no unresolved campaign families.
 - **Fire condition:** `campaign_pause_authority_count > 0`
 - **Script:** `scripts/detect-as-self-authored-campaign-pause-authority.sh`
+
+### AS-39: Scheduled Workflow Evidence Boundary Gap
+- **Detects:** Scheduled workflow evidence surfaces that miss schedule/run identity, review disposition, closure non-claims, or no-background boundaries.
+- **Signal:** Runtime Learning Shadow scheduled readback material treats comments/artifacts as closure truth, lacks event/run fields, lacks review disposition, or regrows scheduler/controller wording.
+- **Fire condition:** `scheduled_evidence_boundary_gap_count > 0`
+- **Script:** `scripts/detect-as-scheduled-evidence-boundary-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -697,6 +707,10 @@ or concrete owner-surface next action.
 selected or pauses the campaign based only on no open issues or PRs, stale
 downstream references, or an agent-authored no-action assertion instead of an
 operator-approved pause or true campaign closure.
+
+**Triggers:** AS-39 fires when scheduled Runtime Learning Shadow readback
+material treats comments/artifacts as closure truth, lacks schedule/run identity
+or review disposition, or claims background scheduler/controller ownership.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -798,6 +812,9 @@ evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
 Issue #164 campaign sync: Next active track: None selected. Search returned no
 open child issues or PRs, and the agent-authored note says no current
 admissible owner-surface action remains.
+
+Runtime Learning Shadow scheduled readback package: comments and artifacts are
+closure truth for #798. This starts a scheduler that owns future readbacks.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -826,6 +843,7 @@ scripts = {
     "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
     "AS-37": "detect-as-issue164-runtime-drift.sh",
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
+    "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1523,6 +1541,7 @@ scripts = {
     "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
     "AS-37": "detect-as-issue164-runtime-drift.sh",
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
+    "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
 }
 
 for signature_id, script in scripts.items():

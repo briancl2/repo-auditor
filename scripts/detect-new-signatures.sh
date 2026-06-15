@@ -71,6 +71,7 @@ scripts=(
     "detect-as-gbrain-instruction-distribution-overclaim.sh"
     "detect-as-issue164-runtime-drift.sh"
     "detect-as-self-authored-campaign-pause-authority.sh"
+    "detect-as-scheduled-evidence-boundary-gap.sh"
 )
 
 idx=0
