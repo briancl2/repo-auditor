@@ -340,3 +340,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-self-authored-campaign-pause-authority.sh`
+
+### AS-39: Scheduled Workflow Evidence Boundary Gap
+- **Detects:** Scheduled workflow evidence surfaces that overclaim comments/artifacts as closure truth, omit schedule/run identity, omit review disposition, or regrow background-control wording.
+- **Signal:** Runtime Learning Shadow or scheduled readback material treats generated issue comments or uploaded artifacts as closure truth, lacks `event=schedule` plus run id/number/attempt, lacks actionability/four-run/promotion disposition, or says a scheduler/queue/daemon/controller/registry owns the evidence path.
+- **Phase range:** Scheduled Runtime Learning Shadow readbacks, workflow evidence admission, PR-C readback bundles, four-run disposition reviews, and scheduled automation candidate docs.
+- **Check:** Scan owner evidence text for Runtime Learning Shadow / scheduled-shadow readback surfaces and require schedule/run identity, review disposition, closure non-claims, and no-background-control boundaries. Suppress detector docs/templates/tests/fixtures and clean explicit non-claim examples.
+- **Fire condition:** `scheduled_evidence_boundary_gap_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-scheduled-evidence-boundary-gap.sh`

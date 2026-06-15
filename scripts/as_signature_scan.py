@@ -241,6 +241,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-self-authored-campaign-pause-authority.sh",
     },
+    "AS-39": {
+        "name": "Scheduled workflow evidence boundary gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-scheduled-evidence-boundary-gap.sh",
+    },
 }
 
 
@@ -2280,6 +2286,190 @@ def self_authored_campaign_pause_authority(texts: dict[str, str]) -> dict[str, A
     }
 
 
+SCHEDULED_SHADOW_SURFACE_PATTERN = re.compile(
+    r"\b(runtime learning shadow|scheduled shadow|scheduled readback|"
+    r"schedule(?:d)? workflow evidence|schedule(?:d)? evidence|four[- ]run disposition)\b",
+    re.IGNORECASE,
+)
+SCHEDULED_SHADOW_EVIDENCE_PATTERN = re.compile(
+    r"\b(readback|admission|artifact|comment|summary|workflow run|"
+    r"evidence|classifier|disposition)\b",
+    re.IGNORECASE,
+)
+SCHEDULED_EVENT_IDENTITY_PATTERN = re.compile(
+    r"(\bevent(?:_name)?\b\s*[:=]\s*[`\"']?schedule[`\"']?|\bevent=schedule\b|"
+    r"\bactual scheduled event\b)",
+    re.IGNORECASE,
+)
+SCHEDULED_RUN_IDENTITY_PATTERNS = {
+    "run_id": re.compile(r"\brun[-_ ]?id\b|\bgithub\.run_id\b", re.IGNORECASE),
+    "run_number": re.compile(r"\brun[-_ ]?number\b|\bgithub\.run_number\b", re.IGNORECASE),
+    "run_attempt": re.compile(r"\brun[-_ ]?attempt\b|\bgithub\.run_attempt\b", re.IGNORECASE),
+}
+SCHEDULED_REVIEW_DISPOSITION_PATTERN = re.compile(
+    r"\b(review disposition|promotion disposition|four[- ]run disposition|"
+    r"four[- ]run review|actionability[_ -]classification|"
+    r"keep_with_named_value|reduce_frequency|demote_to_manual_only|"
+    r"repair_specific_failure)\b",
+    re.IGNORECASE,
+)
+SCHEDULED_FIELD_NEGATION_PATTERN = re.compile(
+    r"\b(omit(?:s|ted)?|missing|lacks?|without|absent|not include|"
+    r"does not include|does not retain|do not include|not recorded|not retained|"
+    r"not required|no)\b",
+    re.IGNORECASE,
+)
+SCHEDULED_CLOSURE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(comments?|artifacts?)\b.{0,80}\b(?:are|is|as|become|treated as|count as)\b.{0,80}"
+    r"\bclosure truth\b|"
+    r"\b(comments?|artifacts?)\b.{0,80}\b(?:close|closes|closed|resolve|resolves)\b.{0,80}"
+    r"\b(?:issue|#798|task|child)\b|"
+    r"\bclosure truth\b.{0,80}\b(?:from|by|via)\b.{0,80}\b(comments?|artifacts?)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+SCHEDULED_CLOSURE_NON_CLAIM_PATTERN = re.compile(
+    r"\b(evidence only|not closure truth|not task closure truth|"
+    r"does not close #?798|does not close issues?|"
+    r"github issue/pr/check/merge truth)\b",
+    re.IGNORECASE,
+)
+SCHEDULED_BACKGROUND_CONTROL_PATTERN = re.compile(
+    r"\b(start|starts|install|installs|run|runs|launch|launches|own|owns|operate|operates|"
+    r"control|controls|create|creates)\b.{0,80}"
+    r"\b(scheduler|queue|daemon|controller|registry|retry loop|background worker|"
+    r"background gbrain|background hermes)\b|"
+    r"\b(scheduler|queue|daemon|controller|registry|retry loop|background worker)\b.{0,80}"
+    r"\b(owns|controls|runs|operates|dispatches)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+SCHEDULED_BACKGROUND_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|prohibit(?:s|ed)?|"
+    r"non[- ]claim|boundary)\b.{0,120}"
+    r"\b(scheduler|queue|daemon|controller|registry|retry loop|background worker|"
+    r"background gbrain|background hermes)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+SCHEDULED_EVIDENCE_BOUNDARY_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-39|Scheduled Workflow Evidence Boundary Gap)\b.{0,160}\b(detects|detector|signature)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def scheduled_identity_missing(text: str) -> list[str]:
+    missing: list[str] = []
+    if not scheduled_has_positive_field(text, SCHEDULED_EVENT_IDENTITY_PATTERN):
+        missing.append("event_schedule")
+    for field, pattern in SCHEDULED_RUN_IDENTITY_PATTERNS.items():
+        if not scheduled_has_positive_field(text, pattern):
+            missing.append(field)
+    return missing
+
+
+def scheduled_has_positive_field(text: str, pattern: re.Pattern[str]) -> bool:
+    for match in pattern.finditer(text):
+        start, end = match.span()
+        line_start = text.rfind("\n", 0, start) + 1
+        line_end = text.find("\n", end)
+        if line_end == -1:
+            line_end = len(text)
+        line = text[line_start:line_end]
+        previous_start = text.rfind("\n", 0, max(0, line_start - 1)) + 1
+        previous = text[previous_start:max(0, line_start - 1)]
+        continuation = bool(line.strip()) and not line.lstrip().startswith(("-", "*", "#"))
+        if SCHEDULED_FIELD_NEGATION_PATTERN.search(line):
+            continue
+        if continuation and SCHEDULED_FIELD_NEGATION_PATTERN.search(previous):
+            continue
+        return True
+    return False
+
+
+def scheduled_background_control_overclaim(text: str) -> bool:
+    for match in SCHEDULED_BACKGROUND_CONTROL_PATTERN.finditer(text):
+        start, end = match.span()
+        context = text[max(0, start - 140): min(len(text), end + 140)]
+        if SCHEDULED_BACKGROUND_NEGATION_PATTERN.search(context):
+            continue
+        return True
+    return False
+
+
+def is_scheduled_evidence_boundary_explainer(text: str) -> bool:
+    return SCHEDULED_EVIDENCE_BOUNDARY_EXPLAINER_PATTERN.search(text) is not None
+
+
+def scheduled_closure_overclaim(text: str) -> bool:
+    for match in SCHEDULED_CLOSURE_OVERCLAIM_PATTERN.finditer(text):
+        start, end = match.span()
+        context = text[max(0, start - 140): min(len(text), end + 140)]
+        if SCHEDULED_CLOSURE_NON_CLAIM_PATTERN.search(context):
+            continue
+        return True
+    return False
+
+
+def scheduled_evidence_boundary_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_scheduled_evidence_boundary_explainer(text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")):
+            continue
+        if not SCHEDULED_SHADOW_SURFACE_PATTERN.search(text):
+            continue
+        if not SCHEDULED_SHADOW_EVIDENCE_PATTERN.search(text):
+            continue
+
+        reasons: list[str] = []
+        identity_missing = scheduled_identity_missing(text)
+        if identity_missing:
+            reasons.append("missing_schedule_run_identity:" + ",".join(identity_missing))
+            reason_counts["missing_schedule_run_identity"] += 1
+        if not scheduled_has_positive_field(text, SCHEDULED_REVIEW_DISPOSITION_PATTERN):
+            reasons.append("missing_review_disposition")
+            reason_counts["missing_review_disposition"] += 1
+        if scheduled_closure_overclaim(text):
+            reasons.append("comments_or_artifacts_as_closure_truth")
+            reason_counts["comments_or_artifacts_as_closure_truth"] += 1
+        if scheduled_background_control_overclaim(text):
+            reasons.append("background_control_wording")
+            reason_counts["background_control_wording"] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:4])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"scheduled_evidence_boundary_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"scheduled_evidence_boundary_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "scheduled_evidence_boundary_gap_count": len(offenders),
+            "scheduled_evidence_boundary_grounded_count": len(set(grounded)),
+            "missing_schedule_run_identity_count": reason_counts["missing_schedule_run_identity"],
+            "missing_review_disposition_count": reason_counts["missing_review_disposition"],
+            "comments_or_artifacts_as_closure_truth_count": reason_counts["comments_or_artifacts_as_closure_truth"],
+            "background_control_wording_count": reason_counts["background_control_wording"],
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "scheduled workflow evidence treats comments/artifacts as closure truth, lacks schedule/run identity or review disposition, or regrows background control wording"
+            if offenders
+            else "scheduled workflow evidence boundaries are complete or absent"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -3275,6 +3465,7 @@ EVALUATORS = {
     "AS-36": gbrain_instruction_distribution_overclaim,
     "AS-37": issue164_runtime_drift,
     "AS-38": self_authored_campaign_pause_authority,
+    "AS-39": scheduled_evidence_boundary_gap,
 }
 
 
