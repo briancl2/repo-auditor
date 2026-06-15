@@ -257,8 +257,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 39
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 39
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 40
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 40
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -301,6 +301,7 @@ assert as_ids == {
     "AS-37",
     "AS-38",
     "AS-39",
+    "AS-40",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -638,6 +639,12 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** Runtime Learning Shadow scheduled readback material treats comments/artifacts as closure truth, lacks event/run fields, lacks review disposition, or regrows scheduler/controller wording.
 - **Fire condition:** `scheduled_evidence_boundary_gap_count > 0`
 - **Script:** `scripts/detect-as-scheduled-evidence-boundary-gap.sh`
+
+### AS-40: Hermes/GitHub Reliability Boundary Gap
+- **Detects:** Issue #164 reliability material that trusts prose-only closure keyword scans, routes failed foreground Hermes attempts without failure guidance / GitHub issue conversion, or claims background/autonomous Hermes coordination.
+- **Signal:** Hermes/GitHub reliability guidance lacks parsed `closingIssuesReferences` evidence, `HERMES_FOREGROUND_FAILURE_GUIDANCE` / `failure-to-issue` routing, or explicit Codex/BMA coordinator and no-background boundaries.
+- **Fire condition:** `reliability_boundary_gap_count > 0`
+- **Script:** `scripts/detect-as-hermes-github-reliability-boundary-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -815,6 +822,12 @@ admissible owner-surface action remains.
 
 Runtime Learning Shadow scheduled readback package: comments and artifacts are
 closure truth for #798. This starts a scheduler that owns future readbacks.
+
+The PR body says this does not close #798, so the local body scan is sufficient
+and there is no need for closingIssuesReferences. Hermes foreground timed out
+after producing a useful diff, and Codex fallback can continue without failure
+guidance, GitHub issue truth, or failure-to-issue conversion. Hermes owns the
+background coordinator queue for the merge loop.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -844,6 +857,7 @@ scripts = {
     "AS-37": "detect-as-issue164-runtime-drift.sh",
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
+    "AS-40": "detect-as-hermes-github-reliability-boundary-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1542,6 +1556,7 @@ scripts = {
     "AS-37": "detect-as-issue164-runtime-drift.sh",
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
+    "AS-40": "detect-as-hermes-github-reliability-boundary-gap.sh",
 }
 
 for signature_id, script in scripts.items():
