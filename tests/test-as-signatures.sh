@@ -248,6 +248,16 @@ not close #798. HERMES_FOREGROUND_FAILURE_GUIDANCE records
 provider_user_request_timeout with no fresh repro or failure residue
 disposition. Hermes owns merge polling and retries the PR until green as a
 background Hermes worker.
+
+Final Campaign Sync admission checks next active track, micro-work rule, and
+threshold clause, but the predicate omits completed-track readback coverage.
+Campaign Sync:
+- Completed track: #816 Hermes failure residue guidance
+- Next active track: #798 Runtime Learning Shadow
+- Micro-work rule: no standalone tiny output-cleanup issues.
+- Threshold clause: adoption/delivery proof
+Issue #164 readback:
+Completed latest track: #811 stale completed track
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -263,8 +273,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 40
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 40
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 41
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 41
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -308,6 +318,7 @@ assert as_ids == {
     "AS-38",
     "AS-39",
     "AS-40",
+    "AS-41",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -718,6 +729,10 @@ operator-approved pause or true campaign closure.
 **Triggers:** AS-39 fires when scheduled Runtime Learning Shadow readback
 material treats comments/artifacts as closure truth, lacks schedule/run identity
 or review disposition, or claims background scheduler/controller ownership.
+
+**Triggers:** AS-41 fires when final Campaign Sync or validator surfaces have
+completed-track drift, miss completed-track readback, or keep next-track,
+micro-work, and threshold predicate coverage without completed-track coverage.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -822,6 +837,11 @@ admissible owner-surface action remains.
 
 Runtime Learning Shadow scheduled readback package: comments and artifacts are
 closure truth for #798. This starts a scheduler that owns future readbacks.
+
+Final Campaign Sync admission checks next active track, micro-work rule, and
+threshold clause but omits completed-track predicate coverage. Campaign Sync:
+Completed track: #816 Hermes failure residue guidance.
+Completed latest track: #811 stale completed track.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -851,6 +871,7 @@ scripts = {
     "AS-37": "detect-as-issue164-runtime-drift.sh",
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
+    "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1549,6 +1570,7 @@ scripts = {
     "AS-37": "detect-as-issue164-runtime-drift.sh",
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
+    "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",
 }
 
 for signature_id, script in scripts.items():
