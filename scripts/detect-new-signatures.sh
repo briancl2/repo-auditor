@@ -73,6 +73,7 @@ scripts=(
     "detect-as-self-authored-campaign-pause-authority.sh"
     "detect-as-scheduled-evidence-boundary-gap.sh"
     "detect-as-hermes-github-reliability-boundary-gap.sh"
+    "detect-as-campaign-sync-completed-track-gap.sh"
 )
 
 idx=0

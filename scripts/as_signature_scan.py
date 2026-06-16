@@ -253,6 +253,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-hermes-github-reliability-boundary-gap.sh",
     },
+    "AS-41": {
+        "name": "Campaign Sync completed-track readback gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-campaign-sync-completed-track-gap.sh",
+    },
 }
 
 
@@ -2619,6 +2625,138 @@ def hermes_github_reliability_boundary_gap(texts: dict[str, str]) -> dict[str, A
     }
 
 
+CAMPAIGN_SYNC_COMPLETED_TRACK_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-41|Campaign Sync Completed-Track Readback Gap)\b.{0,180}\b(detects|detector|signature|triggers?)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+CAMPAIGN_SYNC_COMPLETED_TRACK_SURFACE_PATTERN = re.compile(
+    r"\b(campaign sync|campaign_sync|Completed track:|Completed latest track:|"
+    r"require-campaign-sync|validate-github-campaign-pointer|native closure|"
+    r"campaign_sync_errors(?:_for_data)?|campaign_sync_completed_track_readback)\b",
+    re.IGNORECASE,
+)
+COMPLETED_TRACK_MARKER_PATTERN = re.compile(
+    r"^\s*(?:[-*]\s*)?Completed track:\s*(.+?)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+COMPLETED_LATEST_TRACK_MARKER_PATTERN = re.compile(
+    r"^\s*(?:[-*]\s*)?Completed latest track:\s*(.+?)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+FINAL_CAMPAIGN_SYNC_CONTEXT_PATTERN = re.compile(
+    r"\b(final(?:[- ]campaign sync)?|final_for_own_child|before admit|admit|admitted|"
+    r"closes\s+#[0-9]+|own target child|own child issue)\b",
+    re.IGNORECASE,
+)
+CAMPAIGN_SYNC_PREDICATE_CONTEXT_PATTERN = re.compile(
+    r"\b(campaign sync predicate|campaign sync validation|campaign sync readback|"
+    r"campaign_sync_errors(?:_for_data)?|require-campaign-sync|validate-github-campaign-pointer|"
+    r"native closure validator|native campaign sync|final campaign sync)\b",
+    re.IGNORECASE,
+)
+NEXT_TRACK_COVERAGE_PATTERN = re.compile(r"\b(next active track|next-track)\b", re.IGNORECASE)
+MICRO_OR_THRESHOLD_COVERAGE_PATTERN = re.compile(
+    r"\b(micro[- ]work rule|threshold clause|threshold)\b",
+    re.IGNORECASE,
+)
+COMPLETED_TRACK_COVERAGE_PATTERN = re.compile(
+    r"\b(completed track|completed latest track|campaign_sync_completed_track_readback|completed-track readback)\b",
+    re.IGNORECASE,
+)
+
+
+def is_campaign_sync_completed_track_explainer(text: str) -> bool:
+    return CAMPAIGN_SYNC_COMPLETED_TRACK_EXPLAINER_PATTERN.search(text) is not None
+
+
+def campaign_track_marker_values(pattern: re.Pattern[str], text: str) -> list[str]:
+    values: list[str] = []
+    for match in pattern.finditer(text):
+        value = match.group(1).strip()
+        if value:
+            values.append(value)
+    return values
+
+
+def normalize_campaign_track_value(value: str) -> str:
+    return re.sub(r"[^a-z0-9#]+", " ", value.lower()).strip()
+
+
+def campaign_sync_completed_track_readback_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_campaign_sync_completed_track_explainer(text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml", ".sh", ".py")):
+            continue
+        if not CAMPAIGN_SYNC_COMPLETED_TRACK_SURFACE_PATTERN.search(text):
+            continue
+
+        completed_tracks = campaign_track_marker_values(COMPLETED_TRACK_MARKER_PATTERN, text)
+        completed_latest_tracks = campaign_track_marker_values(COMPLETED_LATEST_TRACK_MARKER_PATTERN, text)
+        normalized_completed = {normalize_campaign_track_value(value) for value in completed_tracks}
+        normalized_latest = {normalize_campaign_track_value(value) for value in completed_latest_tracks}
+
+        reasons: list[str] = []
+        if completed_tracks and completed_latest_tracks and normalized_completed.isdisjoint(normalized_latest):
+            reasons.append("completed_track_drift")
+            reason_counts["completed_track_drift"] += 1
+        if (
+            completed_tracks
+            and not completed_latest_tracks
+            and FINAL_CAMPAIGN_SYNC_CONTEXT_PATTERN.search(text)
+            and "campaign_sync_completed_track_readback" not in text.lower()
+        ):
+            reasons.append("missing_final_completed_track_readback")
+            reason_counts["missing_final_completed_track_readback"] += 1
+        if (
+            CAMPAIGN_SYNC_PREDICATE_CONTEXT_PATTERN.search(text)
+            and NEXT_TRACK_COVERAGE_PATTERN.search(text)
+            and MICRO_OR_THRESHOLD_COVERAGE_PATTERN.search(text)
+            and not COMPLETED_TRACK_COVERAGE_PATTERN.search(text)
+        ):
+            reasons.append("missing_completed_track_predicate_coverage")
+            reason_counts["missing_completed_track_predicate_coverage"] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:4])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"campaign_sync_completed_track_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"campaign_sync_completed_track_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "campaign_sync_completed_track_gap_count": len(offenders),
+            "campaign_sync_completed_track_grounded_count": len(set(grounded)),
+            "completed_track_drift_count": reason_counts["completed_track_drift"],
+            "missing_final_completed_track_readback_count": reason_counts["missing_final_completed_track_readback"],
+            "missing_completed_track_predicate_coverage_count": reason_counts["missing_completed_track_predicate_coverage"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Campaign Sync material has completed-track drift or missing completed-track readback predicate coverage"
+            if offenders
+            else "No Campaign Sync completed-track readback gaps detected"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -3616,6 +3754,7 @@ EVALUATORS = {
     "AS-38": self_authored_campaign_pause_authority,
     "AS-39": scheduled_evidence_boundary_gap,
     "AS-40": hermes_github_reliability_boundary_gap,
+    "AS-41": campaign_sync_completed_track_readback_gap,
 }
 
 

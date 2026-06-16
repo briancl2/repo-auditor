@@ -359,3 +359,14 @@
 - **Prevention tier:** T1
 - **Owner:** Repo-owner Issue #164 / Hermes foreground coordinator surfaces.
 - **Script:** `scripts/detect-as-hermes-github-reliability-boundary-gap.sh`
+
+### AS-41: Campaign Sync Completed-Track Readback Gap
+- **Detects:** Campaign Sync completed-track drift or predicate coverage that still checks next-track, micro-work, or threshold agreement without completed-track readback.
+- **Signal:** A final Campaign Sync or validator/admission surface has PR `Completed track:` text that disagrees with live campaign `Completed latest track:` text, lacks final completed-track readback evidence, or describes Campaign Sync predicate coverage for next active track plus micro-work/threshold while omitting completed-track coverage.
+- **Phase range:** Issue #164 Campaign Sync PR bodies, native closure validators, parsed-closure contracts/templates, campaign-sync admission docs, and BMA/repo-star reliability adoption docs.
+- **Check:** Scan owner evidence text for Campaign Sync completed-track/readback surfaces, compare exact marker values when both markers are present, and require completed-track readback coverage on final/admission predicate material. Suppress detector docs/templates/tests/fixtures and clean explicit non-claim examples.
+- **Shared contract:** repo-agent-core `docs/github-parsed-closure-semantics-contract.md` defines `campaign_sync_completed_track_readback` for final Campaign Sync PRs.
+- **Fire condition:** `campaign_sync_completed_track_gap_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-campaign-sync-completed-track-gap.sh`
