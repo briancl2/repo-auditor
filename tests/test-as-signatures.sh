@@ -258,6 +258,12 @@ Campaign Sync:
 - Threshold clause: adoption/delivery proof
 Issue #164 readback:
 Completed latest track: #811 stale completed track
+
+ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT route_changed=true. The route-changing
+Learning / Recovery note says a broad GBrain search miss proves absence, omits
+GitHub owner-surface evidence, raw evidence, fallback_without_memory, GBrain slug
+or no_capture_reason, owner action, and literal-safe GitHub readback evidence,
+then hands background GBrain to a controller queue.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -273,8 +279,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 41
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 41
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 42
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 42
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -319,6 +325,7 @@ assert as_ids == {
     "AS-39",
     "AS-40",
     "AS-41",
+    "AS-42",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -733,6 +740,11 @@ or review disposition, or claims background scheduler/controller ownership.
 **Triggers:** AS-41 fires when final Campaign Sync or validator surfaces have
 completed-track drift, miss completed-track readback, or keep next-track,
 micro-work, and threshold predicate coverage without completed-track coverage.
+
+**Triggers:** AS-42 fires when route-changing learning/failure material misses
+GitHub/raw evidence, GBrain slug or no-capture reason, fallback without memory,
+owner action, literal-safe GitHub readback, or treats broad GBrain search miss as
+absence without exact-handle replay.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -842,6 +854,11 @@ Final Campaign Sync admission checks next active track, micro-work rule, and
 threshold clause but omits completed-track predicate coverage. Campaign Sync:
 Completed track: #816 Hermes failure residue guidance.
 Completed latest track: #811 stale completed track.
+
+ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT route_changed=true. A broad GBrain search
+miss proves absence. No raw evidence, no GBrain slug or no_capture_reason, no
+fallback_without_memory, no owner action, no literal-safe GitHub readback, and a
+background Hermes controller owns routing.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -872,6 +889,7 @@ scripts = {
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
     "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",
+    "AS-42": "detect-as-route-changing-learning-propagation-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1484,6 +1502,7 @@ Learning / Recovery:
 - Raw evidence: raw runtime evidence, command transcript, CI run, and check run.
 - Optional GBrain slug: none.
 - No-capture reason: duplicate route-change already recorded on GitHub issue truth.
+- Fallback without memory: continue from GitHub issue/PR/check truth and the same owner action.
 - Reusable learning text: foreground tool blockers should convert to owner issue truth before fallback.
 - Owner action: repo-agent-core issue #24 and first owner PR.
 - Bounded non-claims: does not prove background memory, daemon behavior, scheduler behavior, or target mutation.
@@ -1571,6 +1590,7 @@ scripts = {
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
     "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",
+    "AS-42": "detect-as-route-changing-learning-propagation-gap.sh",
 }
 
 for signature_id, script in scripts.items():
