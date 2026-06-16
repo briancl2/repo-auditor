@@ -74,6 +74,7 @@ scripts=(
     "detect-as-scheduled-evidence-boundary-gap.sh"
     "detect-as-hermes-github-reliability-boundary-gap.sh"
     "detect-as-campaign-sync-completed-track-gap.sh"
+    "detect-as-route-changing-learning-propagation-gap.sh"
 )
 
 idx=0

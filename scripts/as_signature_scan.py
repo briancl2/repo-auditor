@@ -259,6 +259,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-campaign-sync-completed-track-gap.sh",
     },
+    "AS-42": {
+        "name": "Route-changing learning propagation gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-route-changing-learning-propagation-gap.sh",
+    },
 }
 
 
@@ -1395,7 +1401,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[0-8]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-9]|AS-4[0-2]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1413,6 +1419,8 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"issue 164 runtime drift|issue #164 runtime drift|"
     r"self-authored campaign pause authority|self authored campaign pause authority|"
     r"campaign pause authority|campaign pause-authority|"
+    r"scheduled workflow evidence boundary gap|hermes/github reliability boundary gap|"
+    r"campaign sync completed-track readback gap|route-changing learning propagation gap|"
     r"foreground recovery runtime contract)\b",
     re.IGNORECASE,
 )
@@ -2757,6 +2765,175 @@ def campaign_sync_completed_track_readback_gap(texts: dict[str, str]) -> dict[st
     }
 
 
+ROUTE_CHANGING_LEARNING_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-42|Route[- ]Changing Learning Propagation Gap)\b.{0,180}\b(detects|detector|signature|triggers?)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+ROUTE_CHANGING_LEARNING_SURFACE_PATTERN = re.compile(
+    r"\b(route[- ]changing|route_changed|route_change_reason|ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT|"
+    r"learning_recovery_block|Learning / Recovery|fallback_without_memory|fallback without memory|"
+    r"gbrain_exact_handle_replay|gbrain_slug_or_no_capture_reason|exact[- ]handle replay|"
+    r"literal_safe_github_readback|literal[- ]safe GitHub|broad GBrain search miss|"
+    r"HERMES_FOREGROUND_FAILURE_GUIDANCE|HERMES_FOREGROUND_RUN_RECEIPT)\b",
+    re.IGNORECASE,
+)
+ROUTE_GITHUB_SURFACE_PATTERN = re.compile(
+    r"\bgithub_surface\b|https://github\.com/[^/\s]+/[^/\s]+/(?:issues|pull)/[0-9]+|"
+    r"https://github\.com/[^/\s]+/[^/\s]+/issues/[0-9]+#issuecomment-[0-9]+|"
+    r"\b(?:GitHub surface|GitHub issue|GitHub PR|owner issue|owner PR)\b.{0,80}(?<![A-Za-z0-9_-])#[0-9]+(?![0-9])",
+    re.IGNORECASE,
+)
+ROUTE_RAW_EVIDENCE_PATTERN = re.compile(
+    r"\b(raw_evidence|raw evidence|command transcript|transcript|receipt|stdout|stderr|"
+    r"CI/check run|check run|replay log|failure_guidance|foreground_receipt)\b",
+    re.IGNORECASE,
+)
+ROUTE_MEMORY_DISPOSITION_PATTERN = re.compile(
+    r"\b(gbrain_slug_or_no_capture_reason|optional_gbrain_slug|no_capture_reason|"
+    r"gbrain://|gbrain get|exact[- ]handle replay|gbrain_exact_handle_replay|"
+    r"github_evidence_sufficient|not_reusable|local_only|duplicate|routine)\b",
+    re.IGNORECASE,
+)
+ROUTE_FALLBACK_WITHOUT_MEMORY_PATTERN = re.compile(
+    r"\b(fallback_without_memory|fallback without memory|without GBrain|GBrain unavailable|"
+    r"without advisory GBrain|without memory)\b",
+    re.IGNORECASE,
+)
+ROUTE_OWNER_ACTION_PATTERN = re.compile(
+    r"\b(owner_action|owner action|owner surface|owner issue|owner PR|owner pull request|"
+    r"owner route|first deliverable|open .*PR|open .*issue)\b",
+    re.IGNORECASE,
+)
+ROUTE_LITERAL_READBACK_REQUIRED_PATTERN = re.compile(
+    r"\b(literal_safe_github_readback|literal[- ]safe GitHub|expected_literals|"
+    r"readback_status|shell backtick|backtick substitution|code fence|JSON literal)\b",
+    re.IGNORECASE,
+)
+ROUTE_LITERAL_READBACK_COMPLETE_PATTERN = re.compile(
+    r"\b(readback_status\s*[:=]\s*[\"']?(?:matched|passed)|literal[- ]safe GitHub comment readback preserved|"
+    r"expected_literals\b.{0,160}\b(?:matched|preserved|passed)|comment_url\b.{0,160}\bissuecomment-)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+ROUTE_BROAD_SEARCH_MISS_ABSENCE_PATTERN = re.compile(
+    r"\bbroad\s+GBrain\s+search\s+miss\b.{0,160}\b(absen(?:t|ce)|no memory|none found)\b|"
+    r"\bGBrain\s+search\b.{0,120}\bmiss(?:ed)?\b.{0,120}\b(absen(?:t|ce)|no memory|none found)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+ROUTE_EXACT_HANDLE_PATTERN = re.compile(
+    r"\b(exact[- ]handle|gbrain_exact_handle_replay|gbrain get|gbrain://)\b",
+    re.IGNORECASE,
+)
+ROUTE_BACKGROUND_CONTROL_PATTERN = re.compile(
+    r"\b(background\s+GBrain|background\s+Hermes|controller|scheduler|queue|daemon|retry\s*-?\s*loop|"
+    r"automatic\s+(?:issue|PR|pull request)\s+creation)\b",
+    re.IGNORECASE,
+)
+ROUTE_BACKGROUND_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|non[- ]claim|boundary|bounded)\b",
+    re.IGNORECASE,
+)
+
+
+def is_route_changing_learning_explainer(text: str) -> bool:
+    return ROUTE_CHANGING_LEARNING_EXPLAINER_PATTERN.search(text) is not None
+
+
+def route_learning_background_overclaim(text: str) -> bool:
+    for line in text.splitlines():
+        if not ROUTE_BACKGROUND_CONTROL_PATTERN.search(line):
+            continue
+        if ROUTE_BACKGROUND_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def route_changing_learning_propagation_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_route_changing_learning_explainer(text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml", ".sh", ".py")):
+            continue
+        if not ROUTE_CHANGING_LEARNING_SURFACE_PATTERN.search(text):
+            continue
+
+        reasons: list[str] = []
+        if not ROUTE_GITHUB_SURFACE_PATTERN.search(text):
+            reasons.append("missing_github_surface")
+            reason_counts["missing_github_surface"] += 1
+        if not ROUTE_RAW_EVIDENCE_PATTERN.search(text):
+            reasons.append("missing_raw_evidence")
+            reason_counts["missing_raw_evidence"] += 1
+        if not ROUTE_MEMORY_DISPOSITION_PATTERN.search(text):
+            reasons.append("missing_gbrain_slug_or_no_capture_reason")
+            reason_counts["missing_gbrain_slug_or_no_capture_reason"] += 1
+        if not ROUTE_FALLBACK_WITHOUT_MEMORY_PATTERN.search(text):
+            reasons.append("missing_fallback_without_memory")
+            reason_counts["missing_fallback_without_memory"] += 1
+        if not ROUTE_OWNER_ACTION_PATTERN.search(text):
+            reasons.append("missing_owner_action")
+            reason_counts["missing_owner_action"] += 1
+        if (
+            ROUTE_LITERAL_READBACK_REQUIRED_PATTERN.search(text)
+            and not ROUTE_LITERAL_READBACK_COMPLETE_PATTERN.search(text)
+        ):
+            reasons.append("unsafe_literal_readback")
+            reason_counts["unsafe_literal_readback"] += 1
+        if (
+            ROUTE_BROAD_SEARCH_MISS_ABSENCE_PATTERN.search(text)
+            and not ROUTE_EXACT_HANDLE_PATTERN.search(text)
+        ):
+            reasons.append("broad_search_miss_as_absence")
+            reason_counts["broad_search_miss_as_absence"] += 1
+        if route_learning_background_overclaim(text):
+            reasons.append("background_or_controller_overclaim")
+            reason_counts["background_or_controller_overclaim"] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:5])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"route_changing_learning_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"route_changing_learning_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "route_changing_learning_gap_count": len(offenders),
+            "route_changing_learning_grounded_count": len(set(grounded)),
+            "missing_github_surface_count": reason_counts["missing_github_surface"],
+            "missing_raw_evidence_count": reason_counts["missing_raw_evidence"],
+            "missing_gbrain_slug_or_no_capture_reason_count": reason_counts["missing_gbrain_slug_or_no_capture_reason"],
+            "missing_fallback_without_memory_count": reason_counts["missing_fallback_without_memory"],
+            "missing_owner_action_count": reason_counts["missing_owner_action"],
+            "unsafe_literal_readback_count": reason_counts["unsafe_literal_readback"],
+            "broad_search_miss_as_absence_count": reason_counts["broad_search_miss_as_absence"],
+            "background_or_controller_overclaim_count": reason_counts["background_or_controller_overclaim"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Route-changing learning material lacks GitHub/raw evidence, memory disposition, fallback, owner action, literal readback, or bounded foreground-only language"
+            if offenders
+            else "Route-changing learning propagation evidence is complete or absent"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -3755,6 +3932,7 @@ EVALUATORS = {
     "AS-39": scheduled_evidence_boundary_gap,
     "AS-40": hermes_github_reliability_boundary_gap,
     "AS-41": campaign_sync_completed_track_readback_gap,
+    "AS-42": route_changing_learning_propagation_gap,
 }
 
 
