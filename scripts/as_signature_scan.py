@@ -2497,8 +2497,10 @@ NONFINAL_ISSUE164_CONTEXT_PATTERN = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 HERMES_FAILURE_RESIDUE_PATTERN = re.compile(
+    # Generic failure-to-issue guidance is not Hermes-specific residue. Require
+    # the Hermes foreground receipt name, provider timeout, or explicit residue term.
     r"\b(HERMES_FOREGROUND_FAILURE_GUIDANCE|provider_user_request_timeout|"
-    r"provider_request_body_timeout|failure[- ]to[- ]issue|Hermes failure residue)\b",
+    r"provider_request_body_timeout|Hermes failure residue)\b",
     re.IGNORECASE,
 )
 HERMES_FAILURE_DISPOSITION_PATTERN = re.compile(
@@ -2522,6 +2524,7 @@ HERMES_BOUNDARY_NEGATION_PATTERN = re.compile(
     r"\b(Hermes|auto[- ]?merge|retry loop|scheduler|queue|daemon|controller|background)\b",
     re.IGNORECASE | re.DOTALL,
 )
+HISTORICAL_CLOSURE_ARTIFACT_PREFIXES = ("docs/archive/", "docs/handoffs/", "docs/completions/")
 
 
 def is_hermes_github_reliability_explainer(text: str) -> bool:
@@ -2560,8 +2563,12 @@ def hermes_github_reliability_boundary_gap(texts: dict[str, str]) -> dict[str, A
     offenders: list[str] = []
     grounded: list[str] = []
     reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
 
     for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
         if is_work_management_signature_explainer(path, text):
             grounded.append(path)
             continue
@@ -2601,6 +2608,7 @@ def hermes_github_reliability_boundary_gap(texts: dict[str, str]) -> dict[str, A
             "negated_closure_keyword_parse_hazard_count": reason_counts["negated_closure_keyword_parse_hazard"],
             "missing_fresh_hermes_failure_disposition_count": reason_counts["missing_fresh_hermes_failure_disposition"],
             "hermes_coordinator_or_background_overclaim_count": reason_counts["hermes_coordinator_or_background_overclaim"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
         },
         "evidence": evidence_join(details, limit=2),
         "reason": (
