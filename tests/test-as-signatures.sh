@@ -757,9 +757,11 @@ completed-track drift, miss completed-track readback, or keep next-track,
 micro-work, and threshold predicate coverage without completed-track coverage.
 
 **Triggers:** AS-42 fires when route-changing learning/failure material misses
-GitHub/raw evidence, GBrain slug or no-capture reason, fallback without memory,
-owner action, literal-safe GitHub readback, or treats broad GBrain search miss as
-absence without exact-handle replay.
+GitHub/raw evidence, GBrain slug or no-capture reason, exact readback or
+no-capture discipline, fallback without memory, owner action, literal-safe
+GitHub readback, treats broad GBrain search miss as absence without exact-handle
+replay, overclaims stale/contradictory/failed GBrain evidence, or claims
+background GBrain/Hermes/controller behavior.
 
 **Triggers:** AS-43 fires when capability-placement / Autonomy Preview material
 omits owner, reach, native signal, promotion, demotion, kill-switch, forbidden
@@ -882,9 +884,10 @@ Completed track: #816 Hermes failure residue guidance.
 Completed latest track: #811 stale completed track.
 
 ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT route_changed=true. A broad GBrain search
-miss proves absence. No raw evidence, no GBrain slug or no_capture_reason, no
-fallback_without_memory, no owner action, no literal-safe GitHub readback, and a
-background Hermes controller owns routing.
+miss proves absence. Optional GBrain slug: bma/issue164/learning/stale-card.
+Stale GBrain evidence is accepted as route truth. No raw evidence, no
+no_capture_reason, no fallback_without_memory, no owner action, no literal-safe
+GitHub readback, and a background Hermes controller owns routing.
 
 Autonomy Preview for a capability-placement carrier:
 Best current owner: TBD

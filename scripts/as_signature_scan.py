@@ -2803,8 +2803,25 @@ ROUTE_RAW_EVIDENCE_PATTERN = re.compile(
 )
 ROUTE_MEMORY_DISPOSITION_PATTERN = re.compile(
     r"\b(gbrain_slug_or_no_capture_reason|optional_gbrain_slug|no_capture_reason|"
+    r"optional\s+GBrain\s+slug|GBrain\s+slug|"
     r"gbrain://|gbrain get|exact[- ]handle replay|gbrain_exact_handle_replay|"
     r"github_evidence_sufficient|not_reusable|local_only|duplicate|routine)\b",
+    re.IGNORECASE,
+)
+ROUTE_GBRAIN_SLUG_PATTERN = re.compile(
+    r"\b(gbrain_slug|optional_gbrain_slug|GBrain slug|gbrain://|"
+    r"gbrain_slug_or_no_capture_reason)\b",
+    re.IGNORECASE,
+)
+ROUTE_NO_CAPTURE_PATTERN = re.compile(
+    r"\b(no_capture_reason|no[- ]capture reason|github_evidence_sufficient|"
+    r"not_reusable|local_only|duplicate|routine)\b",
+    re.IGNORECASE,
+)
+ROUTE_EXACT_READBACK_PATTERN = re.compile(
+    r"\b(gbrain_exact_handle_replay|exact[- ]handle replay|exact[- ]get|gbrain get|get_status|"
+    r"exact[- ]handle|exact[- ]read(?:back)?\b.{0,80}\bgbrain\b|"
+    r"\bgbrain\b.{0,80}\bexact[- ]read(?:back)?)\b",
     re.IGNORECASE,
 )
 ROUTE_FALLBACK_WITHOUT_MEMORY_PATTERN = re.compile(
@@ -2845,6 +2862,22 @@ ROUTE_BACKGROUND_NEGATION_PATTERN = re.compile(
     r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|non[- ]claim|boundary|bounded)\b",
     re.IGNORECASE,
 )
+ROUTE_GBRAIN_STALE_FAILED_PATTERN = re.compile(
+    r"\b(stale|contradictory|contradiction|failed|missing|uncited)\b.{0,120}\bGBrain\b|"
+    r"\bGBrain\b.{0,120}\b(stale|contradictory|contradiction|failed|missing|uncited)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+ROUTE_GBRAIN_OVERCLAIM_PATTERN = re.compile(
+    r"\b(admit|admitted|accepted|relied|relies|confirmed|proves|proof|route truth|"
+    r"source of truth|authoritative|canonical|changed the route|route changed)\b",
+    re.IGNORECASE,
+)
+ROUTE_GBRAIN_OVERCLAIM_NEGATION_PATTERN = re.compile(
+    r"\b(do not|does not|must not|never|cannot|can't|reject|rejected|block|blocked|"
+    r"route to owner|owner surface|no[-_ ]capture|fallback|not rely|do not rely|"
+    r"not authoritative|not canonical|advisory only)\b",
+    re.IGNORECASE,
+)
 
 
 def is_route_changing_learning_explainer(text: str) -> bool:
@@ -2856,6 +2889,37 @@ def route_learning_background_overclaim(text: str) -> bool:
         if not ROUTE_BACKGROUND_CONTROL_PATTERN.search(line):
             continue
         if ROUTE_BACKGROUND_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def route_learning_missing_exact_readback_or_no_capture(text: str) -> bool:
+    if not ROUTE_GBRAIN_SLUG_PATTERN.search(text):
+        return False
+    if route_learning_has_exact_readback_proof(text):
+        return False
+    if ROUTE_NO_CAPTURE_PATTERN.search(text):
+        return False
+    return True
+
+
+def route_learning_has_exact_readback_proof(text: str) -> bool:
+    for line in text.splitlines():
+        if re.search(r"\b(raw_evidence|raw evidence)\b", line, re.IGNORECASE):
+            continue
+        if ROUTE_EXACT_READBACK_PATTERN.search(line):
+            return True
+    return False
+
+
+def route_learning_stale_failed_gbrain_overclaim(text: str) -> bool:
+    for line in text.splitlines():
+        if not ROUTE_GBRAIN_STALE_FAILED_PATTERN.search(line):
+            continue
+        if not ROUTE_GBRAIN_OVERCLAIM_PATTERN.search(line):
+            continue
+        if ROUTE_GBRAIN_OVERCLAIM_NEGATION_PATTERN.search(line):
             continue
         return True
     return False
@@ -2892,6 +2956,9 @@ def route_changing_learning_propagation_gap(texts: dict[str, str]) -> dict[str, 
         if not ROUTE_MEMORY_DISPOSITION_PATTERN.search(text):
             reasons.append("missing_gbrain_slug_or_no_capture_reason")
             reason_counts["missing_gbrain_slug_or_no_capture_reason"] += 1
+        if route_learning_missing_exact_readback_or_no_capture(text):
+            reasons.append("missing_exact_readback_or_no_capture")
+            reason_counts["missing_exact_readback_or_no_capture"] += 1
         if not ROUTE_FALLBACK_WITHOUT_MEMORY_PATTERN.search(text):
             reasons.append("missing_fallback_without_memory")
             reason_counts["missing_fallback_without_memory"] += 1
@@ -2910,6 +2977,9 @@ def route_changing_learning_propagation_gap(texts: dict[str, str]) -> dict[str, 
         ):
             reasons.append("broad_search_miss_as_absence")
             reason_counts["broad_search_miss_as_absence"] += 1
+        if route_learning_stale_failed_gbrain_overclaim(text):
+            reasons.append("stale_or_failed_gbrain_overclaim")
+            reason_counts["stale_or_failed_gbrain_overclaim"] += 1
         if route_learning_background_overclaim(text):
             reasons.append("background_or_controller_overclaim")
             reason_counts["background_or_controller_overclaim"] += 1
@@ -2931,10 +3001,12 @@ def route_changing_learning_propagation_gap(texts: dict[str, str]) -> dict[str, 
             "missing_github_surface_count": reason_counts["missing_github_surface"],
             "missing_raw_evidence_count": reason_counts["missing_raw_evidence"],
             "missing_gbrain_slug_or_no_capture_reason_count": reason_counts["missing_gbrain_slug_or_no_capture_reason"],
+            "missing_exact_readback_or_no_capture_count": reason_counts["missing_exact_readback_or_no_capture"],
             "missing_fallback_without_memory_count": reason_counts["missing_fallback_without_memory"],
             "missing_owner_action_count": reason_counts["missing_owner_action"],
             "unsafe_literal_readback_count": reason_counts["unsafe_literal_readback"],
             "broad_search_miss_as_absence_count": reason_counts["broad_search_miss_as_absence"],
+            "stale_or_failed_gbrain_overclaim_count": reason_counts["stale_or_failed_gbrain_overclaim"],
             "background_or_controller_overclaim_count": reason_counts["background_or_controller_overclaim"],
             "historical_evidence_skipped_count": historical_evidence_skipped,
         },
