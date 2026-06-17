@@ -662,8 +662,8 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Script:** `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh`
 
 ### AS-37: Issue 164 Runtime Drift
-- **Detects:** Issue #164 coordinator runtime launch surfaces that omit transfer mode, live truth, Goal or Goal-null fallback, run-root/progress-ledger evidence, heartbeat ordering, CI polling, merge-or-blocker discipline, or concrete next action.
-- **Signal:** Issue #164 runtime guidance mentions coordinator launch or heartbeat but lacks required runtime fields.
+- **Detects:** Issue #164 coordinator runtime launch surfaces that omit transfer mode, live truth, Goal or Goal-null fallback, run-root/progress-ledger evidence, heartbeat ordering, CI polling, merge-or-blocker discipline, concrete next action, or evidence-bearing coordinator autonomy acceptance fields.
+- **Signal:** Issue #164 runtime guidance mentions coordinator launch or heartbeat but lacks required runtime fields; coordinator autonomy acceptance verdicts of accepted, partial, or rejected lack GitHub issue/PR/check/merge truth, raw runtime evidence, Goal state, run-root/progress-ledger evidence, heartbeat disposition, bounded non-claims, or concrete next owner action.
 - **Fire condition:** `issue164_runtime_drift_count > 0`
 - **Script:** `scripts/detect-as-issue164-runtime-drift.sh`
 
@@ -741,7 +741,10 @@ no-background boundary.
 **Triggers:** AS-37 fires when Issue #164 runtime launch guidance omits transfer
 mode, live truth, Goal or Goal-null fallback, run-root/progress-ledger evidence,
 heartbeat-after-child/run-root ordering, CI polling, merge-or-blocker discipline,
-or concrete owner-surface next action.
+or concrete owner-surface next action, or when an accepted/partial/rejected
+coordinator autonomy acceptance verdict lacks GitHub issue/PR/check/merge truth,
+raw runtime evidence, Goal state, run-root/progress-ledger evidence, heartbeat
+disposition, bounded non-claims, or concrete next owner action.
 
 **Triggers:** AS-38 fires when a campaign sync says Next active track: None
 selected or pauses the campaign based only on no open issues or PRs, stale
@@ -766,7 +769,11 @@ background GBrain/Hermes/controller behavior.
 **Triggers:** AS-43 fires when capability-placement / Autonomy Preview material
 omits owner, reach, native signal, promotion, demotion, kill-switch, forbidden
 mode, or GBrain no-capture fields, keeps fields vague, or claims forbidden
-automation authority.
+automation authority; or when coordinator autonomy acceptance material omits a
+valid accepted/partial/rejected/not_applicable verdict, lacks evidence-bearing
+fields for a non-not_applicable verdict, keeps gates vague, or claims background
+autonomy, Hermes-primary ownership, canonical GBrain memory, remote execution,
+automatic GitHub mutation, or other forbidden control-plane ownership.
 
 **Triggers:** AS-44 fires when Hermes foreground reliability material omits
 eligibility, attempt role, launcher receipt, failure guidance, coordinator
