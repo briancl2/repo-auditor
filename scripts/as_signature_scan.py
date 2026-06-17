@@ -2044,6 +2044,11 @@ ISSUE164_RUNTIME_SURFACE_PATTERN = re.compile(
     r"next owner action|next action)\b",
     re.IGNORECASE | re.DOTALL,
 )
+ISSUE164_RUNTIME_LAUNCH_CONTEXT_PATTERN = re.compile(
+    r"\b(issue\s*#?164 runtime launch|fresh coordinator|transfer mode|ci polling|"
+    r"green[- ]clean|merge-or-blocker)\b",
+    re.IGNORECASE,
+)
 ISSUE164_TRANSFER_MODE_PATTERN = re.compile(
     r"\b(transfer mode:\s*(?:fresh coordinator thread|fresh thread)|fresh coordinator thread|fresh thread)\b",
     re.IGNORECASE,
@@ -2083,6 +2088,60 @@ ISSUE164_CONCRETE_NEXT_PATTERN = re.compile(
     r"first deliverable|first owner pr|owner pr|"
     r"github issue routing|owner action)\b",
     re.IGNORECASE,
+)
+COORDINATOR_ACCEPTANCE_SURFACE_PATTERN = re.compile(
+    r"\b(coordinator autonomy acceptance|autonomy acceptance|"
+    r"acceptance[_ -]verdict|acceptance verdict|acceptance rubric)\b",
+    re.IGNORECASE,
+)
+COORDINATOR_ACCEPTANCE_EVIDENCE_VERDICT_PATTERN = re.compile(
+    r"\b(?:coordinator autonomy acceptance|autonomy acceptance|acceptance[_ -]verdict|"
+    r"acceptance verdict|verdict)\b.{0,120}\b(accepted|partial|rejected)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+COORDINATOR_ACCEPTANCE_NOT_APPLICABLE_PATTERN = re.compile(
+    r"\b(?:coordinator autonomy acceptance|autonomy acceptance|acceptance[_ -]verdict|"
+    r"acceptance verdict|verdict)\b.{0,120}\bnot[_ -]applicable\b",
+    re.IGNORECASE | re.DOTALL,
+)
+COORDINATOR_ACCEPTANCE_GITHUB_TRUTH_PATTERN = re.compile(
+    r"\b(github issue/pr/check/merge truth|github issue/pr truth|"
+    r"issue/pr/check/merge truth|pr/check/merge truth|github issue|github pr|"
+    r"pull request|check run|ci/check|ci / check|merge commit|merged pr|"
+    r"closed issue|https://github\.com/[^/\s]+/[^/\s]+/(?:issues|pull)/[0-9]+)\b",
+    re.IGNORECASE,
+)
+COORDINATOR_ACCEPTANCE_RAW_RUNTIME_PATTERN = re.compile(
+    r"\b(raw runtime evidence|raw_evidence|session logs?|command transcripts?|"
+    r"ci/check runs?|check runs?|runtime ledgers?|goal metadata|goal receipts?|"
+    r"progress[-_ ]ledger(?:\.jsonl)?|run-root ledger|run root ledger)\b",
+    re.IGNORECASE,
+)
+COORDINATOR_ACCEPTANCE_HEARTBEAT_DISPOSITION_PATTERN = re.compile(
+    r"\bheartbeat\b.{0,120}\b(capture|captured|status|active|deleted|archive|"
+    r"archived|disposition|lifecycle|created|receipt)\b|"
+    r"\b(capture|captured|status|active|deleted|archive|archived|disposition|"
+    r"lifecycle|created|receipt)\b.{0,120}\bheartbeat\b",
+    re.IGNORECASE | re.DOTALL,
+)
+COORDINATOR_ACCEPTANCE_MISSING_HEARTBEAT_PATTERN = re.compile(
+    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,80}\bheartbeat\b.{0,80}"
+    r"\b(capture|captured|status|active|deleted|archive|archived|disposition|"
+    r"lifecycle|created|receipt)\b|"
+    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,80}\b(capture|captured|"
+    r"status|active|deleted|archive|archived|disposition|lifecycle|created|"
+    r"receipt)\b.{0,80}\bheartbeat\b",
+    re.IGNORECASE | re.DOTALL,
+)
+COORDINATOR_ACCEPTANCE_BOUNDED_NONCLAIM_PATTERN = re.compile(
+    r"\b(bounded non[- ]claims?|bounded_non_claims|does not authorize|"
+    r"does not prove|no background autonomy|foreground[- ]only|non[- ]claim)\b",
+    re.IGNORECASE,
+)
+COORDINATOR_ACCEPTANCE_MISSING_BOUNDED_NONCLAIM_PATTERN = re.compile(
+    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,60}\bbounded non[- ]claims?\b|"
+    r"\bbounded non[- ]claims?\b.{0,60}\b(missing|none|n/a|null|absent)\b",
+    re.IGNORECASE | re.DOTALL,
 )
 ISSUE164_FIELD_NEGATION_PATTERN = re.compile(
     r"\b(omit(?:s|ted)?|missing|lacks?|without|absent|not include|"
@@ -2130,9 +2189,45 @@ def issue164_runtime_missing_fields(text: str) -> list[str]:
     return missing
 
 
+def coordinator_acceptance_runtime_missing_fields(text: str) -> list[str]:
+    if not COORDINATOR_ACCEPTANCE_EVIDENCE_VERDICT_PATTERN.search(text):
+        return []
+    if COORDINATOR_ACCEPTANCE_NOT_APPLICABLE_PATTERN.search(text):
+        return []
+
+    missing: list[str] = []
+    if not issue164_has_positive_field(text, COORDINATOR_ACCEPTANCE_GITHUB_TRUTH_PATTERN):
+        missing.append("github_issue_pr_check_merge_truth")
+    if not issue164_has_positive_field(text, COORDINATOR_ACCEPTANCE_RAW_RUNTIME_PATTERN):
+        missing.append("raw_runtime_evidence")
+    if not issue164_has_positive_field(text, ISSUE164_GOAL_PATTERN):
+        missing.append("goal_or_goal_null")
+    if not (
+        issue164_has_positive_field(text, ISSUE164_RUN_ROOT_PATTERN)
+        and issue164_has_positive_field(text, ISSUE164_PROGRESS_LEDGER_PATTERN)
+    ):
+        missing.append("run_root_progress_ledger")
+    has_heartbeat_disposition = (
+        COORDINATOR_ACCEPTANCE_HEARTBEAT_DISPOSITION_PATTERN.search(text) is not None
+        and COORDINATOR_ACCEPTANCE_MISSING_HEARTBEAT_PATTERN.search(text) is None
+    )
+    if not has_heartbeat_disposition:
+        missing.append("heartbeat_capture_disposition")
+    has_bounded_nonclaim = (
+        COORDINATOR_ACCEPTANCE_BOUNDED_NONCLAIM_PATTERN.search(text) is not None
+        and COORDINATOR_ACCEPTANCE_MISSING_BOUNDED_NONCLAIM_PATTERN.search(text) is None
+    )
+    if not has_bounded_nonclaim:
+        missing.append("bounded_non_claims")
+    if not issue164_has_positive_field(text, ISSUE164_CONCRETE_NEXT_PATTERN):
+        missing.append("concrete_next_action")
+    return missing
+
+
 def issue164_runtime_drift(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
 
     for path, text in owner_evidence_texts(texts).items():
         if is_work_management_signature_explainer(path, text):
@@ -2143,10 +2238,20 @@ def issue164_runtime_drift(texts: dict[str, str]) -> dict[str, Any]:
             continue
         if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")):
             continue
-        if not ISSUE164_RUNTIME_SURFACE_PATTERN.search(text):
+        is_runtime_surface = ISSUE164_RUNTIME_SURFACE_PATTERN.search(text) is not None
+        is_acceptance_surface = COORDINATOR_ACCEPTANCE_SURFACE_PATTERN.search(text) is not None
+        if not is_runtime_surface and not is_acceptance_surface:
             continue
-        missing = issue164_runtime_missing_fields(text)
+        missing = []
+        if is_runtime_surface and (
+            not is_acceptance_surface or ISSUE164_RUNTIME_LAUNCH_CONTEXT_PATTERN.search(text)
+        ):
+            missing.extend(issue164_runtime_missing_fields(text))
+        if is_acceptance_surface:
+            missing.extend(coordinator_acceptance_runtime_missing_fields(text))
+        missing = list(dict.fromkeys(missing))
         if missing:
+            reason_counts.update(missing)
             offenders.append(f"{path}=>missing:{','.join(missing)}")
         else:
             grounded.append(path)
@@ -2160,6 +2265,10 @@ def issue164_runtime_drift(texts: dict[str, str]) -> dict[str, Any]:
         "signals": {
             "issue164_runtime_drift_count": len(offenders),
             "issue164_runtime_grounded_count": len(set(grounded)),
+            "missing_acceptance_github_truth_count": reason_counts["github_issue_pr_check_merge_truth"],
+            "missing_acceptance_raw_runtime_evidence_count": reason_counts["raw_runtime_evidence"],
+            "missing_acceptance_heartbeat_disposition_count": reason_counts["heartbeat_capture_disposition"],
+            "missing_acceptance_bounded_non_claims_count": reason_counts["bounded_non_claims"],
         },
         "evidence": evidence_join(details),
         "reason": "Issue #164 runtime launch or merge discipline is missing required coordinator fields" if offenders else "Issue #164 runtime surfaces are complete or absent",
@@ -3029,6 +3138,14 @@ CAPABILITY_PLACEMENT_SURFACE_PATTERN = re.compile(
     r"Demotion/rejection trigger|Forbidden mode)\b",
     re.IGNORECASE,
 )
+CAPABILITY_PLACEMENT_CORE_SURFACE_PATTERN = re.compile(
+    r"\b(Autonomy Preview|capability[- ]placement|CAPABILITY_PLACEMENT_PREVIEW|"
+    r"best_current_owner|best current owner|best_future_owner|best future owner|"
+    r"allowed_reach_now|Allowed reach now|native_signal|native signal|"
+    r"kill_switch|kill switch|forbidden_mode|Forbidden mode|"
+    r"gbrain_slug_or_no_capture_reason|GBrain slug/no-capture reason)\b",
+    re.IGNORECASE,
+)
 CAPABILITY_PLACEMENT_REQUIRED_FIELDS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("missing_best_current_owner", re.compile(r"\b(best_current_owner|best current owner)\b", re.IGNORECASE)),
     ("missing_best_future_owner", re.compile(r"\b(best_future_owner|best future owner)\b", re.IGNORECASE)),
@@ -3053,7 +3170,10 @@ CAPABILITY_PLACEMENT_VAGUE_VALUE_PATTERN = re.compile(
 CAPABILITY_PLACEMENT_AUTHORITY_PATTERN = re.compile(
     r"\b(controller|scheduler|queue|daemon|registry|dashboard|central autonomy ledger|hidden state store|"
     r"background\s+(?:Hermes|GBrain|Hermes/GBrain)|automatic\s+(?:issue|PR|pull request)\s+creation|"
-    r"auto-merge|Codex cloud(?:/background)? write authority|downstream mutation|replacement closure truth)\b",
+    r"automatic GitHub mutation|auto-merge|background autonomy|"
+    r"Codex cloud(?:/background)? write authority|Codex Cloud execution|remote execution|"
+    r"Hermes primary (?:owner|ownership|operator)|Hermes-primary|GBrain canonical memory|"
+    r"canonical GBrain memory|downstream mutation|replacement closure truth)\b",
     re.IGNORECASE,
 )
 CAPABILITY_PLACEMENT_NEGATION_PATTERN = re.compile(
@@ -3087,7 +3207,18 @@ def capability_field_missing_or_vague(text: str, pattern: re.Pattern[str]) -> tu
 def capability_placement_authority_overclaim(text: str) -> bool:
     prohibition_context = 0
     for line in text.splitlines():
-        if re.search(r"\b(forbidden_mode|forbidden mode|bounded_non_claims|bounded non-claims|non-claims)\b", line, re.IGNORECASE):
+        has_prohibition_marker = re.search(
+            r"\b(forbidden_mode|forbidden mode|bounded_non_claims|bounded non-claims|non-claims)\b",
+            line,
+            re.IGNORECASE,
+        )
+        missing_prohibition_marker = re.search(
+            r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,60}"
+            r"\b(forbidden mode|bounded_non_claims|bounded non-claims|non-claims)\b",
+            line,
+            re.IGNORECASE,
+        )
+        if has_prohibition_marker and not missing_prohibition_marker:
             prohibition_context = 4
         if not CAPABILITY_PLACEMENT_AUTHORITY_PATTERN.search(line):
             if prohibition_context:
@@ -3099,6 +3230,113 @@ def capability_placement_authority_overclaim(text: str) -> bool:
             continue
         return True
     return False
+
+
+COORDINATOR_ACCEPTANCE_VERDICT_FIELD_PATTERN = re.compile(
+    r"\b(acceptance[_ -]verdict|acceptance verdict|verdict)\b",
+    re.IGNORECASE,
+)
+COORDINATOR_ACCEPTANCE_VALID_VERDICT_PATTERN = re.compile(
+    r"\b(acceptance[_ -]verdict|acceptance verdict|verdict)\b\s*[:=]?\s*"
+    r"[`\"']?(accepted|partial|rejected|not[_ -]applicable)[`\"']?\b|"
+    r"\bcoordinator autonomy acceptance\b.{0,80}\b(accepted|partial|rejected|not[_ -]applicable)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+COORDINATOR_ACCEPTANCE_EVIDENCE_VERDICT_VALUE_PATTERN = re.compile(
+    r"\b(acceptance[_ -]verdict|acceptance verdict|verdict)\b\s*[:=]?\s*"
+    r"[`\"']?(accepted|partial|rejected)[`\"']?\b|"
+    r"\bcoordinator autonomy acceptance\b.{0,80}\b(accepted|partial|rejected)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+COORDINATOR_ACCEPTANCE_DEMOTION_TRIGGER_PATTERN = re.compile(
+    r"\b(demotion/rejection trigger|demotion_rejection_trigger|demotion trigger|"
+    r"rejection trigger|demote|demotion|reject(?:ion)? trigger)\b",
+    re.IGNORECASE,
+)
+COORDINATOR_ACCEPTANCE_MISSING_DEMOTION_TRIGGER_PATTERN = re.compile(
+    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,60}"
+    r"\b(demotion/rejection trigger|demotion_rejection_trigger|demotion trigger|"
+    r"rejection trigger)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+COORDINATOR_ACCEPTANCE_MISSING_NEXT_OWNER_ACTION_PATTERN = re.compile(
+    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,60}"
+    r"\b(next_owner_action|next owner action|owner action|owner[- ]surface action)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+COORDINATOR_ACCEPTANCE_GATE_VAGUE_PATTERN = re.compile(
+    r"\b(promotion gate|promotion_gate|demotion/rejection trigger|"
+    r"demotion_rejection_trigger|demotion trigger|rejection trigger)\b\s*[:=]\s*"
+    r"[`\"']?(tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b",
+    re.IGNORECASE,
+)
+
+
+def coordinator_acceptance_reasons(text: str) -> tuple[list[str], Counter[str]]:
+    reasons: list[str] = []
+    counts: Counter[str] = Counter()
+
+    if not COORDINATOR_ACCEPTANCE_VALID_VERDICT_PATTERN.search(text):
+        if COORDINATOR_ACCEPTANCE_VERDICT_FIELD_PATTERN.search(text):
+            reasons.append("invalid_acceptance_verdict")
+            counts["invalid_acceptance_verdict"] += 1
+        else:
+            reasons.append("missing_acceptance_verdict")
+            counts["missing_acceptance_verdict"] += 1
+        return reasons, counts
+
+    if not COORDINATOR_ACCEPTANCE_EVIDENCE_VERDICT_VALUE_PATTERN.search(text):
+        return reasons, counts
+
+    positive_checks: tuple[tuple[str, re.Pattern[str]], ...] = (
+        ("missing_acceptance_github_truth", COORDINATOR_ACCEPTANCE_GITHUB_TRUTH_PATTERN),
+        ("missing_acceptance_raw_runtime_evidence", COORDINATOR_ACCEPTANCE_RAW_RUNTIME_PATTERN),
+        ("missing_acceptance_goal_or_goal_null", ISSUE164_GOAL_PATTERN),
+        ("missing_acceptance_run_root_progress_ledger", ISSUE164_PROGRESS_LEDGER_PATTERN),
+    )
+    for reason, pattern in positive_checks:
+        if not issue164_has_positive_field(text, pattern):
+            reasons.append(reason)
+            counts[reason] += 1
+    direct_checks: tuple[tuple[str, re.Pattern[str], re.Pattern[str]], ...] = (
+        (
+            "missing_acceptance_demotion_trigger",
+            COORDINATOR_ACCEPTANCE_DEMOTION_TRIGGER_PATTERN,
+            COORDINATOR_ACCEPTANCE_MISSING_DEMOTION_TRIGGER_PATTERN,
+        ),
+        (
+            "missing_acceptance_next_owner_action",
+            ISSUE164_CONCRETE_NEXT_PATTERN,
+            COORDINATOR_ACCEPTANCE_MISSING_NEXT_OWNER_ACTION_PATTERN,
+        ),
+    )
+    for reason, present_pattern, missing_pattern in direct_checks:
+        if missing_pattern.search(text) or not present_pattern.search(text):
+            reasons.append(reason)
+            counts[reason] += 1
+    if not issue164_has_positive_field(text, ISSUE164_RUN_ROOT_PATTERN):
+        reason = "missing_acceptance_run_root_progress_ledger"
+        if reason not in reasons:
+            reasons.append(reason)
+            counts[reason] += 1
+    has_heartbeat_disposition = (
+        COORDINATOR_ACCEPTANCE_HEARTBEAT_DISPOSITION_PATTERN.search(text) is not None
+        and COORDINATOR_ACCEPTANCE_MISSING_HEARTBEAT_PATTERN.search(text) is None
+    )
+    if not has_heartbeat_disposition:
+        reasons.append("missing_acceptance_heartbeat_disposition")
+        counts["missing_acceptance_heartbeat_disposition"] += 1
+    has_bounded_nonclaim = (
+        COORDINATOR_ACCEPTANCE_BOUNDED_NONCLAIM_PATTERN.search(text) is not None
+        and COORDINATOR_ACCEPTANCE_MISSING_BOUNDED_NONCLAIM_PATTERN.search(text) is None
+    )
+    if not has_bounded_nonclaim:
+        reasons.append("missing_acceptance_bounded_non_claims")
+        counts["missing_acceptance_bounded_non_claims"] += 1
+    if COORDINATOR_ACCEPTANCE_GATE_VAGUE_PATTERN.search(text):
+        reasons.append("vague_acceptance_gate")
+        counts["vague_field"] += 1
+    return reasons, counts
 
 
 def capability_placement_gap(texts: dict[str, str]) -> dict[str, Any]:
@@ -3119,18 +3357,28 @@ def capability_placement_gap(texts: dict[str, str]) -> dict[str, Any]:
             continue
         if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
             continue
-        if not CAPABILITY_PLACEMENT_SURFACE_PATTERN.search(text):
+        is_acceptance_surface = COORDINATOR_ACCEPTANCE_SURFACE_PATTERN.search(text) is not None
+        is_placement_surface = CAPABILITY_PLACEMENT_SURFACE_PATTERN.search(text) is not None
+        if is_acceptance_surface:
+            is_placement_surface = CAPABILITY_PLACEMENT_CORE_SURFACE_PATTERN.search(text) is not None
+        if not is_placement_surface and not is_acceptance_surface:
             continue
 
         reasons: list[str] = []
-        for reason, pattern in CAPABILITY_PLACEMENT_REQUIRED_FIELDS:
-            missing, vague = capability_field_missing_or_vague(text, pattern)
-            if missing:
-                reasons.append(reason)
-                reason_counts[reason] += 1
-            elif vague:
-                reasons.append(f"vague_{reason.removeprefix('missing_')}")
-                reason_counts["vague_field"] += 1
+        if is_placement_surface:
+            for reason, pattern in CAPABILITY_PLACEMENT_REQUIRED_FIELDS:
+                missing, vague = capability_field_missing_or_vague(text, pattern)
+                if missing:
+                    reasons.append(reason)
+                    reason_counts[reason] += 1
+                elif vague:
+                    reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                    reason_counts["vague_field"] += 1
+
+        if is_acceptance_surface:
+            acceptance_reasons, acceptance_counts = coordinator_acceptance_reasons(text)
+            reasons.extend(acceptance_reasons)
+            reason_counts.update(acceptance_counts)
 
         if capability_placement_authority_overclaim(text):
             reasons.append("forbidden_authority_overclaim")
@@ -3159,6 +3407,16 @@ def capability_placement_gap(texts: dict[str, str]) -> dict[str, Any]:
             "missing_kill_switch_count": reason_counts["missing_kill_switch"],
             "missing_forbidden_mode_count": reason_counts["missing_forbidden_mode"],
             "missing_gbrain_slug_or_no_capture_reason_count": reason_counts["missing_gbrain_slug_or_no_capture_reason"],
+            "missing_acceptance_verdict_count": reason_counts["missing_acceptance_verdict"],
+            "invalid_acceptance_verdict_count": reason_counts["invalid_acceptance_verdict"],
+            "missing_acceptance_github_truth_count": reason_counts["missing_acceptance_github_truth"],
+            "missing_acceptance_raw_runtime_evidence_count": reason_counts["missing_acceptance_raw_runtime_evidence"],
+            "missing_acceptance_goal_or_goal_null_count": reason_counts["missing_acceptance_goal_or_goal_null"],
+            "missing_acceptance_run_root_progress_ledger_count": reason_counts["missing_acceptance_run_root_progress_ledger"],
+            "missing_acceptance_heartbeat_disposition_count": reason_counts["missing_acceptance_heartbeat_disposition"],
+            "missing_acceptance_bounded_non_claims_count": reason_counts["missing_acceptance_bounded_non_claims"],
+            "missing_acceptance_demotion_trigger_count": reason_counts["missing_acceptance_demotion_trigger"],
+            "missing_acceptance_next_owner_action_count": reason_counts["missing_acceptance_next_owner_action"],
             "vague_field_count": reason_counts["vague_field"],
             "forbidden_authority_overclaim_count": reason_counts["forbidden_authority_overclaim"],
             "historical_evidence_skipped_count": historical_evidence_skipped,

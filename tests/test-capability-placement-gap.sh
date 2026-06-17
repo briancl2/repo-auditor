@@ -9,10 +9,16 @@ trap 'rm -rf "$TMPDIR"' EXIT
 
 GAP_REPO="$TMPDIR/capability-placement-gap"
 CLEAN_REPO="$TMPDIR/capability-placement-clean"
+ACCEPTANCE_GAP_REPO="$TMPDIR/acceptance-placement-gap"
+ACCEPTANCE_INVALID_REPO="$TMPDIR/acceptance-placement-invalid"
+ACCEPTANCE_CLEAN_REPO="$TMPDIR/acceptance-placement-clean"
+ACCEPTANCE_NA_REPO="$TMPDIR/acceptance-placement-not-applicable"
 NEUTRAL_REPO="$TMPDIR/capability-placement-neutral"
 CONTRACT_REPO="$TMPDIR/capability-placement-contract"
 HISTORICAL_REPO="$TMPDIR/capability-placement-historical"
 mkdir -p "$GAP_REPO/docs" "$CLEAN_REPO/docs" "$NEUTRAL_REPO/docs"
+mkdir -p "$ACCEPTANCE_GAP_REPO/docs" "$ACCEPTANCE_INVALID_REPO/docs"
+mkdir -p "$ACCEPTANCE_CLEAN_REPO/docs" "$ACCEPTANCE_NA_REPO/docs"
 mkdir -p "$CONTRACT_REPO/docs" "$HISTORICAL_REPO/docs/completions"
 
 cat > "$GAP_REPO/docs/placement.md" <<'EOF'
@@ -43,6 +49,47 @@ truth.
 GBrain slug/no-capture reason: no_capture_reason=memory did not change route.
 EOF
 
+cat > "$ACCEPTANCE_GAP_REPO/docs/acceptance.md" <<'EOF'
+# Coordinator Autonomy Acceptance
+
+Acceptance verdict: accepted.
+Promotion gate: maybe later
+
+The report says acceptance is granted from doctrine. It has no GitHub
+issue/PR/check/merge truth, no raw runtime evidence, no Goal state or Goal-null
+fallback, no /tmp run root, no progress-ledger.jsonl, no heartbeat disposition,
+no bounded non-claims, no demotion trigger, and no next owner action.
+Background autonomy through a controller queue owns future GitHub mutation.
+EOF
+
+cat > "$ACCEPTANCE_INVALID_REPO/docs/acceptance.md" <<'EOF'
+# Coordinator Autonomy Acceptance
+
+Acceptance verdict: green.
+This note uses a non-enum verdict value.
+EOF
+
+cat > "$ACCEPTANCE_CLEAN_REPO/docs/acceptance.md" <<'EOF'
+# Coordinator Autonomy Acceptance
+
+Acceptance verdict: partial.
+GitHub issue/PR/check/merge truth: issue #855, PR #12, CI/check run 123, and merge commit abc123.
+Raw runtime evidence: command transcript, runtime ledger, Goal metadata, and progress-ledger.jsonl.
+Goal state: active; Goal-null fallback is recorded if unavailable.
+Run root: /tmp/issue164-coordinator-acceptance-20260617T000000Z/progress-ledger.jsonl.
+Heartbeat disposition: heartbeat created after the child issue and run root, then deleted at closure.
+Bounded non-claims: this does not authorize background autonomy, automatic issue/PR creation, auto-merge, or remote execution.
+Demotion/rejection trigger: missing raw evidence, vague promotion gates, or background authority claims reject acceptance.
+Next owner action: repo-upgrade-advisor recommendation extension PR.
+EOF
+
+cat > "$ACCEPTANCE_NA_REPO/docs/acceptance.md" <<'EOF'
+# Coordinator Autonomy Acceptance
+
+Acceptance verdict: not_applicable.
+No coordinator autonomy acceptance claim is made on this ordinary PR.
+EOF
+
 cat > "$NEUTRAL_REPO/docs/notes.md" <<'EOF'
 # Notes
 
@@ -62,13 +109,24 @@ cat > "$HISTORICAL_REPO/docs/completions/stale-placement.md" <<'EOF'
 Autonomy Preview without current placement fields.
 EOF
 
-python3 - "$REPO_ROOT" "$GAP_REPO" "$CLEAN_REPO" "$NEUTRAL_REPO" "$CONTRACT_REPO" "$HISTORICAL_REPO" <<'PY'
+python3 - "$REPO_ROOT" "$GAP_REPO" "$CLEAN_REPO" "$ACCEPTANCE_GAP_REPO" "$ACCEPTANCE_INVALID_REPO" "$ACCEPTANCE_CLEAN_REPO" "$ACCEPTANCE_NA_REPO" "$NEUTRAL_REPO" "$CONTRACT_REPO" "$HISTORICAL_REPO" <<'PY'
 import json
 import subprocess
 import sys
 from pathlib import Path
 
-repo_root, gap_repo, clean_repo, neutral_repo, contract_repo, historical_repo = map(Path, sys.argv[1:])
+(
+    repo_root,
+    gap_repo,
+    clean_repo,
+    acceptance_gap_repo,
+    acceptance_invalid_repo,
+    acceptance_clean_repo,
+    acceptance_na_repo,
+    neutral_repo,
+    contract_repo,
+    historical_repo,
+) = map(Path, sys.argv[1:])
 
 
 def run(repo: Path) -> dict:
@@ -96,7 +154,27 @@ assert gap["signals"]["missing_gbrain_slug_or_no_capture_reason_count"] == 1, ga
 assert gap["signals"]["vague_field_count"] >= 1, gap
 assert gap["signals"]["forbidden_authority_overclaim_count"] == 1, gap
 
-for repo in (clean_repo, neutral_repo, contract_repo):
+acceptance_gap = run(acceptance_gap_repo)
+assert acceptance_gap["ds_id"] == "AS-43", acceptance_gap
+assert acceptance_gap["fired"] is True, acceptance_gap
+assert acceptance_gap["signals"]["capability_placement_gap_count"] == 1, acceptance_gap
+assert acceptance_gap["signals"]["missing_acceptance_github_truth_count"] == 1, acceptance_gap
+assert acceptance_gap["signals"]["missing_acceptance_raw_runtime_evidence_count"] == 1, acceptance_gap
+assert acceptance_gap["signals"]["missing_acceptance_goal_or_goal_null_count"] == 1, acceptance_gap
+assert acceptance_gap["signals"]["missing_acceptance_run_root_progress_ledger_count"] == 1, acceptance_gap
+assert acceptance_gap["signals"]["missing_acceptance_heartbeat_disposition_count"] == 1, acceptance_gap
+assert acceptance_gap["signals"]["missing_acceptance_bounded_non_claims_count"] == 1, acceptance_gap
+assert acceptance_gap["signals"]["missing_acceptance_demotion_trigger_count"] == 1, acceptance_gap
+assert acceptance_gap["signals"]["missing_acceptance_next_owner_action_count"] == 1, acceptance_gap
+assert acceptance_gap["signals"]["vague_field_count"] >= 1, acceptance_gap
+assert acceptance_gap["signals"]["forbidden_authority_overclaim_count"] == 1, acceptance_gap
+
+acceptance_invalid = run(acceptance_invalid_repo)
+assert acceptance_invalid["ds_id"] == "AS-43", acceptance_invalid
+assert acceptance_invalid["fired"] is True, acceptance_invalid
+assert acceptance_invalid["signals"]["invalid_acceptance_verdict_count"] == 1, acceptance_invalid
+
+for repo in (clean_repo, acceptance_clean_repo, acceptance_na_repo, neutral_repo, contract_repo):
     payload = run(repo)
     assert payload["ds_id"] == "AS-43", payload
     assert payload["fired"] is False, payload
