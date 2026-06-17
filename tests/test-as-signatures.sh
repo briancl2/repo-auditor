@@ -776,10 +776,12 @@ autonomy, Hermes-primary ownership, canonical GBrain memory, remote execution,
 automatic GitHub mutation, or other forbidden control-plane ownership.
 
 **Triggers:** AS-44 fires when Hermes foreground reliability material omits
-eligibility, attempt role, launcher receipt, failure guidance, coordinator
-review, validation owner, promotion/demotion, checker disposition, or bounded
-non-claims; or when it makes Hermes validation owner or grants Hermes forbidden
-foreground authority.
+eligibility, attempt role, launcher/run receipt, pre-fallback failure guidance,
+coordinator review, validation owner, publication scope, promotion/demotion,
+checker disposition, or bounded non-claims; or when it makes Hermes validation
+owner, grants checker-shadow approval/edit ownership, publishes branches/PRs
+without scoped authority, claims autonomous retry/fix-cycle behavior, or grants
+Hermes forbidden foreground/control-plane authority.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
