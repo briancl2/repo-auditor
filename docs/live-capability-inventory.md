@@ -160,6 +160,7 @@ surfaces only as bounded owner-local tracking when the claim is anchored:
 | `scripts/detect-as-github-native-closure-regrowth.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-goal-runtime-evidence-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-hermes-foreground-receipt-adoption-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
+| `scripts/detect-as-hermes-foreground-reliability-evidence-gap.sh` | runtime-loaded deterministic detector | Issue #164 Hermes foreground reliability proof detector for doer/checker evidence gaps | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-instruction-root-drift.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-interrupted-goal-recovery-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-memory-authority-confusion.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |

@@ -392,3 +392,14 @@
 - **Prevention tier:** T2
 - **Severity:** MEDIUM
 - **Script:** `scripts/detect-as-capability-placement-gap.sh`
+
+### AS-44: Hermes Foreground Reliability Evidence Gap
+- **Detects:** Hermes foreground doer/checker reliability material that omits eligibility, launcher/failure-guidance evidence, coordinator review, validation owner, promotion/demotion evidence, checker disposition, or foreground-only forbidden-authority boundaries.
+- **Signal:** A Hermes foreground reliability, Hermes doer, Hermes checker, or checker-shadow surface omits Hermes eligibility, attempt role, launcher receipt, failure guidance or clean-success reason, coordinator review, validation owner, promotion gate, demotion/rejection trigger, checker-shadow disposition, or bounded non-claims; fills those fields with vague placeholders; sets Hermes as validation owner; or describes Hermes as coordinator, validator, merger, retry loop, scheduler, queue, daemon, controller, background worker, automatic issue/PR creator, Campaign Sync owner, recovery owner, or `hermes -z` adoption path.
+- **Phase range:** Issue #164 Hermes foreground carrier issues, owner PR bodies, proof/readback notes, checker-shadow comments, and BMA/repo-star reliability adoption surfaces.
+- **Check:** Scan owner evidence text for Hermes reliability/doer/checker surfaces and require portable reliability fields plus foreground-only bounded non-claims. Suppress detector docs/templates/tests/fixtures and the shared repo-agent-core Hermes foreground reliability contract/template.
+- **Shared contract:** repo-agent-core `docs/hermes-foreground-reliability-contract.md` defines the portable doer/checker reliability record.
+- **Fire condition:** `hermes_foreground_reliability_gap_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-hermes-foreground-reliability-evidence-gap.sh`

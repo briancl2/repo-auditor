@@ -76,6 +76,7 @@ scripts=(
     "detect-as-campaign-sync-completed-track-gap.sh"
     "detect-as-route-changing-learning-propagation-gap.sh"
     "detect-as-capability-placement-gap.sh"
+    "detect-as-hermes-foreground-reliability-evidence-gap.sh"
 )
 
 idx=0
