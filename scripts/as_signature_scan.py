@@ -271,6 +271,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T2",
         "script": "detect-as-capability-placement-gap.sh",
     },
+    "AS-44": {
+        "name": "Hermes foreground reliability evidence gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
+    },
 }
 
 
@@ -1407,7 +1413,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[0-9]|AS-4[0-3]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-9]|AS-4[0-4]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1427,6 +1433,7 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"campaign pause authority|campaign pause-authority|"
     r"scheduled workflow evidence boundary gap|hermes/github reliability boundary gap|"
     r"campaign sync completed-track readback gap|route-changing learning propagation gap|"
+    r"hermes foreground reliability evidence gap|"
     r"foreground recovery runtime contract)\b",
     re.IGNORECASE,
 )
@@ -3093,6 +3100,191 @@ def capability_placement_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+HERMES_FOREGROUND_RELIABILITY_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-44|Hermes Foreground Reliability Evidence Gap)\b.{0,180}\b(detects|detector|signature|triggers?)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+HERMES_FOREGROUND_RELIABILITY_SURFACE_PATTERN = re.compile(
+    r"\b(Hermes foreground reliability|foreground Hermes reliability|Hermes doer|Hermes checker|"
+    r"checker[-_ ]shadow|checker[-_ ]advisory|attempt_role|attempt role|hermes_eligibility|"
+    r"Hermes eligibility|launcher_receipt|coordinator_review|validation_owner)\b",
+    re.IGNORECASE,
+)
+HERMES_RELIABILITY_SURFACE_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|without|absent|lacks?|missing)\b.{0,80}"
+    r"\b(Hermes foreground reliability|foreground Hermes reliability|Hermes doer|Hermes checker|"
+    r"checker[-_ ]shadow|checker[-_ ]advisory|attempt_role|attempt role|hermes_eligibility|"
+    r"Hermes eligibility|launcher_receipt|coordinator_review|validation_owner)\b",
+    re.IGNORECASE,
+)
+HERMES_FOREGROUND_RELIABILITY_REQUIRED_FIELDS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("missing_hermes_eligibility", re.compile(r"\b(hermes_eligibility|Hermes eligibility|eligibility)\b", re.IGNORECASE)),
+    ("missing_attempt_role", re.compile(r"\b(attempt_role|attempt role|doer|checker_shadow|checker[- ]shadow|checker_advisory|checker[- ]advisory|not_eligible|not[- ]eligible)\b", re.IGNORECASE)),
+    ("missing_launcher_receipt", re.compile(r"\b(launcher_receipt|launcher receipt|HERMES_FOREGROUND_RUN_RECEIPT)\b", re.IGNORECASE)),
+    ("missing_failure_guidance", re.compile(r"\b(failure_guidance|failure guidance|HERMES_FOREGROUND_FAILURE_GUIDANCE|not_needed_reason|not[- ]needed reason|clean[- ]success reason)\b", re.IGNORECASE)),
+    ("missing_coordinator_review", re.compile(r"\b(coordinator_review|coordinator review|Codex review|BMA review|reviewer)\b", re.IGNORECASE)),
+    ("missing_validation_owner", re.compile(r"\b(validation_owner|validation owner)\b", re.IGNORECASE)),
+    ("missing_promotion_gate", re.compile(r"\b(promotion_gate|promotion gate)\b", re.IGNORECASE)),
+    (
+        "missing_demotion_rejection_trigger",
+        re.compile(r"\b(demotion_rejection_trigger|demotion/rejection trigger|demotion trigger|rejection trigger)\b", re.IGNORECASE),
+    ),
+    (
+        "missing_checker_shadow_disposition",
+        re.compile(r"\b(checker_shadow_disposition|checker shadow disposition|checker disposition|shadow disposition)\b", re.IGNORECASE),
+    ),
+    ("missing_bounded_non_claims", re.compile(r"\b(bounded_non_claims|bounded non-claims|forbidden mode|forbidden authority|non-claims)\b", re.IGNORECASE)),
+)
+HERMES_RELIABILITY_CONTRACT_PATH_HINTS = (
+    "hermes-foreground-reliability-contract.md",
+    "hermes-foreground-reliability.md",
+    "test-hermes-foreground-reliability-contract.sh",
+    "detect-as-hermes-foreground-reliability-evidence-gap.sh",
+    "test-hermes-foreground-reliability-evidence-gap.sh",
+)
+HERMES_RELIABILITY_VAGUE_VALUE_PATTERN = re.compile(
+    r"[:=]\s*(?:\"?\s*)?(?:tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b",
+    re.IGNORECASE,
+)
+HERMES_VALIDATION_OWNER_OVERCLAIM_PATTERN = re.compile(
+    r"\b(?:validation_owner|validation owner)\s*[:=]\s*(?:Hermes|foreground Hermes)\b|"
+    r"\bHermes\b.{0,80}\b(?:owns|runs|performs|controls)\b.{0,80}\b(?:validation|broad validation|local gates|CI|checks)\b",
+    re.IGNORECASE,
+)
+HERMES_RELIABILITY_FORBIDDEN_AUTHORITY_PATTERN = re.compile(
+    r"\bHermes\b.{0,80}\b(owns|coordinates|merges|auto[- ]?merges|polls|retries|schedules|queues|"
+    r"creates?\s+(?:issues?|PRs?|pull requests?)|runs\s+background|operates\s+as\s+coordinator|"
+    r"owns\s+campaign|owns\s+Campaign Sync|owns\s+recovery)\b|"
+    r"\b(background Hermes|Hermes retry loop|Hermes scheduler|Hermes queue|Hermes daemon|Hermes controller|"
+    r"Hermes auto[- ]?merge|Hermes-primary campaign|hermes -z adoption)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+HERMES_RELIABILITY_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|non[- ]claim|boundary|bounded|"
+    r"foreground[- ]only|advisory[- ]only|excluded authority|does not transfer)\b",
+    re.IGNORECASE,
+)
+
+
+def is_hermes_foreground_reliability_explainer(path: str, text: str) -> bool:
+    lowered = path.lower()
+    if any(hint in lowered for hint in HERMES_RELIABILITY_CONTRACT_PATH_HINTS):
+        return True
+    return HERMES_FOREGROUND_RELIABILITY_EXPLAINER_PATTERN.search(text) is not None
+
+
+def has_hermes_foreground_reliability_surface(text: str) -> bool:
+    for line in text.splitlines():
+        if not HERMES_FOREGROUND_RELIABILITY_SURFACE_PATTERN.search(line):
+            continue
+        if HERMES_RELIABILITY_SURFACE_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def hermes_reliability_field_missing_or_vague(text: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
+    lines = [line for line in text.splitlines() if pattern.search(line)]
+    if not lines:
+        return True, False
+    if all(HERMES_RELIABILITY_VAGUE_VALUE_PATTERN.search(line) for line in lines):
+        return False, True
+    return False, False
+
+
+def hermes_reliability_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
+    prohibition_context = 0
+    for line in text.splitlines():
+        if re.search(r"\b(bounded_non_claims|bounded non-claims|forbidden mode|forbidden authority|excluded authority|non-claims)\b", line, re.IGNORECASE):
+            prohibition_context = 4
+        if not pattern.search(line):
+            if prohibition_context:
+                prohibition_context -= 1
+            continue
+        if prohibition_context or HERMES_RELIABILITY_NEGATION_PATTERN.search(line):
+            if prohibition_context:
+                prohibition_context -= 1
+            continue
+        return True
+    return False
+
+
+def hermes_foreground_reliability_evidence_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_hermes_foreground_reliability_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
+            continue
+        if not has_hermes_foreground_reliability_surface(text):
+            continue
+
+        reasons: list[str] = []
+        for reason, pattern in HERMES_FOREGROUND_RELIABILITY_REQUIRED_FIELDS:
+            missing, vague = hermes_reliability_field_missing_or_vague(text, pattern)
+            if missing:
+                reasons.append(reason)
+                reason_counts[reason] += 1
+            elif vague:
+                reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                reason_counts["vague_field"] += 1
+
+        if hermes_reliability_line_overclaim(text, HERMES_VALIDATION_OWNER_OVERCLAIM_PATTERN):
+            reasons.append("validation_owner_overclaim")
+            reason_counts["validation_owner_overclaim"] += 1
+        if hermes_reliability_line_overclaim(text, HERMES_RELIABILITY_FORBIDDEN_AUTHORITY_PATTERN):
+            reasons.append("forbidden_hermes_authority")
+            reason_counts["forbidden_hermes_authority"] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:6])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"hermes_foreground_reliability_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"hermes_foreground_reliability_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "hermes_foreground_reliability_gap_count": len(offenders),
+            "hermes_foreground_reliability_grounded_count": len(set(grounded)),
+            "missing_hermes_eligibility_count": reason_counts["missing_hermes_eligibility"],
+            "missing_attempt_role_count": reason_counts["missing_attempt_role"],
+            "missing_launcher_receipt_count": reason_counts["missing_launcher_receipt"],
+            "missing_failure_guidance_count": reason_counts["missing_failure_guidance"],
+            "missing_coordinator_review_count": reason_counts["missing_coordinator_review"],
+            "missing_validation_owner_count": reason_counts["missing_validation_owner"],
+            "missing_promotion_gate_count": reason_counts["missing_promotion_gate"],
+            "missing_demotion_rejection_trigger_count": reason_counts["missing_demotion_rejection_trigger"],
+            "missing_checker_shadow_disposition_count": reason_counts["missing_checker_shadow_disposition"],
+            "missing_bounded_non_claims_count": reason_counts["missing_bounded_non_claims"],
+            "vague_field_count": reason_counts["vague_field"],
+            "validation_owner_overclaim_count": reason_counts["validation_owner_overclaim"],
+            "forbidden_hermes_authority_count": reason_counts["forbidden_hermes_authority"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Hermes foreground reliability material lacks doer/checker evidence fields or overclaims Hermes authority"
+            if offenders
+            else "Hermes foreground reliability evidence is complete or absent"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -4093,6 +4285,7 @@ EVALUATORS = {
     "AS-41": campaign_sync_completed_track_readback_gap,
     "AS-42": route_changing_learning_propagation_gap,
     "AS-43": capability_placement_gap,
+    "AS-44": hermes_foreground_reliability_evidence_gap,
 }
 
 

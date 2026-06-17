@@ -270,6 +270,13 @@ Best current owner: TBD
 Allowed reach now: maybe later
 Promotion gate: unknown
 A controller queue with background Hermes owns future routing.
+
+Hermes foreground reliability record:
+Hermes eligibility: TBD
+Attempt role: doer
+Launcher receipt: missing
+Hermes owns validation and merges the PR after retrying checks as a background
+Hermes worker. Promotion gate: maybe later.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -285,8 +292,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 43
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 43
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 44
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 44
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -333,6 +340,7 @@ assert as_ids == {
     "AS-41",
     "AS-42",
     "AS-43",
+    "AS-44",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -757,6 +765,12 @@ absence without exact-handle replay.
 omits owner, reach, native signal, promotion, demotion, kill-switch, forbidden
 mode, or GBrain no-capture fields, keeps fields vague, or claims forbidden
 automation authority.
+
+**Triggers:** AS-44 fires when Hermes foreground reliability material omits
+eligibility, attempt role, launcher receipt, failure guidance, coordinator
+review, validation owner, promotion/demotion, checker disposition, or bounded
+non-claims; or when it makes Hermes validation owner or grants Hermes forbidden
+foreground authority.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -877,6 +891,13 @@ Best current owner: TBD
 Allowed reach now: maybe later
 Promotion gate: unknown
 A controller queue with background Hermes owns future routing.
+
+Hermes foreground reliability record:
+Hermes eligibility: TBD
+Attempt role: doer
+Launcher receipt: missing
+Hermes owns validation and merges the PR after retrying checks as a background
+Hermes worker. Promotion gate: maybe later.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -909,6 +930,7 @@ scripts = {
     "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",
     "AS-42": "detect-as-route-changing-learning-propagation-gap.sh",
     "AS-43": "detect-as-capability-placement-gap.sh",
+    "AS-44": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1611,6 +1633,7 @@ scripts = {
     "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",
     "AS-42": "detect-as-route-changing-learning-propagation-gap.sh",
     "AS-43": "detect-as-capability-placement-gap.sh",
+    "AS-44": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
 }
 
 for signature_id, script in scripts.items():
