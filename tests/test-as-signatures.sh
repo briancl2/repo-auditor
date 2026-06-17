@@ -264,6 +264,12 @@ Learning / Recovery note says a broad GBrain search miss proves absence, omits
 GitHub owner-surface evidence, raw evidence, fallback_without_memory, GBrain slug
 or no_capture_reason, owner action, and literal-safe GitHub readback evidence,
 then hands background GBrain to a controller queue.
+
+Autonomy Preview for a high-priority capability-placement carrier:
+Best current owner: TBD
+Allowed reach now: maybe later
+Promotion gate: unknown
+A controller queue with background Hermes owns future routing.
 EOF
 
 OUTPUT_DIR="$TMPDIR/output"
@@ -279,8 +285,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 42
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 42
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 43
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 43
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -326,6 +332,7 @@ assert as_ids == {
     "AS-40",
     "AS-41",
     "AS-42",
+    "AS-43",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -745,6 +752,11 @@ micro-work, and threshold predicate coverage without completed-track coverage.
 GitHub/raw evidence, GBrain slug or no-capture reason, fallback without memory,
 owner action, literal-safe GitHub readback, or treats broad GBrain search miss as
 absence without exact-handle replay.
+
+**Triggers:** AS-43 fires when capability-placement / Autonomy Preview material
+omits owner, reach, native signal, promotion, demotion, kill-switch, forbidden
+mode, or GBrain no-capture fields, keeps fields vague, or claims forbidden
+automation authority.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -859,6 +871,12 @@ ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT route_changed=true. A broad GBrain searc
 miss proves absence. No raw evidence, no GBrain slug or no_capture_reason, no
 fallback_without_memory, no owner action, no literal-safe GitHub readback, and a
 background Hermes controller owns routing.
+
+Autonomy Preview for a capability-placement carrier:
+Best current owner: TBD
+Allowed reach now: maybe later
+Promotion gate: unknown
+A controller queue with background Hermes owns future routing.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -890,6 +908,7 @@ scripts = {
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
     "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",
     "AS-42": "detect-as-route-changing-learning-propagation-gap.sh",
+    "AS-43": "detect-as-capability-placement-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1591,6 +1610,7 @@ scripts = {
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
     "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",
     "AS-42": "detect-as-route-changing-learning-propagation-gap.sh",
+    "AS-43": "detect-as-capability-placement-gap.sh",
 }
 
 for signature_id, script in scripts.items():

@@ -381,3 +381,14 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-route-changing-learning-propagation-gap.sh`
+
+### AS-43: Capability Placement Preview Gap
+- **Detects:** Capability-placement / Autonomy Preview material that omits required placement fields, keeps fields vague, or overclaims forbidden autonomy authority.
+- **Signal:** A capability-placement or Autonomy Preview surface omits best current owner, best future owner, allowed reach now, native signal, promotion gate, demotion/rejection trigger, kill switch, forbidden mode, or GBrain slug/no-capture reason; fills those fields with vague placeholders; or claims controllers, schedulers, queues, registries, daemons, dashboards, background Hermes/GBrain, automatic issue/PR creation, auto-merge, Codex cloud/background write authority, downstream mutation, or replacement closure truth.
+- **Phase range:** Issue #164 high-priority carrier issues, owner PR bodies, launch comments, capability-placement templates, and repo-star adoption surfaces.
+- **Check:** Scan owner evidence text for capability-placement / Autonomy Preview surfaces and require compact placement fields plus bounded advisory-only non-claims. Suppress detector docs/templates/tests/fixtures and the shared repo-agent-core capability-placement contract/template.
+- **Shared contract:** repo-agent-core `docs/capability-placement-contract.md` defines `CAPABILITY_PLACEMENT_PREVIEW`.
+- **Fire condition:** `capability_placement_gap_count > 0`
+- **Prevention tier:** T2
+- **Severity:** MEDIUM
+- **Script:** `scripts/detect-as-capability-placement-gap.sh`
