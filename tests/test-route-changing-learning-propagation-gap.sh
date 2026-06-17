@@ -26,6 +26,20 @@ readback_status. Hermes runs as a background queue and controller for follow-up
 routing.
 EOF
 
+cat > "$GAP_REPO/docs/route-learning-stale-gbrain.md" <<'EOF'
+# Route-changing stale GBrain note
+
+Learning / Recovery
+
+- GitHub surface: https://github.com/briancl2/build-meta-analysis/issues/840
+- Raw evidence: /tmp/issue164-gbrain-exact-readback-learning-20260617T033611Z/progress-ledger.jsonl
+- Optional GBrain slug: bma/issue164/learning/stale-card
+- Fallback without memory: use GitHub issue/PR/check/merge truth.
+- Owner action: open the repo-auditor AS-42 owner PR.
+- Stale GBrain evidence is accepted as route truth.
+- Bounded non-claims: no background GBrain, no controller, no scheduler, no queue, no daemon.
+EOF
+
 cat > "$CLEAN_REPO/docs/route-learning.json" <<'EOF'
 {
   "artifact": "ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT",
@@ -102,14 +116,16 @@ def run(repo: Path) -> dict:
 gap = run(gap_repo)
 assert gap["ds_id"] == "AS-42", gap
 assert gap["fired"] is True, gap
-assert gap["signals"]["route_changing_learning_gap_count"] == 1, gap
+assert gap["signals"]["route_changing_learning_gap_count"] == 2, gap
 assert gap["signals"]["missing_github_surface_count"] == 1, gap
 assert gap["signals"]["missing_raw_evidence_count"] == 1, gap
 assert gap["signals"]["missing_gbrain_slug_or_no_capture_reason_count"] == 1, gap
+assert gap["signals"]["missing_exact_readback_or_no_capture_count"] == 1, gap
 assert gap["signals"]["missing_fallback_without_memory_count"] == 1, gap
 assert gap["signals"]["missing_owner_action_count"] == 1, gap
 assert gap["signals"]["unsafe_literal_readback_count"] == 1, gap
 assert gap["signals"]["broad_search_miss_as_absence_count"] == 1, gap
+assert gap["signals"]["stale_or_failed_gbrain_overclaim_count"] == 1, gap
 assert gap["signals"]["background_or_controller_overclaim_count"] == 1, gap
 
 for repo in (clean_repo, neutral_repo):
