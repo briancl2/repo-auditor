@@ -265,6 +265,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-route-changing-learning-propagation-gap.sh",
     },
+    "AS-43": {
+        "name": "Capability placement preview gap",
+        "severity": "MEDIUM",
+        "prevention_tier": "T2",
+        "script": "detect-as-capability-placement-gap.sh",
+    },
 }
 
 
@@ -1401,7 +1407,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[0-9]|AS-4[0-2]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-9]|AS-4[0-3]|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -2934,6 +2940,159 @@ def route_changing_learning_propagation_gap(texts: dict[str, str]) -> dict[str, 
     }
 
 
+CAPABILITY_PLACEMENT_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-43|Capability Placement Preview Gap)\b.{0,180}\b(detects|detector|signature|triggers?)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+CAPABILITY_PLACEMENT_SURFACE_PATTERN = re.compile(
+    r"\b(Autonomy Preview|capability[- ]placement|CAPABILITY_PLACEMENT_PREVIEW|"
+    r"best_current_owner|best current owner|Allowed reach now|Promotion gate|"
+    r"Demotion/rejection trigger|Forbidden mode)\b",
+    re.IGNORECASE,
+)
+CAPABILITY_PLACEMENT_REQUIRED_FIELDS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("missing_best_current_owner", re.compile(r"\b(best_current_owner|best current owner)\b", re.IGNORECASE)),
+    ("missing_best_future_owner", re.compile(r"\b(best_future_owner|best future owner)\b", re.IGNORECASE)),
+    ("missing_allowed_reach_now", re.compile(r"\b(allowed_reach_now|allowed reach now)\b", re.IGNORECASE)),
+    ("missing_native_signal", re.compile(r"\b(native_signal|native signal)\b", re.IGNORECASE)),
+    ("missing_promotion_gate", re.compile(r"\b(promotion_gate|promotion gate)\b", re.IGNORECASE)),
+    (
+        "missing_demotion_rejection_trigger",
+        re.compile(r"\b(demotion_rejection_trigger|demotion/rejection trigger|demotion trigger|rejection trigger)\b", re.IGNORECASE),
+    ),
+    ("missing_kill_switch", re.compile(r"\b(kill_switch|kill switch)\b", re.IGNORECASE)),
+    ("missing_forbidden_mode", re.compile(r"\b(forbidden_mode|forbidden mode)\b", re.IGNORECASE)),
+    (
+        "missing_gbrain_slug_or_no_capture_reason",
+        re.compile(r"\b(gbrain_slug_or_no_capture_reason|GBrain slug/no-capture reason|no_capture_reason)\b", re.IGNORECASE),
+    ),
+)
+CAPABILITY_PLACEMENT_VAGUE_VALUE_PATTERN = re.compile(
+    r"[:=]\s*(?:\"?\s*)?(?:tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b",
+    re.IGNORECASE,
+)
+CAPABILITY_PLACEMENT_AUTHORITY_PATTERN = re.compile(
+    r"\b(controller|scheduler|queue|daemon|registry|dashboard|central autonomy ledger|hidden state store|"
+    r"background\s+(?:Hermes|GBrain|Hermes/GBrain)|automatic\s+(?:issue|PR|pull request)\s+creation|"
+    r"auto-merge|Codex cloud(?:/background)? write authority|downstream mutation|replacement closure truth)\b",
+    re.IGNORECASE,
+)
+CAPABILITY_PLACEMENT_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|non[- ]claim|boundary|bounded|advisory[- ]first|advisory only)\b",
+    re.IGNORECASE,
+)
+CAPABILITY_PLACEMENT_CONTRACT_PATH_HINTS = (
+    "capability-placement-contract.md",
+    "templates/capability-placement.md",
+    "test-capability-placement-contract.sh",
+    "detect-as-capability-placement-gap.sh",
+)
+
+
+def is_capability_placement_explainer(path: str, text: str) -> bool:
+    lowered = path.lower()
+    if any(hint in lowered for hint in CAPABILITY_PLACEMENT_CONTRACT_PATH_HINTS):
+        return True
+    return CAPABILITY_PLACEMENT_EXPLAINER_PATTERN.search(text) is not None
+
+
+def capability_field_missing_or_vague(text: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
+    lines = [line for line in text.splitlines() if pattern.search(line)]
+    if not lines:
+        return True, False
+    if all(CAPABILITY_PLACEMENT_VAGUE_VALUE_PATTERN.search(line) for line in lines):
+        return False, True
+    return False, False
+
+
+def capability_placement_authority_overclaim(text: str) -> bool:
+    prohibition_context = 0
+    for line in text.splitlines():
+        if re.search(r"\b(forbidden_mode|forbidden mode|bounded_non_claims|bounded non-claims|non-claims)\b", line, re.IGNORECASE):
+            prohibition_context = 4
+        if not CAPABILITY_PLACEMENT_AUTHORITY_PATTERN.search(line):
+            if prohibition_context:
+                prohibition_context -= 1
+            continue
+        if prohibition_context or CAPABILITY_PLACEMENT_NEGATION_PATTERN.search(line):
+            if prohibition_context:
+                prohibition_context -= 1
+            continue
+        return True
+    return False
+
+
+def capability_placement_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_capability_placement_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
+            continue
+        if not CAPABILITY_PLACEMENT_SURFACE_PATTERN.search(text):
+            continue
+
+        reasons: list[str] = []
+        for reason, pattern in CAPABILITY_PLACEMENT_REQUIRED_FIELDS:
+            missing, vague = capability_field_missing_or_vague(text, pattern)
+            if missing:
+                reasons.append(reason)
+                reason_counts[reason] += 1
+            elif vague:
+                reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                reason_counts["vague_field"] += 1
+
+        if capability_placement_authority_overclaim(text):
+            reasons.append("forbidden_authority_overclaim")
+            reason_counts["forbidden_authority_overclaim"] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:6])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"capability_placement_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"capability_placement_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "capability_placement_gap_count": len(offenders),
+            "capability_placement_grounded_count": len(set(grounded)),
+            "missing_best_current_owner_count": reason_counts["missing_best_current_owner"],
+            "missing_best_future_owner_count": reason_counts["missing_best_future_owner"],
+            "missing_allowed_reach_now_count": reason_counts["missing_allowed_reach_now"],
+            "missing_native_signal_count": reason_counts["missing_native_signal"],
+            "missing_promotion_gate_count": reason_counts["missing_promotion_gate"],
+            "missing_demotion_rejection_trigger_count": reason_counts["missing_demotion_rejection_trigger"],
+            "missing_kill_switch_count": reason_counts["missing_kill_switch"],
+            "missing_forbidden_mode_count": reason_counts["missing_forbidden_mode"],
+            "missing_gbrain_slug_or_no_capture_reason_count": reason_counts["missing_gbrain_slug_or_no_capture_reason"],
+            "vague_field_count": reason_counts["vague_field"],
+            "forbidden_authority_overclaim_count": reason_counts["forbidden_authority_overclaim"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Capability placement material lacks required Autonomy Preview fields or overclaims forbidden authority"
+            if offenders
+            else "Capability placement preview evidence is complete or absent"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -3933,6 +4092,7 @@ EVALUATORS = {
     "AS-40": hermes_github_reliability_boundary_gap,
     "AS-41": campaign_sync_completed_track_readback_gap,
     "AS-42": route_changing_learning_propagation_gap,
+    "AS-43": capability_placement_gap,
 }
 
 
