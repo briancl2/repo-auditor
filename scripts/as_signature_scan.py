@@ -277,6 +277,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
     },
+    "AS-45": {
+        "name": "Codex native runtime readiness evidence gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-codex-native-runtime-readiness-evidence-gap.sh",
+    },
 }
 
 
@@ -3685,6 +3691,268 @@ def hermes_foreground_reliability_evidence_gap(texts: dict[str, str]) -> dict[st
     }
 
 
+CODEX_NATIVE_RUNTIME_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-45|Codex Native Runtime Readiness Evidence Gap)\b.{0,180}\b(detects|detector|signature|triggers?)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+CODEX_NATIVE_RUNTIME_SURFACE_PATTERN = re.compile(
+    r"\b(Codex native runtime readiness|Codex Native Runtime / Cloud / Remote Readiness|"
+    r"native runtime readiness|runtime[-_ ]context payload|runtime[-_ ]context preflight|"
+    r"remote/cloud readiness disposition|cloud/remote readiness disposition|"
+    r"Codex Cloud/remote readiness|local/worktree dogfood|worktree dogfood)\b",
+    re.IGNORECASE,
+)
+CODEX_NATIVE_RUNTIME_SURFACE_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b.{0,90}"
+    r"\b(Codex native runtime readiness|native runtime readiness|runtime[-_ ]context payload|"
+    r"runtime[-_ ]context preflight|cloud/remote readiness|local/worktree dogfood|worktree dogfood)\b",
+    re.IGNORECASE,
+)
+CODEX_RUNTIME_VAGUE_VALUE_PATTERN = re.compile(
+    r"[:=]\s*(?:\"?\s*)?(?:(?:tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b|"
+    r"(?:missing|absent|omitted)\s*\.?\s*$)",
+    re.IGNORECASE,
+)
+CODEX_RUNTIME_NEGATIVE_FIELD_PATTERN = re.compile(
+    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b",
+    re.IGNORECASE,
+)
+CODEX_NATIVE_RUNTIME_FIELD_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("missing_transfer_mode", re.compile(r"\b(transfer_mode|transfer mode|fresh[- ]thread|same[- ]thread|fork)\b", re.IGNORECASE)),
+    ("missing_goal_or_goal_null", re.compile(r"\b(goal_state|Goal state|Goal-null|Goal null|goal[- ]null)\b", re.IGNORECASE)),
+    ("missing_runtime_context_preflight", re.compile(r"\b(runtime[-_ ]context|issue164-native-preflight\.py|native preflight|preflight summary|runtime-context payload)\b", re.IGNORECASE)),
+    ("missing_heartbeat_lifecycle", re.compile(r"\b(heartbeat_lifecycle|heartbeat lifecycle|heartbeat status|heartbeat disposition|heartbeat capture)\b", re.IGNORECASE)),
+    ("missing_local_worktree_dogfood", re.compile(r"\b(local/worktree|local worktree|worktree dogfood|local dogfood|worktree runtime|local runtime)\b", re.IGNORECASE)),
+    ("missing_cloud_remote_disposition", re.compile(r"\b(cloud/remote disposition|remote/cloud readiness disposition|cloud readiness disposition|remote readiness disposition|no live cloud|no live remote|cloud/remote as context)\b", re.IGNORECASE)),
+    ("missing_official_codex_context", re.compile(r"\b(official Codex|Codex manual|OpenAI Codex docs|Codex docs|official OpenAI docs)\b", re.IGNORECASE)),
+    ("missing_github_truth", re.compile(r"\b(GitHub issue/PR/check/merge|issue/PR/check/merge|PR/check/merge|GitHub truth|merge truth|CI / check|CI/check)\b", re.IGNORECASE)),
+    ("missing_ci_polling_terminal_condition", re.compile(r"\b(CI polling|foreground CI polling|polling terminal condition|terminal condition|check run|green-clean|merge-or-blocker|GitHub-visible blocker)\b", re.IGNORECASE)),
+    ("missing_promotion_gate", re.compile(r"\b(proof_gate|proof gate|promotion_gate|promotion gate)\b", re.IGNORECASE)),
+    ("missing_demotion_rejection_trigger", re.compile(r"\b(demotion_rejection_trigger|demotion/rejection trigger|demotion trigger|rejection trigger)\b", re.IGNORECASE)),
+    ("missing_kill_switch", re.compile(r"\b(kill_switch|kill switch)\b", re.IGNORECASE)),
+    ("missing_bounded_non_claims", re.compile(r"\b(bounded_non_claims|bounded non-claims|bounded nonclaims|non-claims|forbidden mode|non-claim)\b", re.IGNORECASE)),
+    ("missing_next_owner_action", re.compile(r"\b(next_owner_action|next owner action|next active track|owner-surface action|owner surface action)\b", re.IGNORECASE)),
+)
+CODEX_NATIVE_RUNTIME_CONTRACT_PATH_HINTS = (
+    "codex-native-runtime-readiness-contract.md",
+    "codex-native-runtime-readiness.md",
+    "detect-as-codex-native-runtime-readiness-evidence-gap.sh",
+    "test-codex-native-runtime-readiness-evidence-gap.sh",
+)
+CODEX_RUNTIME_OFFICIAL_DOCS_AS_LIVE_PROOF_PATTERN = re.compile(
+    r"\b(official Codex|Codex manual|OpenAI Codex docs|Codex docs|official OpenAI docs)\b"
+    r".{0,140}\b(proves?|proof|validated?|verified?)\b"
+    r".{0,140}\b(live cloud|live remote|cloud execution|remote execution|Codex Cloud|remote pilot|cloud pilot|live run)\b|"
+    r"\b(live cloud|live remote|cloud execution|remote execution|Codex Cloud|remote pilot|cloud pilot|live run)\b"
+    r".{0,140}\b(proves?|proof|validated?|verified?)\b"
+    r".{0,140}\b(official Codex|Codex manual|OpenAI Codex docs|Codex docs|official OpenAI docs)\b",
+    re.IGNORECASE,
+)
+CODEX_RUNTIME_LIVE_CLOUD_REMOTE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(Codex Cloud|cloud runtime|remote execution|remote runtime|cloud pilot|remote pilot)\b"
+    r".{0,120}\b(execut(?:ed|ion)|ran|run|pilot|dogfood|proof|validated?|verified?)\b|"
+    r"\b(live cloud|live remote)\b.{0,120}\b(execut(?:ed|ion)|ran|run|pilot|proof)\b",
+    re.IGNORECASE,
+)
+CODEX_RUNTIME_GOAL_IMPROVEMENT_PATTERN = re.compile(
+    r"\bGoal mode\b.{0,140}\b(improved|reduced|increased|better|self[- ]?healed|strengthened)\b"
+    r".{0,140}\b(runtime|autonomy|continuity|self[- ]?healing|throughput|operator steering|recovery)\b|"
+    r"\b(runtime|autonomy|continuity|self[- ]?healing|throughput|operator steering|recovery)\b"
+    r".{0,140}\b(improved|reduced|increased|better|self[- ]?healed|strengthened)\b"
+    r".{0,140}\bGoal mode\b",
+    re.IGNORECASE | re.DOTALL,
+)
+CODEX_RUNTIME_RAW_EVIDENCE_PATTERN = re.compile(
+    r"\b(session logs?|Goal metadata|command transcripts?|CI/check runs?|CI runs?|check runs?|"
+    r"runtime ledgers?|progress-ledger\.jsonl|replay logs?|raw runtime evidence|raw evidence)\b",
+    re.IGNORECASE,
+)
+CODEX_RUNTIME_CONTROL_PLANE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(background automation|background subagent|subagent controller|subagent scheduler|subagent queue|"
+    r"automation controller|automation scheduler|automation queue|automation daemon|automation registry|"
+    r"controller|scheduler|queue|daemon|registry|background job)\b",
+    re.IGNORECASE,
+)
+CODEX_RUNTIME_AUTOMATIC_GITHUB_OVERCLAIM_PATTERN = re.compile(
+    r"\b(automatic issue creation|automatic PR creation|automatic pull request creation|"
+    r"automatic GitHub mutation|auto[- ]?merge|automatic merge)\b",
+    re.IGNORECASE,
+)
+CODEX_RUNTIME_RETAINED_CLOSEOUT_OVERCLAIM_PATTERN = re.compile(
+    r"\b(retained closeout package|retained closeout truth|local closeout truth|completion manifest|handoff closeout)\b",
+    re.IGNORECASE,
+)
+CODEX_RUNTIME_DOWNSTREAM_MUTATION_OVERCLAIM_PATTERN = re.compile(
+    r"\b(downstream mutation|mutate downstream|core-five mutation|mutate core-five|repo-upgrade-advisor mutation|repo-optimizer mutation)\b",
+    re.IGNORECASE,
+)
+CODEX_RUNTIME_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|non[- ]claim|boundary|bounded|"
+    r"context only|capability context|no live|no runtime-improvement claim|raw evidence required|read-only|untouched)\b",
+    re.IGNORECASE,
+)
+
+
+def is_codex_native_runtime_explainer(path: str, text: str) -> bool:
+    lowered = path.lower()
+    if any(hint in lowered for hint in CODEX_NATIVE_RUNTIME_CONTRACT_PATH_HINTS):
+        return True
+    return CODEX_NATIVE_RUNTIME_EXPLAINER_PATTERN.search(text) is not None
+
+
+def has_codex_native_runtime_surface(text: str) -> bool:
+    for line in text.splitlines():
+        if not CODEX_NATIVE_RUNTIME_SURFACE_PATTERN.search(line):
+            continue
+        if CODEX_NATIVE_RUNTIME_SURFACE_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def codex_runtime_field_missing_or_vague(text: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
+    positive_lines = []
+    for line in text.splitlines():
+        match = pattern.search(line)
+        if not match:
+            continue
+        prefix = line[max(0, match.start() - 90):match.start()]
+        if CODEX_RUNTIME_NEGATIVE_FIELD_PATTERN.search(prefix):
+            continue
+        positive_lines.append(line)
+    if not positive_lines:
+        return True, False
+    if all(CODEX_RUNTIME_VAGUE_VALUE_PATTERN.search(line) for line in positive_lines):
+        return False, True
+    return False, False
+
+
+def codex_runtime_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
+    prohibition_context = 0
+    for line in text.splitlines():
+        if re.search(r"\b(bounded_non_claims|bounded non-claims|forbidden mode|non-claims|bounded nonclaims)\b", line, re.IGNORECASE):
+            is_non_claims_header = re.search(
+                r"^\s*(?:#{1,6}\s*)?(?:bounded[_ -]non-claims|non-claims|bounded nonclaims)\s*:?\s*$",
+                line,
+                re.IGNORECASE,
+            )
+            has_negation = CODEX_RUNTIME_NEGATION_PATTERN.search(line) is not None
+            is_vague_nonclaim = CODEX_RUNTIME_VAGUE_VALUE_PATTERN.search(line) is not None
+            prohibition_context = 4 if (not is_vague_nonclaim and (has_negation or is_non_claims_header)) else 0
+        if not pattern.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        if prohibition_context or CODEX_RUNTIME_NEGATION_PATTERN.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        return True
+    return False
+
+
+def codex_runtime_goal_improvement_without_raw_evidence(text: str) -> bool:
+    return CODEX_RUNTIME_GOAL_IMPROVEMENT_PATTERN.search(text) is not None and CODEX_RUNTIME_RAW_EVIDENCE_PATTERN.search(text) is None
+
+
+def codex_native_runtime_readiness_evidence_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_codex_native_runtime_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
+            continue
+        if not has_codex_native_runtime_surface(text):
+            continue
+
+        reasons: list[str] = []
+        for reason, pattern in CODEX_NATIVE_RUNTIME_FIELD_PATTERNS:
+            missing, vague = codex_runtime_field_missing_or_vague(text, pattern)
+            if missing:
+                reasons.append(reason)
+                reason_counts[reason] += 1
+            elif vague:
+                reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                reason_counts["vague_field"] += 1
+        if not (issue164_has_positive_field(text, ISSUE164_RUN_ROOT_PATTERN) and issue164_has_positive_field(text, ISSUE164_PROGRESS_LEDGER_PATTERN)):
+            reasons.append("missing_run_root_progress_ledger")
+            reason_counts["missing_run_root_progress_ledger"] += 1
+
+        overclaim_patterns: tuple[tuple[str, re.Pattern[str]], ...] = (
+            ("official_docs_as_live_proof_count", CODEX_RUNTIME_OFFICIAL_DOCS_AS_LIVE_PROOF_PATTERN),
+            ("live_cloud_remote_overclaim_count", CODEX_RUNTIME_LIVE_CLOUD_REMOTE_OVERCLAIM_PATTERN),
+            ("control_plane_overclaim_count", CODEX_RUNTIME_CONTROL_PLANE_OVERCLAIM_PATTERN),
+            ("automatic_github_overclaim_count", CODEX_RUNTIME_AUTOMATIC_GITHUB_OVERCLAIM_PATTERN),
+            ("retained_closeout_overclaim_count", CODEX_RUNTIME_RETAINED_CLOSEOUT_OVERCLAIM_PATTERN),
+            ("downstream_mutation_overclaim_count", CODEX_RUNTIME_DOWNSTREAM_MUTATION_OVERCLAIM_PATTERN),
+        )
+        for reason, pattern in overclaim_patterns:
+            if codex_runtime_line_overclaim(text, pattern):
+                reasons.append(reason.removesuffix("_count"))
+                reason_counts[reason] += 1
+        if codex_runtime_goal_improvement_without_raw_evidence(text):
+            reasons.append("goal_improvement_without_raw_evidence")
+            reason_counts["goal_improvement_without_raw_evidence_count"] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:6])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"codex_native_runtime_readiness_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"codex_native_runtime_readiness_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "codex_native_runtime_readiness_gap_count": len(offenders),
+            "codex_native_runtime_readiness_grounded_count": len(set(grounded)),
+            "missing_transfer_mode_count": reason_counts["missing_transfer_mode"],
+            "missing_goal_or_goal_null_count": reason_counts["missing_goal_or_goal_null"],
+            "missing_run_root_progress_ledger_count": reason_counts["missing_run_root_progress_ledger"],
+            "missing_runtime_context_preflight_count": reason_counts["missing_runtime_context_preflight"],
+            "missing_heartbeat_lifecycle_count": reason_counts["missing_heartbeat_lifecycle"],
+            "missing_local_worktree_dogfood_count": reason_counts["missing_local_worktree_dogfood"],
+            "missing_cloud_remote_disposition_count": reason_counts["missing_cloud_remote_disposition"],
+            "missing_official_codex_context_count": reason_counts["missing_official_codex_context"],
+            "missing_github_truth_count": reason_counts["missing_github_truth"],
+            "missing_ci_polling_terminal_condition_count": reason_counts["missing_ci_polling_terminal_condition"],
+            "missing_promotion_gate_count": reason_counts["missing_promotion_gate"],
+            "missing_demotion_rejection_trigger_count": reason_counts["missing_demotion_rejection_trigger"],
+            "missing_kill_switch_count": reason_counts["missing_kill_switch"],
+            "missing_bounded_non_claims_count": reason_counts["missing_bounded_non_claims"],
+            "missing_next_owner_action_count": reason_counts["missing_next_owner_action"],
+            "vague_field_count": reason_counts["vague_field"],
+            "official_docs_as_live_proof_count": reason_counts["official_docs_as_live_proof_count"],
+            "live_cloud_remote_overclaim_count": reason_counts["live_cloud_remote_overclaim_count"],
+            "goal_improvement_without_raw_evidence_count": reason_counts["goal_improvement_without_raw_evidence_count"],
+            "control_plane_overclaim_count": reason_counts["control_plane_overclaim_count"],
+            "automatic_github_overclaim_count": reason_counts["automatic_github_overclaim_count"],
+            "retained_closeout_overclaim_count": reason_counts["retained_closeout_overclaim_count"],
+            "downstream_mutation_overclaim_count": reason_counts["downstream_mutation_overclaim_count"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Codex native runtime readiness material lacks runtime evidence fields or overclaims cloud/remote/control-plane authority"
+            if offenders
+            else "Codex native runtime readiness evidence is complete or absent"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -4686,6 +4954,7 @@ EVALUATORS = {
     "AS-42": route_changing_learning_propagation_gap,
     "AS-43": capability_placement_gap,
     "AS-44": hermes_foreground_reliability_evidence_gap,
+    "AS-45": codex_native_runtime_readiness_evidence_gap,
 }
 
 

@@ -77,6 +77,7 @@ scripts=(
     "detect-as-route-changing-learning-propagation-gap.sh"
     "detect-as-capability-placement-gap.sh"
     "detect-as-hermes-foreground-reliability-evidence-gap.sh"
+    "detect-as-codex-native-runtime-readiness-evidence-gap.sh"
 )
 
 idx=0

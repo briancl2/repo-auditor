@@ -22,6 +22,12 @@ Issue #164 fresh coordinator launch should begin now, then ask the operator to
 choose a category for the next owner action after CI. This omits the live-truth
 check, Goal or Goal-null fallback, progress-ledger evidence, merge-or-blocker
 discipline, and concrete owner-surface next action.
+
+Codex Native Runtime Readiness: official Codex docs prove live cloud execution
+and the remote pilot. This omits runtime-context preflight, lifecycle capture,
+local/worktree dogfood, cloud/remote disposition, GitHub truth, bounded
+non-claims, kill switch, and next owner action. Goal mode improved runtime
+autonomy.
 EOF
 
 cat > "$TEST_REPO/README.md" <<'EOF'
@@ -292,8 +298,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 44
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 44
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 45
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 45
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -341,6 +347,7 @@ assert as_ids == {
     "AS-42",
     "AS-43",
     "AS-44",
+    "AS-45",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -678,6 +685,16 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** Runtime Learning Shadow scheduled readback material treats comments/artifacts as closure truth, lacks event/run fields, lacks review disposition, or regrows scheduler/controller wording.
 - **Fire condition:** `scheduled_evidence_boundary_gap_count > 0`
 - **Script:** `scripts/detect-as-scheduled-evidence-boundary-gap.sh`
+
+### AS-45: Codex Native Runtime Readiness Evidence Gap
+- **Detects:** Codex native runtime readiness surfaces that omit runtime
+evidence fields or overclaim Codex Cloud, remote execution, or control-plane
+authority.
+- **Signal:** Missing transfer mode, Goal-null state, runtime-context preflight,
+heartbeat lifecycle, local/worktree dogfood, cloud/remote disposition, GitHub
+truth, bounded non-claims, or next owner action.
+- **Fire condition:** `codex_native_runtime_readiness_gap_count > 0`
+- **Script:** `scripts/detect-as-codex-native-runtime-readiness-evidence-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -782,6 +799,16 @@ checker disposition, or bounded non-claims; or when it makes Hermes validation
 owner, grants checker-shadow approval/edit ownership, publishes branches/PRs
 without scoped authority, claims autonomous retry/fix-cycle behavior, or grants
 Hermes forbidden foreground/control-plane authority.
+
+**Triggers:** AS-45 fires when Codex native runtime readiness material omits
+transfer mode, Goal/Goal-null state, run root/progress-ledger, runtime-context
+preflight, heartbeat lifecycle, local/worktree dogfood, cloud/remote
+disposition, official Codex context, GitHub truth, CI polling terminal
+condition, promotion/demotion/kill-switch fields, bounded non-claims, or next
+owner action; or when it overclaims official docs as live cloud/remote proof,
+claims live cloud/remote execution, claims Goal-mode runtime improvement without
+raw evidence, or grants control-plane, automatic GitHub mutation, retained
+closeout, or downstream mutation authority.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
