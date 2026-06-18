@@ -285,6 +285,25 @@ Hermes owns validation and merges the PR after retrying checks as a background
 Hermes worker. Promotion gate: maybe later.
 EOF
 
+cat > "$TEST_REPO/docs/integrated-native-acceptance-gap.md" <<'EOF'
+# Integrated Native Capability Acceptance Gap
+
+Integrated Native Capability Acceptance:
+codex_cloud_proof_disposition: TBD.
+Official docs prove the live remote acceptance. The sidecar pasteback is
+accepted. GBrain is canonical and Hermes owns validation. A controller queue
+auto-merges future repairs with retained closeout truth and downstream mutation.
+EOF
+
+# Keep AS-33 covered after AS-47 uses a dedicated integrated-acceptance fixture.
+cat > "$TEST_REPO/docs/foreground-failure-guidance-gap.md" <<'EOF'
+# Foreground Failure Guidance Gap
+
+Hermes foreground route-changing failure guidance cites the foreground recovery
+runtime contract for a failed foreground run, but it omits GitHub issue owner
+truth, failed run receipt evidence, and no-regrowth boundaries.
+EOF
+
 mkdir -p "$TEST_REPO/docs/deep-research-corpus"
 cat > "$TEST_REPO/docs/deep-research-corpus/deep-research-native-corpus.md" <<'EOF'
 # Deep Research/source-intelligence native corpus
@@ -310,8 +329,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 46
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 46
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 47
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 47
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -361,6 +380,7 @@ assert as_ids == {
     "AS-44",
     "AS-45",
     "AS-46",
+    "AS-47",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the

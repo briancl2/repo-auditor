@@ -289,6 +289,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
     },
+    "AS-47": {
+        "name": "Integrated native capability acceptance evidence gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-integrated-native-capability-acceptance-gap.sh",
+    },
 }
 
 
@@ -4188,6 +4194,262 @@ def deep_research_source_intelligence_native_corpus_gap(texts: dict[str, str]) -
     }
 
 
+INTEGRATED_NATIVE_ACCEPTANCE_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-47|Integrated Native Capability Acceptance Evidence Gap)\b"
+    r".{0,180}\b(detects|detector|signature|triggers?)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+INTEGRATED_NATIVE_ACCEPTANCE_SURFACE_PATTERN = re.compile(
+    r"\b(INTEGRATED_NATIVE_CAPABILITY_ACCEPTANCE|Integrated Native Capability Acceptance|"
+    r"codex_cloud_proof_disposition|codex_remote_proof_disposition|"
+    r"external_intelligence_sidecar_disposition|accepted_ready_no_diff|"
+    r"deferred_not_validated|failed_prompt_generation_deferred_outside_arc5)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_ACCEPTANCE_SURFACE_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b.{0,90}"
+    r"\b(INTEGRATED_NATIVE_CAPABILITY_ACCEPTANCE|Integrated Native Capability Acceptance|integrated acceptance)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_VAGUE_VALUE_PATTERN = re.compile(
+    r"[:=]\s*(?:\"?\s*)?(?:(?:tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b|"
+    r"(?:missing|absent|omitted)\s*\.?\s*$)",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_NEGATIVE_FIELD_PATTERN = re.compile(
+    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|non[- ]claim|boundary|bounded|"
+    r"context only|capability context|no live|raw evidence required|read-only|untouched|deferred|outside Arc 5)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_ACCEPTANCE_FIELD_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("missing_integrated_acceptance_token", re.compile(r"\bINTEGRATED_NATIVE_CAPABILITY_ACCEPTANCE\b", re.IGNORECASE)),
+    ("missing_cloud_proof_disposition", re.compile(r"\bcodex_cloud_proof_disposition=accepted_ready_no_diff\b|\baccepted_ready_no_diff\b", re.IGNORECASE)),
+    ("missing_cloud_task_evidence", re.compile(r"\b(task_id|Cloud task|Codex Cloud task|hosted_repo|hosted repo)\b", re.IGNORECASE)),
+    ("missing_cloud_no_diff_evidence", re.compile(r"\b(no diff|files_changed=0|files changed[:= ]+0|zero changed files|clean git status|clean status before and after)\b", re.IGNORECASE)),
+    ("missing_remote_deferred_disposition", re.compile(r"\bcodex_remote_proof_disposition=deferred_not_validated\b|\bdeferred_not_validated\b", re.IGNORECASE)),
+    ("missing_sidecar_failed_disposition", re.compile(r"\bexternal_intelligence_sidecar_disposition=failed_prompt_generation_deferred_outside_arc5\b|\bfailed_prompt_generation_deferred_outside_arc5\b", re.IGNORECASE)),
+    ("missing_github_truth", re.compile(r"\b(GitHub issue/PR/check/merge|issue/PR/check/merge|PR/check/merge|GitHub truth|merge truth|CI / check|CI/check|required check)\b", re.IGNORECASE)),
+    ("missing_arc_gate_matrix", re.compile(r"\b(arc_gate_matrix|Arc gate matrix)\b", re.IGNORECASE)),
+    ("missing_promotion_gate", re.compile(r"\b(promotion_gate|promotion gate|proof_gate|proof gate)\b", re.IGNORECASE)),
+    ("missing_demotion_rejection_trigger", re.compile(r"\b(demotion_rejection_trigger|demotion/rejection trigger|demotion trigger|rejection trigger)\b", re.IGNORECASE)),
+    ("missing_kill_switch", re.compile(r"\b(kill_switch|kill switch)\b", re.IGNORECASE)),
+    ("missing_bounded_non_claims", re.compile(r"\b(bounded_non_claims|bounded non-claims|bounded nonclaims|non-claims|forbidden mode|non-claim)\b", re.IGNORECASE)),
+    ("missing_next_owner_action", re.compile(r"\b(next_owner_action|next owner action|next active track|owner-surface action|owner surface action)\b", re.IGNORECASE)),
+)
+INTEGRATED_NATIVE_ACCEPTANCE_CONTRACT_PATH_HINTS = (
+    "integrated-native-capability-acceptance-contract.md",
+    "integrated-native-capability-acceptance.md",
+    "detect-as-integrated-native-capability-acceptance-gap.sh",
+    "test-integrated-native-capability-acceptance-gap.sh",
+)
+INTEGRATED_NATIVE_DOCS_AS_PROOF_PATTERN = re.compile(
+    r"\b(official docs|official Codex|Codex docs|OpenAI docs|manual)\b"
+    r".{0,140}\b(proves?|proof|accepted|validated?|verified?)\b"
+    r".{0,140}\b(INTEGRATED_NATIVE_CAPABILITY_ACCEPTANCE|Codex Cloud|remote|sidecar)\b|"
+    r"\b(INTEGRATED_NATIVE_CAPABILITY_ACCEPTANCE|Codex Cloud|remote|sidecar)\b"
+    r".{0,140}\b(proves?|proof|accepted|validated?|verified?)\b"
+    r".{0,140}\b(official docs|official Codex|Codex docs|OpenAI docs|manual)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_REMOTE_ACCEPTANCE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(Codex remote|remote proof|remote execution|remote session|remote pilot|live remote)\b"
+    r".{0,120}\b(accepted|proven|proof|validated?|verified?|ran|execut(?:ed|ion))\b|"
+    r"\b(codex_remote_proof_disposition)\s*[:=]\s*(accepted|raw_evidence_proven|validated|proven)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_SIDECAR_ACCEPTANCE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(sidecar|Deep Research pasteback|external intelligence)\b"
+    r".{0,120}\b(accepted|validated?|verified?|hard[- ]accepted|proof)\b|"
+    r"\bexternal_intelligence_sidecar_disposition\s*[:=]\s*(accepted|validated|pasteback_validated|raw_evidence_proven)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_GBRAIN_CANONICALITY_PATTERN = re.compile(
+    r"\b(GBrain)\b.{0,120}\b(canonical|source of truth|authoritative memory|primary memory)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_HERMES_PRIMARY_PATTERN = re.compile(
+    r"\b(Hermes)\b.{0,120}\b(primary owner|primary operator|owns validation|owns merge|owns campaign sync|autonomous retry)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_CONTROL_PLANE_PATTERN = re.compile(
+    r"\b(controller|scheduler|queue|daemon|registry|retry loop|sidecar runner|background job|background worker)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_AUTOMATIC_GITHUB_PATTERN = re.compile(
+    r"\b(automatic issue creation|automatic PR creation|automatic pull request creation|automatic GitHub mutation|auto[- ]?merge|automatic merge)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_RETAINED_CLOSEOUT_PATTERN = re.compile(
+    r"\b(retained closeout package|retained closeout truth|local closeout truth|completion manifest|handoff closeout)\b",
+    re.IGNORECASE,
+)
+INTEGRATED_NATIVE_DOWNSTREAM_MUTATION_PATTERN = re.compile(
+    r"\b(downstream mutation|mutate downstream|repo-optimizer mutation|target mutation|core-five mutation)\b",
+    re.IGNORECASE,
+)
+
+
+def is_integrated_native_acceptance_explainer(path: str, text: str) -> bool:
+    lowered = path.lower()
+    if any(hint in lowered for hint in INTEGRATED_NATIVE_ACCEPTANCE_CONTRACT_PATH_HINTS):
+        return True
+    return INTEGRATED_NATIVE_ACCEPTANCE_EXPLAINER_PATTERN.search(text) is not None
+
+
+def has_integrated_native_acceptance_surface(text: str) -> bool:
+    for line in text.splitlines():
+        if not INTEGRATED_NATIVE_ACCEPTANCE_SURFACE_PATTERN.search(line):
+            continue
+        if INTEGRATED_NATIVE_ACCEPTANCE_SURFACE_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def integrated_native_field_missing_or_vague(text: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
+    positive_lines = []
+    for line in text.splitlines():
+        match = pattern.search(line)
+        if not match:
+            continue
+        prefix = line[max(0, match.start() - 90):match.start()]
+        if INTEGRATED_NATIVE_NEGATIVE_FIELD_PATTERN.search(prefix):
+            continue
+        positive_lines.append(line)
+    if not positive_lines:
+        return True, False
+    if all(INTEGRATED_NATIVE_VAGUE_VALUE_PATTERN.search(line) for line in positive_lines):
+        return False, True
+    return False, False
+
+
+def integrated_native_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
+    prohibition_context = 0
+    demotion_context = 0
+    for line in text.splitlines():
+        if re.search(r"\b(demotion_rejection_trigger|demotion/rejection trigger|demotion trigger|rejection trigger)\b", line, re.IGNORECASE):
+            demotion_context = 3
+        if re.search(r"\b(bounded_non_claims|bounded non-claims|forbidden mode|non-claims|bounded nonclaims)\b", line, re.IGNORECASE):
+            is_non_claims_header = re.search(
+                r"^\s*(?:#{1,6}\s*)?(?:bounded[_ -]non-claims|non-claims|bounded nonclaims)\s*:?\s*$",
+                line,
+                re.IGNORECASE,
+            )
+            has_negation = INTEGRATED_NATIVE_NEGATION_PATTERN.search(line) is not None
+            is_vague_nonclaim = INTEGRATED_NATIVE_VAGUE_VALUE_PATTERN.search(line) is not None
+            prohibition_context = 12 if (not is_vague_nonclaim and (has_negation or is_non_claims_header)) else 0
+        if not pattern.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            if demotion_context and line.strip():
+                demotion_context -= 1
+            continue
+        if demotion_context or prohibition_context or INTEGRATED_NATIVE_NEGATION_PATTERN.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            if demotion_context and line.strip():
+                demotion_context -= 1
+            continue
+        return True
+    return False
+
+
+def integrated_native_acceptance_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_integrated_native_acceptance_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
+            continue
+        if not has_integrated_native_acceptance_surface(text):
+            continue
+
+        reasons: list[str] = []
+        for reason, pattern in INTEGRATED_NATIVE_ACCEPTANCE_FIELD_PATTERNS:
+            missing, vague = integrated_native_field_missing_or_vague(text, pattern)
+            if missing:
+                reasons.append(reason)
+                reason_counts[reason] += 1
+            elif vague:
+                reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                reason_counts["vague_field"] += 1
+
+        overclaim_patterns: tuple[tuple[str, re.Pattern[str]], ...] = (
+            ("docs_as_proof_overclaim_count", INTEGRATED_NATIVE_DOCS_AS_PROOF_PATTERN),
+            ("remote_acceptance_overclaim_count", INTEGRATED_NATIVE_REMOTE_ACCEPTANCE_OVERCLAIM_PATTERN),
+            ("sidecar_acceptance_overclaim_count", INTEGRATED_NATIVE_SIDECAR_ACCEPTANCE_OVERCLAIM_PATTERN),
+            ("gbrain_canonicality_overclaim_count", INTEGRATED_NATIVE_GBRAIN_CANONICALITY_PATTERN),
+            ("hermes_primary_ownership_overclaim_count", INTEGRATED_NATIVE_HERMES_PRIMARY_PATTERN),
+            ("control_plane_overclaim_count", INTEGRATED_NATIVE_CONTROL_PLANE_PATTERN),
+            ("automatic_github_overclaim_count", INTEGRATED_NATIVE_AUTOMATIC_GITHUB_PATTERN),
+            ("retained_closeout_overclaim_count", INTEGRATED_NATIVE_RETAINED_CLOSEOUT_PATTERN),
+            ("downstream_mutation_overclaim_count", INTEGRATED_NATIVE_DOWNSTREAM_MUTATION_PATTERN),
+        )
+        for reason, pattern in overclaim_patterns:
+            if integrated_native_line_overclaim(text, pattern):
+                reasons.append(reason.removesuffix("_count"))
+                reason_counts[reason] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:6])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"integrated_native_capability_acceptance_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"integrated_native_capability_acceptance_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "integrated_native_capability_acceptance_gap_count": len(offenders),
+            "integrated_native_capability_acceptance_grounded_count": len(set(grounded)),
+            "missing_integrated_acceptance_token_count": reason_counts["missing_integrated_acceptance_token"],
+            "missing_cloud_proof_disposition_count": reason_counts["missing_cloud_proof_disposition"],
+            "missing_cloud_task_evidence_count": reason_counts["missing_cloud_task_evidence"],
+            "missing_cloud_no_diff_evidence_count": reason_counts["missing_cloud_no_diff_evidence"],
+            "missing_remote_deferred_disposition_count": reason_counts["missing_remote_deferred_disposition"],
+            "missing_sidecar_failed_disposition_count": reason_counts["missing_sidecar_failed_disposition"],
+            "missing_github_truth_count": reason_counts["missing_github_truth"],
+            "missing_arc_gate_matrix_count": reason_counts["missing_arc_gate_matrix"],
+            "missing_promotion_gate_count": reason_counts["missing_promotion_gate"],
+            "missing_demotion_rejection_trigger_count": reason_counts["missing_demotion_rejection_trigger"],
+            "missing_kill_switch_count": reason_counts["missing_kill_switch"],
+            "missing_bounded_non_claims_count": reason_counts["missing_bounded_non_claims"],
+            "missing_next_owner_action_count": reason_counts["missing_next_owner_action"],
+            "vague_field_count": reason_counts["vague_field"],
+            "docs_as_proof_overclaim_count": reason_counts["docs_as_proof_overclaim_count"],
+            "remote_acceptance_overclaim_count": reason_counts["remote_acceptance_overclaim_count"],
+            "sidecar_acceptance_overclaim_count": reason_counts["sidecar_acceptance_overclaim_count"],
+            "gbrain_canonicality_overclaim_count": reason_counts["gbrain_canonicality_overclaim_count"],
+            "hermes_primary_ownership_overclaim_count": reason_counts["hermes_primary_ownership_overclaim_count"],
+            "control_plane_overclaim_count": reason_counts["control_plane_overclaim_count"],
+            "automatic_github_overclaim_count": reason_counts["automatic_github_overclaim_count"],
+            "retained_closeout_overclaim_count": reason_counts["retained_closeout_overclaim_count"],
+            "downstream_mutation_overclaim_count": reason_counts["downstream_mutation_overclaim_count"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Integrated native capability acceptance material lacks required fields or overclaims unproven authority"
+            if offenders
+            else "Integrated native capability acceptance evidence is complete or absent"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -5191,6 +5453,7 @@ EVALUATORS = {
     "AS-44": hermes_foreground_reliability_evidence_gap,
     "AS-45": codex_native_runtime_readiness_evidence_gap,
     "AS-46": deep_research_source_intelligence_native_corpus_gap,
+    "AS-47": integrated_native_acceptance_gap,
 }
 
 
