@@ -79,6 +79,7 @@ scripts=(
     "detect-as-hermes-foreground-reliability-evidence-gap.sh"
     "detect-as-codex-native-runtime-readiness-evidence-gap.sh"
     "detect-as-deep-research-source-intelligence-native-corpus-gap.sh"
+    "detect-as-integrated-native-capability-acceptance-gap.sh"
 )
 
 idx=0

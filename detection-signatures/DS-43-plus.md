@@ -423,3 +423,14 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-deep-research-source-intelligence-native-corpus-gap.sh`
+
+### AS-47: Integrated Native Capability Acceptance Evidence Gap
+- **Detects:** Integrated native capability acceptance material that omits Cloud proof acceptance fields or overclaims Codex remote proof, sidecar acceptance, official docs as live proof, GBrain canonicality, Hermes primary ownership, control-plane authority, automatic GitHub mutation, retained closeout truth, or downstream mutation.
+- **Signal:** An `INTEGRATED_NATIVE_CAPABILITY_ACCEPTANCE` or Integrated Native Capability Acceptance surface omits `codex_cloud_proof_disposition=accepted_ready_no_diff`, raw Cloud task/no-diff evidence, `codex_remote_proof_disposition=deferred_not_validated`, `external_intelligence_sidecar_disposition=failed_prompt_generation_deferred_outside_arc5`, GitHub issue/PR/check/merge truth, arc gate matrix, promotion gate, demotion/rejection trigger, kill switch, bounded non-claims, or next owner action; fills those fields with vague placeholders; treats official docs as live proof; claims remote acceptance or sidecar acceptance without raw evidence; claims GBrain canonicality or Hermes primary ownership; or grants controller, scheduler, queue, daemon, registry, automatic issue/PR creation, auto-merge, retained closeout truth, or downstream mutation authority.
+- **Phase range:** Issue #164 Arc 5 carrier issues, owner PR bodies, Campaign Sync readbacks, repo-agent-core contract consumers, repo-auditor detector fixtures, repo-upgrade-advisor recommendations, and repo-star propagation surfaces.
+- **Check:** Scan owner evidence text for integrated native capability acceptance surfaces and require portable acceptance evidence fields plus bounded non-claims; suppress detector docs/templates/tests/fixtures and shared repo-agent-core contract surfaces.
+- **Shared contract:** repo-agent-core `docs/integrated-native-capability-acceptance-contract.md` defines the portable acceptance record.
+- **Fire condition:** `integrated_native_capability_acceptance_gap_count > 0`, `docs_as_proof_overclaim_count > 0`, `remote_acceptance_overclaim_count > 0`, `sidecar_acceptance_overclaim_count > 0`, `gbrain_canonicality_overclaim_count > 0`, `hermes_primary_ownership_overclaim_count > 0`, `control_plane_overclaim_count > 0`, `automatic_github_overclaim_count > 0`, `retained_closeout_overclaim_count > 0`, or `downstream_mutation_overclaim_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-integrated-native-capability-acceptance-gap.sh`
