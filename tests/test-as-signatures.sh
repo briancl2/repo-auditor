@@ -295,6 +295,17 @@ accepted. GBrain is canonical and Hermes owns validation. A controller queue
 auto-merges future repairs with retained closeout truth and downstream mutation.
 EOF
 
+cat > "$TEST_REPO/docs/standalone-sidecar-gap.md" <<'EOF'
+# Standalone Sidecar Gap
+
+Prompt B for BMA should solve the architecture problem.
+Definitions: TBD.
+Read the GitHub issue and review this prompt.
+Deep Research should research the sources without source rules.
+The sidecar approves PRs and becomes closure truth.
+A controller queue creates GitHub issues automatically and auto-merges repairs.
+EOF
+
 # Keep AS-33 covered after AS-47 uses a dedicated integrated-acceptance fixture.
 cat > "$TEST_REPO/docs/foreground-failure-guidance-gap.md" <<'EOF'
 # Foreground Failure Guidance Gap
@@ -329,8 +340,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 47
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 47
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 48
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 48
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -381,6 +392,7 @@ assert as_ids == {
     "AS-45",
     "AS-46",
     "AS-47",
+    "AS-48",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -743,6 +755,18 @@ routing, bounded non-claims, GitHub issue/PR/check/merge truth, or next owner
 action.
 - **Fire condition:** `deep_research_source_intelligence_native_corpus_gap_count > 0`
 - **Script:** `scripts/detect-as-deep-research-source-intelligence-native-corpus-gap.sh`
+
+### AS-48: Standalone External Intelligence Sidecar Gap
+- **Detects:** Sidecar prompt material that is not standalone for external
+intelligence, depends on local/private/GitHub context, omits embedded context
+or definitions, confuses prompt layers, omits Prompt A/B or Deep Research mode
+requirements, or overclaims sidecar authority.
+- **Signal:** Missing `STANDALONE_EXTERNAL_INTELLIGENCE_SIDECAR`, local/private
+or GitHub dependency, missing embedded context, Prompt B without actual Prompt A
+output, Deep Research without source rules/source-ledger output, prompt-review
+confusion, or sidecar authority/control-plane claims.
+- **Fire condition:** `standalone_external_intelligence_sidecar_gap_count > 0`
+- **Script:** `scripts/detect-as-standalone-external-intelligence-sidecar-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -868,6 +892,12 @@ overclaims live Deep Research API use, live Codex Cloud/remote proof,
 crawler/registry/watcher/control-plane authority, raw authenticated capture
 retention, automatic GitHub mutation, retained closeout truth, or downstream
 mutation.
+
+**Triggers:** AS-48 fires when sidecar prompt material is not standalone for an
+external model, depends on local/private/GitHub context, omits embedded context
+or definitions, confuses prompt layers, creates Prompt B without actual Prompt A
+output and answered context, uses Deep Research without research targets/source
+rules/source-ledger output, or treats sidecar output as closure authority.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -1004,6 +1034,13 @@ SOURCE_INSIGHT_PACKET, source count/corpus scope, public/no-auth then exact-url
 authenticated access, claim/effect routing, evidence tier,
 GitHub issue/PR/check/merge truth, and next owner action. Deep Research API ran
 live and proved the corpus.
+
+Standalone sidecar prompt:
+Prompt B for BMA should solve the architecture problem.
+Definitions: TBD.
+Read the GitHub issue and review this prompt.
+Deep Research should research the sources without source rules.
+The sidecar approves PRs and becomes closure truth.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -1038,6 +1075,7 @@ scripts = {
     "AS-43": "detect-as-capability-placement-gap.sh",
     "AS-44": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
     "AS-46": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
+    "AS-48": "detect-as-standalone-external-intelligence-sidecar-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1693,6 +1731,59 @@ GitHub issue/PR/check/merge truth is recorded.
 next_owner_action: repo-upgrade-advisor recommendation propagation.
 EOF
 
+cat > "$CLEAN_REPO/docs/standalone-sidecar-clean.md" <<'EOF'
+# Standalone External-Intelligence Sidecar Prompt
+
+STANDALONE_EXTERNAL_INTELLIGENCE_SIDECAR
+You are an external intelligence receiving a standalone prompt.
+You do not have local filesystem access, private repository access, GitHub
+issue access, prior chat access, or workspace context beyond what is embedded.
+All required context is embedded below.
+Public URLs are optional and non-load-bearing.
+
+## Definitions And Glossary
+
+- BMA: Build Meta Analysis, the campaign workspace.
+- Prompt A: first pass for clarifying questions and context gaps.
+- Prompt B: second pass after actual Prompt A output plus answered context.
+- Deep Research: research mode with research targets, source rules, and
+  source-ledger response shape.
+
+## Embedded Context
+
+The prompt contains enough context for an external model to answer without
+private files, prior chats, or GitHub access. It explains goals, boundaries,
+failure modes, integration points, and success criteria.
+
+## Actual Prompt A Output
+
+The model asked for definitions and missing context.
+
+## Answered Context
+
+The operator answered the missing context and embedded it here.
+
+## Research Targets
+
+Research prompt quality and standalone external review patterns.
+
+## Source Rules
+
+Use public sources only and return a source-ledger response shape.
+
+## Response Shape
+
+Return Executive Verdict, Prompt A Reconciliation, Findings, Risks, Source
+Ledger, and Next Step.
+
+## Boundary
+
+Sidecar output is advisory and does not close GitHub issues, approve pull
+requests, mutate repositories, replace operator judgment, or become closure
+truth. No controller, scheduler, queue, daemon, registry, automatic GitHub
+mutation, or auto-merge is authorized.
+EOF
+
 cat > "$CLEAN_REPO/docs/subordinate-core-five-validation.md" <<'EOF'
 # Subordinate Core-Five Validation
 
@@ -1764,6 +1855,7 @@ scripts = {
     "AS-43": "detect-as-capability-placement-gap.sh",
     "AS-44": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
     "AS-46": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
+    "AS-48": "detect-as-standalone-external-intelligence-sidecar-gap.sh",
 }
 
 for signature_id, script in scripts.items():

@@ -67,6 +67,13 @@ It checks portable corpus evidence fields and bounded non-claims; it does not
 run a live Deep Research API task, Codex Cloud task, Codex remote task, crawler,
 registry, watcher, controller, scheduler, queue, daemon, or downstream mutation.
 
+Issue #164 standalone external-intelligence sidecar detector coverage is
+provided by AS-48 through
+`scripts/detect-as-standalone-external-intelligence-sidecar-gap.sh`.
+It checks sidecar prompts for embedded standalone context, defined terms,
+clear Prompt A/B or Deep Research mode shape, advisory-only boundaries, and no
+load-bearing local/private/GitHub context assumptions.
+
 ## Self-Management
 
 - `make check` — shellcheck + inventory + co-evolution + trailer validation

@@ -80,6 +80,7 @@ scripts=(
     "detect-as-codex-native-runtime-readiness-evidence-gap.sh"
     "detect-as-deep-research-source-intelligence-native-corpus-gap.sh"
     "detect-as-integrated-native-capability-acceptance-gap.sh"
+    "detect-as-standalone-external-intelligence-sidecar-gap.sh"
 )
 
 idx=0
