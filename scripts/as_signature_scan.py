@@ -295,6 +295,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-integrated-native-capability-acceptance-gap.sh",
     },
+    "AS-48": {
+        "name": "Standalone external intelligence sidecar gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-standalone-external-intelligence-sidecar-gap.sh",
+    },
 }
 
 
@@ -4450,6 +4456,247 @@ def integrated_native_acceptance_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+STANDALONE_SIDECAR_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-48|Standalone External Intelligence Sidecar Gap)\b"
+    r".{0,180}\b(detects|detector|signature|triggers?|fires)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+STANDALONE_SIDECAR_SURFACE_PATTERN = re.compile(
+    r"\b(STANDALONE_EXTERNAL_INTELLIGENCE_SIDECAR|standalone external[- ]intelligence sidecar|"
+    r"standalone sidecar|sidecar prompt|ChatGPT Pro sidecar|Deep Research sidecar|"
+    r"Prompt A/B|Prompt A|Prompt B)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_SURFACE_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b.{0,90}"
+    r"\b(standalone sidecar|sidecar prompt|Prompt A|Prompt B)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_VAGUE_VALUE_PATTERN = re.compile(
+    r"[:=]\s*(?:\"?\s*)?(?:(?:tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b|"
+    r"(?:missing|absent|omitted)\s*\.?\s*$)",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|non[- ]claim|boundary|bounded|"
+    r"optional|non-load-bearing|advisory|no live|doesn't|cannot|can't|no access)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_FIELD_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("missing_standalone_sidecar_token", re.compile(r"\bSTANDALONE_EXTERNAL_INTELLIGENCE_SIDECAR\b", re.IGNORECASE)),
+    ("missing_access_boundary", re.compile(r"\b(no local filesystem access|do not have local filesystem access|do not have local files?|no local files?|no private repository access|private repository access|GitHub issue access|prior chat access|workspace context)\b", re.IGNORECASE)),
+    ("missing_embedded_context", re.compile(r"\b(embedded context|all required context|full context|standalone context|context embedded)\b", re.IGNORECASE)),
+    ("missing_url_boundary", re.compile(r"\b(optional and non-load-bearing|optional non-load-bearing|public URLs?.{0,80}non-load-bearing)\b", re.IGNORECASE)),
+    ("missing_definitions", re.compile(r"\b(Definitions And Glossary|definitions|glossary|define(?:d)? jargon|acronyms defined)\b", re.IGNORECASE)),
+    ("missing_response_shape", re.compile(r"\b(response shape|output shape|return these sections|source-ledger response shape)\b", re.IGNORECASE)),
+    ("missing_advisory_boundary", re.compile(r"\b(sidecar output is advisory|advisory only|not closure truth|does not close GitHub issues|does not approve pull requests)\b", re.IGNORECASE)),
+)
+STANDALONE_SIDECAR_CONTRACT_PATH_HINTS = (
+    "sidecar-prompt-ab-response-shaped-contract.md",
+    "sidecar-prompt-ab-response-shaped.md",
+    "detect-as-standalone-external-intelligence-sidecar-gap.sh",
+    "test-standalone-external-intelligence-sidecar-gap.sh",
+)
+STANDALONE_SIDECAR_LOCAL_PRIVATE_GITHUB_PATTERN = re.compile(
+    r"\b(read|open|inspect|clone|view|check)\s+(?:the\s+)?(?:local\s+)?"
+    r"(repo|repository|GitHub issue|GitHub PR|pull request|file|path|workspace)\b|"
+    r"(?<!\w)/(?:Users|tmp|workspace|var|private|home)/[^\s)]+",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_UNDEFINED_TERMS_PATTERN = re.compile(
+    r"\b(BMA|GBrain|Hermes|AS-48|Prompt A|Prompt B|Deep Research|repo-star)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_PROMPT_LAYER_PATTERN = re.compile(
+    r"\b(review this prompt|critique this prompt|assess this prompt|improve this prompt|"
+    r"copy and paste|paste this|paste the following|here is the prompt|below is the prompt|operator note)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_AUTHORITY_PATTERN = re.compile(
+    r"\b(sidecar|ChatGPT Pro|Deep Research|external intelligence)\b.{0,120}"
+    r"\b(closes? GitHub issues?|approves? PRs?|approves? pull requests?|closure truth|task authority|campaign authority|merge authority)\b|"
+    r"\b(closure truth|task authority|campaign authority|merge authority)\b.{0,120}"
+    r"\b(sidecar|ChatGPT Pro|Deep Research|external intelligence)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_CONTROL_PLANE_PATTERN = re.compile(
+    r"\b(controller|scheduler|queue|daemon|registry|retry loop|sidecar runner|background job|background worker)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_AUTOMATIC_GITHUB_PATTERN = re.compile(
+    r"\b(automatic issue creation|automatic PR creation|automatic pull request creation|automatic GitHub mutation|"
+    r"creates? GitHub issues? automatically|auto[- ]?merges?|automatic merge)\b",
+    re.IGNORECASE,
+)
+
+
+def is_standalone_sidecar_explainer(path: str, text: str) -> bool:
+    lowered = path.lower()
+    if any(hint in lowered for hint in STANDALONE_SIDECAR_CONTRACT_PATH_HINTS):
+        return True
+    return STANDALONE_SIDECAR_EXPLAINER_PATTERN.search(text) is not None
+
+
+def is_source_intelligence_corpus_evidence(path: str, text: str) -> bool:
+    lowered = path.lower()
+    if "prompt" in lowered or "sidecar" in lowered:
+        return False
+    if not ("corpus" in lowered or "source-intelligence" in lowered):
+        return False
+    return (
+        re.search(r"\bDEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS\b", text, re.IGNORECASE)
+        and re.search(r"\bSOURCE_INSIGHT_PACKET\b", text, re.IGNORECASE)
+    )
+
+
+def has_standalone_sidecar_surface(text: str) -> bool:
+    for line in text.splitlines():
+        if not STANDALONE_SIDECAR_SURFACE_PATTERN.search(line):
+            continue
+        if STANDALONE_SIDECAR_SURFACE_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def standalone_sidecar_field_missing_or_vague(text: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
+    positive_lines = []
+    for line in text.splitlines():
+        match = pattern.search(line)
+        if not match:
+            continue
+        prefix = line[max(0, match.start() - 90):match.start()]
+        if re.search(r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b", prefix, re.IGNORECASE):
+            continue
+        positive_lines.append(line)
+    if not positive_lines:
+        return True, False
+    if all(STANDALONE_SIDECAR_VAGUE_VALUE_PATTERN.search(line) for line in positive_lines):
+        return False, True
+    return False, False
+
+
+def standalone_sidecar_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
+    prohibition_context = 0
+    for line in text.splitlines():
+        if re.search(r"\b(bounded_non_claims|bounded non-claims|forbidden mode|non-claims|boundary)\b", line, re.IGNORECASE):
+            is_boundary_header = re.search(r"^\s*(?:#{1,6}\s*)?(?:boundary|bounded[_ -]non-claims|non-claims)\s*:?\s*$", line, re.IGNORECASE)
+            has_negation = STANDALONE_SIDECAR_NEGATION_PATTERN.search(line) is not None
+            is_vague = STANDALONE_SIDECAR_VAGUE_VALUE_PATTERN.search(line) is not None
+            prohibition_context = 12 if (not is_vague and (has_negation or is_boundary_header)) else 0
+        if not pattern.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        if prohibition_context or STANDALONE_SIDECAR_NEGATION_PATTERN.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        return True
+    return False
+
+
+def standalone_external_intelligence_sidecar_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_standalone_sidecar_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_source_intelligence_corpus_evidence(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
+            continue
+        if not has_standalone_sidecar_surface(text):
+            continue
+
+        reasons: list[str] = []
+        for reason, pattern in STANDALONE_SIDECAR_FIELD_PATTERNS:
+            missing, vague = standalone_sidecar_field_missing_or_vague(text, pattern)
+            if missing:
+                reasons.append(reason)
+                reason_counts[reason] += 1
+            elif vague:
+                reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                reason_counts["vague_field"] += 1
+
+        if STANDALONE_SIDECAR_UNDEFINED_TERMS_PATTERN.search(text) and not re.search(r"\b(Definitions And Glossary|definitions|glossary)\b", text, re.IGNORECASE):
+            reasons.append("undefined_terms")
+            reason_counts["undefined_terms_count"] += 1
+        if re.search(r"\bPrompt B\b", text, re.IGNORECASE) and not (
+            re.search(r"\bactual Prompt A output\b", text, re.IGNORECASE)
+            and re.search(r"\b(answered context|answers? to Prompt A)\b", text, re.IGNORECASE)
+        ):
+            reasons.append("prompt_b_without_actual_prompt_a")
+            reason_counts["prompt_b_without_actual_prompt_a_count"] += 1
+        if re.search(r"\bDeep Research\b", text, re.IGNORECASE) and not (
+            re.search(r"\bresearch targets?\b", text, re.IGNORECASE)
+            and re.search(r"\bsource rules?\b", text, re.IGNORECASE)
+            and re.search(r"\bsource[- ]ledger\b", text, re.IGNORECASE)
+        ):
+            reasons.append("deep_research_missing_research_shape")
+            reason_counts["deep_research_missing_research_shape_count"] += 1
+
+        overclaim_patterns: tuple[tuple[str, re.Pattern[str]], ...] = (
+            ("local_private_github_dependency_count", STANDALONE_SIDECAR_LOCAL_PRIVATE_GITHUB_PATTERN),
+            ("prompt_layer_confusion_count", STANDALONE_SIDECAR_PROMPT_LAYER_PATTERN),
+            ("sidecar_authority_overclaim_count", STANDALONE_SIDECAR_AUTHORITY_PATTERN),
+            ("control_plane_overclaim_count", STANDALONE_SIDECAR_CONTROL_PLANE_PATTERN),
+            ("automatic_github_overclaim_count", STANDALONE_SIDECAR_AUTOMATIC_GITHUB_PATTERN),
+        )
+        for reason, pattern in overclaim_patterns:
+            if standalone_sidecar_line_overclaim(text, pattern):
+                reasons.append(reason.removesuffix("_count"))
+                reason_counts[reason] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:7])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"standalone_external_intelligence_sidecar_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"standalone_external_intelligence_sidecar_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "standalone_external_intelligence_sidecar_gap_count": len(offenders),
+            "standalone_external_intelligence_sidecar_grounded_count": len(set(grounded)),
+            "missing_standalone_sidecar_token_count": reason_counts["missing_standalone_sidecar_token"],
+            "missing_access_boundary_count": reason_counts["missing_access_boundary"],
+            "missing_embedded_context_count": reason_counts["missing_embedded_context"],
+            "missing_url_boundary_count": reason_counts["missing_url_boundary"],
+            "missing_definitions_count": reason_counts["missing_definitions"],
+            "missing_response_shape_count": reason_counts["missing_response_shape"],
+            "missing_advisory_boundary_count": reason_counts["missing_advisory_boundary"],
+            "undefined_terms_count": reason_counts["undefined_terms_count"],
+            "prompt_b_without_actual_prompt_a_count": reason_counts["prompt_b_without_actual_prompt_a_count"],
+            "deep_research_missing_research_shape_count": reason_counts["deep_research_missing_research_shape_count"],
+            "local_private_github_dependency_count": reason_counts["local_private_github_dependency_count"],
+            "prompt_layer_confusion_count": reason_counts["prompt_layer_confusion_count"],
+            "sidecar_authority_overclaim_count": reason_counts["sidecar_authority_overclaim_count"],
+            "control_plane_overclaim_count": reason_counts["control_plane_overclaim_count"],
+            "automatic_github_overclaim_count": reason_counts["automatic_github_overclaim_count"],
+            "vague_field_count": reason_counts["vague_field"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Standalone external-intelligence sidecar material lacks standalone prompt fields or overclaims authority"
+            if offenders
+            else "Standalone external-intelligence sidecar evidence is complete or absent"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -5454,6 +5701,7 @@ EVALUATORS = {
     "AS-45": codex_native_runtime_readiness_evidence_gap,
     "AS-46": deep_research_source_intelligence_native_corpus_gap,
     "AS-47": integrated_native_acceptance_gap,
+    "AS-48": standalone_external_intelligence_sidecar_gap,
 }
 
 

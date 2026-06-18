@@ -434,3 +434,14 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-integrated-native-capability-acceptance-gap.sh`
+
+### AS-48: Standalone External Intelligence Sidecar Gap
+- **Detects:** Sidecar prompt material that is not standalone for external intelligence, depends on local/private/GitHub context, omits embedded context or definitions, confuses prompt layers, omits Prompt A/B or Deep Research mode requirements, or overclaims sidecar authority.
+- **Signal:** A `STANDALONE_EXTERNAL_INTELLIGENCE_SIDECAR`, sidecar prompt, Prompt A, Prompt B, ChatGPT Pro sidecar, or Deep Research sidecar surface omits the contract token, no-local/private/GitHub access boundary, embedded context, optional/non-load-bearing URL boundary, definitions/glossary, response shape, or advisory boundary; references undefined jargon; asks the model to review the prompt; instructs the model to read local/private/GitHub context; drafts Prompt B without actual Prompt A output and answered context; uses Deep Research without research targets, source rules, or source-ledger output; or grants sidecar closure truth, PR approval, controller/scheduler/queue/daemon/registry, automatic GitHub mutation, or auto-merge authority.
+- **Phase range:** Manual ChatGPT Pro prompts, Deep Research prompts, sidecar Prompt A/B kits, BMA sidecar generation surfaces, repo-agent-core contract consumers, repo-auditor fixtures, repo-upgrade-advisor recommendations, and Issue #164 sidecar adoption/readback surfaces.
+- **Check:** Scan owner evidence text for standalone sidecar surfaces and require portable standalone prompt fields plus bounded non-claims; suppress detector docs/templates/tests/fixtures and shared repo-agent-core sidecar contract surfaces.
+- **Shared contract:** repo-agent-core `docs/sidecar-prompt-ab-response-shaped-contract.md` defines `STANDALONE_EXTERNAL_INTELLIGENCE_SIDECAR`.
+- **Fire condition:** `standalone_external_intelligence_sidecar_gap_count > 0`, `local_private_github_dependency_count > 0`, `prompt_layer_confusion_count > 0`, `prompt_b_without_actual_prompt_a_count > 0`, `deep_research_missing_research_shape_count > 0`, `sidecar_authority_overclaim_count > 0`, `control_plane_overclaim_count > 0`, or `automatic_github_overclaim_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-standalone-external-intelligence-sidecar-gap.sh`
