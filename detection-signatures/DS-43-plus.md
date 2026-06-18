@@ -403,3 +403,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-hermes-foreground-reliability-evidence-gap.sh`
+
+### AS-45: Codex Native Runtime Readiness Evidence Gap
+- **Detects:** Codex native runtime / cloud / remote readiness material that omits raw runtime fields or overclaims Codex Cloud, remote execution, Goal-mode improvement, background automation/subagent ownership, automatic GitHub mutation, retained closeout truth, or downstream mutation.
+- **Signal:** A Codex native runtime readiness, runtime-context, cloud/remote readiness, or local/worktree dogfood surface omits transfer mode, Goal or Goal-null state, run root plus `progress-ledger.jsonl`, runtime-context preflight, heartbeat lifecycle, local/worktree dogfood evidence, cloud/remote disposition, official Codex capability context, GitHub issue/PR/check/merge truth, CI polling terminal condition, promotion gate, demotion/rejection trigger, kill switch, bounded non-claims, or next owner action; fills those fields with vague placeholders; treats official Codex docs as live cloud/remote execution proof; claims live cloud/remote execution without raw task evidence; claims Goal-mode runtime improvement without raw evidence; or grants controller/scheduler/queue/daemon/registry, automatic issue/PR creation, auto-merge, retained closeout truth, or downstream mutation authority.
+- **Phase range:** Issue #164 Codex native runtime readiness carrier issues, owner PR bodies, runtime digests, Campaign Sync readbacks, heartbeat prompts, and repo-star propagation surfaces.
+- **Check:** Scan owner evidence text for Codex native runtime readiness surfaces and require portable runtime evidence fields plus bounded non-claims; suppress detector docs/templates/tests/fixtures and shared contract surfaces.
+- **Fire condition:** `codex_native_runtime_readiness_gap_count > 0`, `official_docs_as_live_proof_count > 0`, `live_cloud_remote_overclaim_count > 0`, `goal_improvement_without_raw_evidence_count > 0`, `control_plane_overclaim_count > 0`, `automatic_github_overclaim_count > 0`, `retained_closeout_overclaim_count > 0`, or `downstream_mutation_overclaim_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-codex-native-runtime-readiness-evidence-gap.sh`
