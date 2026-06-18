@@ -283,6 +283,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-codex-native-runtime-readiness-evidence-gap.sh",
     },
+    "AS-46": {
+        "name": "Deep Research source-intelligence native corpus evidence gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
+    },
 }
 
 
@@ -3953,6 +3959,235 @@ def codex_native_runtime_readiness_evidence_gap(texts: dict[str, str]) -> dict[s
     }
 
 
+DEEP_RESEARCH_CORPUS_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-46|Deep Research Source-Intelligence Native Corpus Evidence Gap)\b"
+    r".{0,180}\b(detects|detector|signature|triggers?)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+DEEP_RESEARCH_CORPUS_SURFACE_PATTERN = re.compile(
+    r"\b(DEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS|Deep Research/source[- ]intelligence native corpus|"
+    r"Deep Research external intelligence native corpus|Deep Research source[- ]intelligence|"
+    r"manual Deep Research sidecar|deep_research_api_disposition|source[- ]intelligence native corpus)\b",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_CORPUS_SURFACE_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b.{0,90}"
+    r"\b(DEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS|Deep Research/source[- ]intelligence native corpus|"
+    r"Deep Research external intelligence native corpus|Deep Research source[- ]intelligence|"
+    r"manual Deep Research sidecar|deep_research_api_disposition|source[- ]intelligence native corpus)\b",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_CORPUS_FIELD_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("missing_native_contract_token", re.compile(r"\bDEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS\b", re.IGNORECASE)),
+    ("missing_source_insight_packet", re.compile(r"\bSOURCE_INSIGHT_PACKET\b", re.IGNORECASE)),
+    ("missing_source_count_or_corpus_scope", re.compile(r"\b(19[- ]source|19 exact|19 operator|source_count|source count|corpus source count|sources=19|19-link|19 link)\b", re.IGNORECASE)),
+    ("missing_source_ids", re.compile(r"\b(source_id|source IDs?|normalized source)\b", re.IGNORECASE)),
+    ("missing_access_order", re.compile(r"\b(public/no-auth|public no-auth|no-auth first|exact[- ]url authenticated|authenticated exact[- ]url|approved X URL|approved URL)\b", re.IGNORECASE)),
+    ("missing_manual_sidecar_disposition", re.compile(r"\b(manual Deep Research sidecar|manual sidecar|deep_research_api_disposition|rescoped_failed_not_authorized)\b", re.IGNORECASE)),
+    ("missing_equal_insight_disposition", re.compile(r"\b(equal[-_ ]insight|insight/no-insight|insight_disposition|no_insight|contradiction|inaccessible)\b", re.IGNORECASE)),
+    ("missing_claim_effect", re.compile(r"\b(claim_effect|claim effect|claim/effect|claim routing)\b", re.IGNORECASE)),
+    ("missing_evidence_tier", re.compile(r"\b(evidence_tier|evidence tier|proof tier|source tier)\b", re.IGNORECASE)),
+    ("missing_owner_no_action", re.compile(r"\b(owner/no-action|owner no-action|owner_surface|owner[-_ ]surface|explicit_no_action|no_action_reason|owner routing|owner/no action)\b", re.IGNORECASE)),
+    ("missing_bounded_non_claims", re.compile(r"\b(bounded_non_claims|bounded non-claims|non-claims|forbidden mode|non-claim)\b", re.IGNORECASE)),
+    ("missing_github_truth", re.compile(r"\b(GitHub issue/PR/check/merge|issue/PR/check/merge|PR/check/merge|GitHub truth|CI / check|CI/check|merge truth)\b", re.IGNORECASE)),
+    ("missing_next_owner_action", re.compile(r"\b(next_owner_action|next owner action|next active track|owner-surface action|owner surface action)\b", re.IGNORECASE)),
+)
+DEEP_RESEARCH_CORPUS_CONTRACT_PATH_HINTS = (
+    "deep-research-source-intelligence-native-corpus-contract.md",
+    "deep-research-source-intelligence-native-corpus.md",
+    "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
+    "test-deep-research-source-intelligence-native-corpus-gap.sh",
+)
+DEEP_RESEARCH_LIVE_API_OVERCLAIM_PATTERN = re.compile(
+    r"\b(Deep Research API|deep research api|Deep Research)\b.{0,120}\b(live run|ran|run|execut(?:ed|ion)|called|proof|validated?|verified?)\b|"
+    r"\b(live Deep Research|live API)\b.{0,120}\b(run|proof|validated?|verified?)\b",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_CLOUD_REMOTE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(Codex Cloud|cloud runtime|remote execution|remote runtime|cloud pilot|remote pilot|live cloud|live remote)\b"
+    r".{0,120}\b(execut(?:ed|ion)|ran|run|pilot|proof|validated?|verified?)\b",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_CRAWLER_REGISTRY_OVERCLAIM_PATTERN = re.compile(
+    r"\b(crawler|watcher|source registry|source[- ]registry|background ingestion|background research automation|"
+    r"controller|scheduler|queue|daemon|registry)\b",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_RAW_AUTH_RETENTION_PATTERN = re.compile(
+    r"\b(raw authenticated DOM|authenticated DOM|raw DOM|HTML screenshots?|screenshots?|account context|cookies|local storage|browser profile)\b"
+    r".{0,120}\b(retain(?:ed|s|ing)?|commit(?:ted|s|ting)?|store(?:d|s|ing)?|preserve(?:d|s|ing)?)\b|"
+    r"\b(retain(?:ed|s|ing)?|commit(?:ted|s|ting)?|store(?:d|s|ing)?|preserve(?:d|s|ing)?)\b"
+    r".{0,120}\b(raw authenticated DOM|authenticated DOM|raw DOM|HTML screenshots?|screenshots?|account context|cookies|local storage|browser profile)\b",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_AUTOMATIC_GITHUB_OVERCLAIM_PATTERN = re.compile(
+    r"\b(automatic issue creation|automatic PR creation|automatic pull request creation|automatic GitHub mutation|auto[- ]?merge|automatic merge)\b",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_RETAINED_CLOSEOUT_OVERCLAIM_PATTERN = re.compile(
+    r"\b(retained closeout package|retained closeout truth|local closeout truth|completion manifest|handoff closeout)\b",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_DOWNSTREAM_MUTATION_OVERCLAIM_PATTERN = re.compile(
+    r"\b(downstream mutation|mutate downstream|repo-upgrade-advisor mutation|repo-optimizer mutation|repo-auditor mutation|core-five mutation)\b",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|non[- ]claim|boundary|bounded|"
+    r"context only|capability context|no live|manual only|manual sidecar|raw evidence required|read-only|untouched)\b",
+    re.IGNORECASE,
+)
+
+
+def is_deep_research_corpus_explainer(path: str, text: str) -> bool:
+    lowered = path.lower()
+    if any(hint in lowered for hint in DEEP_RESEARCH_CORPUS_CONTRACT_PATH_HINTS):
+        return True
+    return DEEP_RESEARCH_CORPUS_EXPLAINER_PATTERN.search(text) is not None
+
+
+def has_deep_research_corpus_surface(text: str) -> bool:
+    for line in text.splitlines():
+        if not DEEP_RESEARCH_CORPUS_SURFACE_PATTERN.search(line):
+            continue
+        if DEEP_RESEARCH_CORPUS_SURFACE_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def deep_research_field_missing_or_vague(text: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
+    positive_lines = []
+    for line in text.splitlines():
+        match = pattern.search(line)
+        if not match:
+            continue
+        prefix = line[max(0, match.start() - 90):match.start()]
+        if CODEX_RUNTIME_NEGATIVE_FIELD_PATTERN.search(prefix):
+            continue
+        positive_lines.append(line)
+    if not positive_lines:
+        return True, False
+    if all(CODEX_RUNTIME_VAGUE_VALUE_PATTERN.search(line) for line in positive_lines):
+        return False, True
+    return False, False
+
+
+def deep_research_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
+    prohibition_context = 0
+    for line in text.splitlines():
+        if re.search(r"\b(bounded_non_claims|bounded non-claims|forbidden mode|non-claims|bounded nonclaims)\b", line, re.IGNORECASE):
+            is_non_claims_header = re.search(
+                r"^\s*(?:#{1,6}\s*)?(?:bounded[_ -]non-claims|non-claims|bounded nonclaims)\s*:?\s*$",
+                line,
+                re.IGNORECASE,
+            )
+            has_negation = DEEP_RESEARCH_NEGATION_PATTERN.search(line) is not None
+            is_vague_nonclaim = CODEX_RUNTIME_VAGUE_VALUE_PATTERN.search(line) is not None
+            prohibition_context = 4 if (not is_vague_nonclaim and (has_negation or is_non_claims_header)) else 0
+        if not pattern.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        if prohibition_context or DEEP_RESEARCH_NEGATION_PATTERN.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        return True
+    return False
+
+
+def deep_research_source_intelligence_native_corpus_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_deep_research_corpus_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
+            continue
+        if not has_deep_research_corpus_surface(text):
+            continue
+
+        reasons: list[str] = []
+        for reason, pattern in DEEP_RESEARCH_CORPUS_FIELD_PATTERNS:
+            missing, vague = deep_research_field_missing_or_vague(text, pattern)
+            if missing:
+                reasons.append(reason)
+                reason_counts[reason] += 1
+            elif vague:
+                reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                reason_counts["vague_field"] += 1
+
+        overclaim_patterns: tuple[tuple[str, re.Pattern[str]], ...] = (
+            ("live_deep_research_api_overclaim_count", DEEP_RESEARCH_LIVE_API_OVERCLAIM_PATTERN),
+            ("live_cloud_remote_overclaim_count", DEEP_RESEARCH_CLOUD_REMOTE_OVERCLAIM_PATTERN),
+            ("crawler_registry_overclaim_count", DEEP_RESEARCH_CRAWLER_REGISTRY_OVERCLAIM_PATTERN),
+            ("raw_authenticated_retention_count", DEEP_RESEARCH_RAW_AUTH_RETENTION_PATTERN),
+            ("automatic_github_overclaim_count", DEEP_RESEARCH_AUTOMATIC_GITHUB_OVERCLAIM_PATTERN),
+            ("retained_closeout_overclaim_count", DEEP_RESEARCH_RETAINED_CLOSEOUT_OVERCLAIM_PATTERN),
+            ("downstream_mutation_overclaim_count", DEEP_RESEARCH_DOWNSTREAM_MUTATION_OVERCLAIM_PATTERN),
+        )
+        for reason, pattern in overclaim_patterns:
+            if deep_research_line_overclaim(text, pattern):
+                reasons.append(reason.removesuffix("_count"))
+                reason_counts[reason] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:6])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"deep_research_source_intelligence_native_corpus_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"deep_research_source_intelligence_native_corpus_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "deep_research_source_intelligence_native_corpus_gap_count": len(offenders),
+            "deep_research_source_intelligence_native_corpus_grounded_count": len(set(grounded)),
+            "missing_native_contract_token_count": reason_counts["missing_native_contract_token"],
+            "missing_source_insight_packet_count": reason_counts["missing_source_insight_packet"],
+            "missing_source_count_or_corpus_scope_count": reason_counts["missing_source_count_or_corpus_scope"],
+            "missing_source_ids_count": reason_counts["missing_source_ids"],
+            "missing_access_order_count": reason_counts["missing_access_order"],
+            "missing_manual_sidecar_disposition_count": reason_counts["missing_manual_sidecar_disposition"],
+            "missing_equal_insight_disposition_count": reason_counts["missing_equal_insight_disposition"],
+            "missing_claim_effect_count": reason_counts["missing_claim_effect"],
+            "missing_evidence_tier_count": reason_counts["missing_evidence_tier"],
+            "missing_owner_no_action_count": reason_counts["missing_owner_no_action"],
+            "missing_bounded_non_claims_count": reason_counts["missing_bounded_non_claims"],
+            "missing_github_truth_count": reason_counts["missing_github_truth"],
+            "missing_next_owner_action_count": reason_counts["missing_next_owner_action"],
+            "vague_field_count": reason_counts["vague_field"],
+            "live_deep_research_api_overclaim_count": reason_counts["live_deep_research_api_overclaim_count"],
+            "live_cloud_remote_overclaim_count": reason_counts["live_cloud_remote_overclaim_count"],
+            "crawler_registry_overclaim_count": reason_counts["crawler_registry_overclaim_count"],
+            "raw_authenticated_retention_count": reason_counts["raw_authenticated_retention_count"],
+            "automatic_github_overclaim_count": reason_counts["automatic_github_overclaim_count"],
+            "retained_closeout_overclaim_count": reason_counts["retained_closeout_overclaim_count"],
+            "downstream_mutation_overclaim_count": reason_counts["downstream_mutation_overclaim_count"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Deep Research source-intelligence native corpus material lacks corpus evidence fields or overclaims API/cloud/control-plane authority"
+            if offenders
+            else "Deep Research source-intelligence native corpus evidence is complete or absent"
+        ),
+    }
+
+
 def owner_surface_ambiguity(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -4955,6 +5190,7 @@ EVALUATORS = {
     "AS-43": capability_placement_gap,
     "AS-44": hermes_foreground_reliability_evidence_gap,
     "AS-45": codex_native_runtime_readiness_evidence_gap,
+    "AS-46": deep_research_source_intelligence_native_corpus_gap,
 }
 
 

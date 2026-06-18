@@ -413,3 +413,13 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-codex-native-runtime-readiness-evidence-gap.sh`
+
+### AS-46: Deep Research Source-Intelligence Native Corpus Evidence Gap
+- **Detects:** Deep Research/source-intelligence native corpus material that omits native corpus fields or overclaims live Deep Research API, Codex Cloud/remote execution, crawler/registry/watcher/control-plane authority, raw authenticated capture retention, automatic GitHub mutation, retained closeout truth, or downstream mutation.
+- **Signal:** A Deep Research source-intelligence native corpus, manual Deep Research sidecar, or `DEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS` surface omits the native contract token, `SOURCE_INSIGHT_PACKET`, source count/corpus scope, source IDs, public/no-auth then exact-url authenticated access order, manual sidecar/API disposition, equal-insight disposition, claim/effect routing, evidence tier, owner/no-action routing, bounded non-claims, GitHub issue/PR/check/merge truth, or next owner action; fills those fields with vague placeholders; claims live Deep Research API use or live Codex Cloud/remote proof without raw evidence; retains raw authenticated DOM/screenshots/account context; or grants crawler, watcher, source registry, controller, scheduler, queue, daemon, automatic issue/PR creation, auto-merge, retained closeout truth, or downstream mutation authority.
+- **Phase range:** Issue #164 Deep Research/external intelligence native corpus carrier issues, owner PR bodies, source-intelligence intake readbacks, manual sidecar prompts/pastebacks, Campaign Sync readbacks, and repo-star propagation surfaces.
+- **Check:** Scan owner evidence text for Deep Research/source-intelligence native corpus surfaces and require portable corpus evidence fields plus bounded non-claims; suppress detector docs/templates/tests/fixtures and shared repo-agent-core contract surfaces.
+- **Fire condition:** `deep_research_source_intelligence_native_corpus_gap_count > 0`, `live_deep_research_api_overclaim_count > 0`, `live_cloud_remote_overclaim_count > 0`, `crawler_registry_overclaim_count > 0`, `raw_authenticated_retention_count > 0`, `automatic_github_overclaim_count > 0`, `retained_closeout_overclaim_count > 0`, or `downstream_mutation_overclaim_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-deep-research-source-intelligence-native-corpus-gap.sh`

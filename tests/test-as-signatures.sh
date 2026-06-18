@@ -285,6 +285,18 @@ Hermes owns validation and merges the PR after retrying checks as a background
 Hermes worker. Promotion gate: maybe later.
 EOF
 
+mkdir -p "$TEST_REPO/docs/deep-research-corpus"
+cat > "$TEST_REPO/docs/deep-research-corpus/deep-research-native-corpus.md" <<'EOF'
+# Deep Research/source-intelligence native corpus
+
+DEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS is planned for the approved
+operator URLs. manual Deep Research sidecar: TBD. This omits
+SOURCE_INSIGHT_PACKET, source count/corpus scope, public/no-auth then exact-url
+authenticated access, claim/effect routing, evidence tier,
+GitHub issue/PR/check/merge truth, and next owner action. Deep Research API ran
+live and proved the corpus.
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -298,8 +310,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 45
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 45
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 46
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 46
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -348,6 +360,7 @@ assert as_ids == {
     "AS-43",
     "AS-44",
     "AS-45",
+    "AS-46",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -695,6 +708,21 @@ heartbeat lifecycle, local/worktree dogfood, cloud/remote disposition, GitHub
 truth, bounded non-claims, or next owner action.
 - **Fire condition:** `codex_native_runtime_readiness_gap_count > 0`
 - **Script:** `scripts/detect-as-codex-native-runtime-readiness-evidence-gap.sh`
+
+### AS-46: Deep Research Source-Intelligence Native Corpus Evidence Gap
+- **Detects:** Deep Research/source-intelligence native corpus material that
+omits portable corpus fields or overclaims live Deep Research API, Codex
+Cloud/remote execution, crawler/registry authority, raw authenticated capture
+retention, automatic GitHub mutation, retained closeout truth, or downstream
+mutation.
+- **Signal:** Missing `DEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS`,
+`SOURCE_INSIGHT_PACKET`, source count/corpus scope, source IDs, public/no-auth
+then exact-url authenticated access, manual sidecar/API disposition,
+equal-insight disposition, claim/effect routing, evidence tier, owner/no-action
+routing, bounded non-claims, GitHub issue/PR/check/merge truth, or next owner
+action.
+- **Fire condition:** `deep_research_source_intelligence_native_corpus_gap_count > 0`
+- **Script:** `scripts/detect-as-deep-research-source-intelligence-native-corpus-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -809,6 +837,17 @@ owner action; or when it overclaims official docs as live cloud/remote proof,
 claims live cloud/remote execution, claims Goal-mode runtime improvement without
 raw evidence, or grants control-plane, automatic GitHub mutation, retained
 closeout, or downstream mutation authority.
+
+**Triggers:** AS-46 fires when Deep Research/source-intelligence native corpus
+material omits the native corpus token, SOURCE_INSIGHT_PACKET, source
+count/corpus scope, source IDs, public/no-auth then exact-url authenticated
+access order, manual sidecar/API disposition, equal-insight disposition,
+claim/effect routing, evidence tier, owner/no-action routing, bounded
+non-claims, GitHub issue/PR/check/merge truth, or next owner action; or when it
+overclaims live Deep Research API use, live Codex Cloud/remote proof,
+crawler/registry/watcher/control-plane authority, raw authenticated capture
+retention, automatic GitHub mutation, retained closeout truth, or downstream
+mutation.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -937,6 +976,14 @@ Attempt role: doer
 Launcher receipt: missing
 Hermes owns validation and merges the PR after retrying checks as a background
 Hermes worker. Promotion gate: maybe later.
+
+Deep Research/source-intelligence native corpus:
+DEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS is planned for the approved
+operator URLs. manual Deep Research sidecar: TBD. This omits
+SOURCE_INSIGHT_PACKET, source count/corpus scope, public/no-auth then exact-url
+authenticated access, claim/effect routing, evidence tier,
+GitHub issue/PR/check/merge truth, and next owner action. Deep Research API ran
+live and proved the corpus.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -970,6 +1017,7 @@ scripts = {
     "AS-42": "detect-as-route-changing-learning-propagation-gap.sh",
     "AS-43": "detect-as-capability-placement-gap.sh",
     "AS-44": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
+    "AS-46": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1603,6 +1651,28 @@ Issue #164 runtime launch:
 - Next_owner_action: first owner PR on repo-auditor with validation scope, fallback, and GitHub issue routing.
 EOF
 
+cat > "$CLEAN_REPO/docs/deep-research-native-corpus.md" <<'EOF'
+# Deep Research/source-intelligence native corpus
+
+DEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS composes SOURCE_INSIGHT_PACKET.
+source_count: 19 exact operator-provided X URLs.
+source_id values: arc4-x-01 through arc4-x-19.
+access order: public/no-auth first, then exact-url authenticated capture only
+for approved URLs.
+manual Deep Research sidecar prompt only.
+deep_research_api_disposition=rescoped_failed_not_authorized.
+equal-insight disposition records insight/no-insight and contradiction.
+claim_effect routes each claim to evidence.
+evidence_tier records official_current_fact, local_proof, or operator_corpus.
+owner/no-action disposition records owner_surface or explicit_no_action.
+bounded non-claims: no live Deep Research API run, no live Codex Cloud
+execution, no live Codex remote execution, no crawler, no source registry, no
+watcher, no controller, no scheduler, no queue, no daemon, no automatic GitHub
+mutation, no retained closeout truth, and no downstream mutation.
+GitHub issue/PR/check/merge truth is recorded.
+next_owner_action: repo-upgrade-advisor recommendation propagation.
+EOF
+
 cat > "$CLEAN_REPO/docs/subordinate-core-five-validation.md" <<'EOF'
 # Subordinate Core-Five Validation
 
@@ -1673,6 +1743,7 @@ scripts = {
     "AS-42": "detect-as-route-changing-learning-propagation-gap.sh",
     "AS-43": "detect-as-capability-placement-gap.sh",
     "AS-44": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
+    "AS-46": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
 }
 
 for signature_id, script in scripts.items():
