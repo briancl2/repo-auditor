@@ -78,6 +78,7 @@ scripts=(
     "detect-as-capability-placement-gap.sh"
     "detect-as-hermes-foreground-reliability-evidence-gap.sh"
     "detect-as-codex-native-runtime-readiness-evidence-gap.sh"
+    "detect-as-deep-research-source-intelligence-native-corpus-gap.sh"
 )
 
 idx=0

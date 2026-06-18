@@ -60,6 +60,13 @@ repo-auditor's live agents, detectors, scripts, Speckit helpers, and tracking
 decisions for calibrated capability-drift checks. It is documentation, not a
 runtime registry or generated control plane.
 
+Issue #164 Deep Research/source-intelligence native corpus detector coverage is
+provided by AS-46 through
+`scripts/detect-as-deep-research-source-intelligence-native-corpus-gap.sh`.
+It checks portable corpus evidence fields and bounded non-claims; it does not
+run a live Deep Research API task, Codex Cloud task, Codex remote task, crawler,
+registry, watcher, controller, scheduler, queue, daemon, or downstream mutation.
+
 ## Self-Management
 
 - `make check` — shellcheck + inventory + co-evolution + trailer validation

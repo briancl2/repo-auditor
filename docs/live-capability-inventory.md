@@ -95,7 +95,7 @@ surfaces only as bounded owner-local tracking when the claim is anchored:
 
 | Field | Value |
 |---|---|
-| Calibrated detector live paths | 115 |
+| Calibrated detector live paths | 116 |
 | Additional active helpers tracked by owner review | 3 |
 | Calibrated tracking-surface gaps closed by this PR | 98 |
 | Delete/archive candidates selected here | 0 |
@@ -153,6 +153,7 @@ surfaces only as bounded owner-local tracking when the claim is anchored:
 | `scripts/detect-as-copied-evidence-boundary-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-cost-model-mismatch.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-cost-without-token-fields.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
+| `scripts/detect-as-deep-research-source-intelligence-native-corpus-gap.sh` | runtime-loaded deterministic detector | Issue #164 Deep Research/source-intelligence native corpus detector for portable corpus field and bounded non-claim gaps | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-docs-vs-observed-host-drift.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-forbidden-public-customernewsletter-mutation.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-foreground-failure-guidance-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |

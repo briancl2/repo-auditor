@@ -184,6 +184,27 @@ only when `closure_signature_scope_complete` is `true`; missing or errored
 closure detectors, or closure detectors missing their expected count signal,
 make the genericity scope incomplete.
 
+### AS-46 Deep Research Source-Intelligence Native Corpus Detector
+
+AS-46 is the Issue #164 Arc 4 detector for the portable Deep Research/source-
+intelligence native corpus contract. It scans owner evidence for
+`DEEP_RESEARCH_SOURCE_INTELLIGENCE_NATIVE_CORPUS`, manual Deep Research sidecar,
+and source-intelligence native corpus surfaces, then requires
+`SOURCE_INSIGHT_PACKET` composition, source count/corpus scope, source IDs,
+public/no-auth then exact-url authenticated access order, manual sidecar/API
+disposition, equal-insight disposition, claim/effect routing, evidence tier,
+owner/no-action routing, bounded non-claims, GitHub issue/PR/check/merge truth,
+and next owner action.
+
+The detector also flags live Deep Research API, Codex Cloud/remote, crawler,
+watcher, source registry, control-plane, raw authenticated capture retention,
+automatic GitHub mutation, retained closeout truth, and downstream-mutation
+overclaims. It suppresses detector docs/tests and shared repo-agent-core
+contract/template surfaces. It is detector evidence only: it does not authorize
+live Deep Research API use, Codex Cloud/remote execution, crawler behavior,
+background automation, automatic issue/PR creation, auto-merge, retained
+closeout truth, or downstream mutation.
+
 ## Helper Scripts
 
 | Script | Purpose |
