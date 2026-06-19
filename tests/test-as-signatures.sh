@@ -298,12 +298,16 @@ EOF
 cat > "$TEST_REPO/docs/standalone-sidecar-gap.md" <<'EOF'
 # Standalone Sidecar Gap
 
+BROAD_STANDALONE_SIDECAR_ACCEPTANCE
+DEEP_RESEARCH_SOURCE_LEDGER_V2_ADOPTION
 Prompt B for BMA should solve the architecture problem.
 Definitions: TBD.
 Read the GitHub issue and review this prompt.
 Deep Research should research the sources without source rules.
 The sidecar approves PRs and becomes closure truth.
 A controller queue creates GitHub issues automatically and auto-merges repairs.
+The local-aware critique is standalone sidecar proof.
+Deep Research API ran live and authenticated-source capture is validated.
 EOF
 
 # Keep AS-33 covered after AS-47 uses a dedicated integrated-acceptance fixture.
@@ -760,11 +764,16 @@ action.
 - **Detects:** Sidecar prompt material that is not standalone for external
 intelligence, depends on local/private/GitHub context, omits embedded context
 or definitions, confuses prompt layers, omits Prompt A/B or Deep Research mode
-requirements, or overclaims sidecar authority.
+requirements, omits source-ledger v2 fields, claims broad sidecar acceptance
+without proxy/red-team/critique/manual transport proof, or overclaims sidecar
+authority.
 - **Signal:** Missing `STANDALONE_EXTERNAL_INTELLIGENCE_SIDECAR`, local/private
 or GitHub dependency, missing embedded context, Prompt B without actual Prompt A
 output, Deep Research without source rules/source-ledger output, prompt-review
-confusion, or sidecar authority/control-plane claims.
+confusion, missing `consulted_on_date`/`exclusion_rationale`/
+`recommendation_effect`, missing broad acceptance proof, or sidecar authority,
+Deep Research API, authenticated capture, source-registry/crawler,
+local-aware-as-standalone-proof, or control-plane claims.
 - **Fire condition:** `standalone_external_intelligence_sidecar_gap_count > 0`
 - **Script:** `scripts/detect-as-standalone-external-intelligence-sidecar-gap.sh`
 EOF
@@ -897,7 +906,11 @@ mutation.
 external model, depends on local/private/GitHub context, omits embedded context
 or definitions, confuses prompt layers, creates Prompt B without actual Prompt A
 output and answered context, uses Deep Research without research targets/source
-rules/source-ledger output, or treats sidecar output as closure authority.
+rules/source-ledger output, omits source-ledger v2 fields, claims broad
+sidecar acceptance without proxy/red-team/critique/manual transport proof, or
+treats sidecar output, local-aware critique, Deep Research API use,
+authenticated-source capture, source registries, crawlers, or automatic GitHub
+mutation as accepted authority.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -1735,6 +1748,8 @@ cat > "$CLEAN_REPO/docs/standalone-sidecar-clean.md" <<'EOF'
 # Standalone External-Intelligence Sidecar Prompt
 
 STANDALONE_EXTERNAL_INTELLIGENCE_SIDECAR
+BROAD_STANDALONE_SIDECAR_ACCEPTANCE
+DEEP_RESEARCH_SOURCE_LEDGER_V2_ADOPTION
 You are an external intelligence receiving a standalone prompt.
 You do not have local filesystem access, private repository access, GitHub
 issue access, prior chat access, or workspace context beyond what is embedded.
@@ -1748,12 +1763,15 @@ Public URLs are optional and non-load-bearing.
 - Prompt B: second pass after actual Prompt A output plus answered context.
 - Deep Research: research mode with research targets, source rules, and
   source-ledger response shape.
+- Local-aware critique: diagnostics lane that may inspect local files and is not
+  standalone sidecar proof.
 
 ## Embedded Context
 
 The prompt contains enough context for an external model to answer without
 private files, prior chats, or GitHub access. It explains goals, boundaries,
-failure modes, integration points, and success criteria.
+failure modes, integration points, source-ledger v2 fields, and success
+criteria.
 
 ## Actual Prompt A Output
 
@@ -1769,18 +1787,29 @@ Research prompt quality and standalone external review patterns.
 
 ## Source Rules
 
-Use public sources only and return a source-ledger response shape.
+Use public sources only and return a source-ledger v2 response shape with
+consulted_on_date, exclusion_rationale, and recommendation_effect.
 
 ## Response Shape
 
 Return Executive Verdict, Prompt A Reconciliation, Findings, Risks, Source
 Ledger, and Next Step.
 
+## Proof
+
+The bundle-only Opus proxy battery accepted 8/8 trials.
+Red-team boundary regression validation failed as expected.
+The local-aware critique pass had no unresolved CRITICAL or HIGH findings.
+A final manual Deep Research transport trial passed.
+
 ## Boundary
 
 Sidecar output is advisory and does not close GitHub issues, approve pull
 requests, mutate repositories, replace operator judgment, or become closure
-truth. No controller, scheduler, queue, daemon, registry, automatic GitHub
+truth. No Deep Research API validation is claimed.
+No authenticated-source capture validation is claimed.
+No sidecar closure truth is claimed. No source registry, crawler, watcher,
+controller, scheduler, queue, daemon, automatic ingestion, automatic GitHub
 mutation, or auto-merge is authorized.
 EOF
 
