@@ -4464,7 +4464,8 @@ STANDALONE_SIDECAR_EXPLAINER_PATTERN = re.compile(
 STANDALONE_SIDECAR_SURFACE_PATTERN = re.compile(
     r"\b(STANDALONE_EXTERNAL_INTELLIGENCE_SIDECAR|standalone external[- ]intelligence sidecar|"
     r"standalone sidecar|sidecar prompt|ChatGPT Pro sidecar|Deep Research sidecar|"
-    r"Prompt A/B|Prompt A|Prompt B)\b",
+    r"Prompt A/B|Prompt A|Prompt B|BROAD_STANDALONE_SIDECAR_ACCEPTANCE|"
+    r"broad standalone sidecar acceptance|broad sidecar acceptance)\b",
     re.IGNORECASE,
 )
 STANDALONE_SIDECAR_SURFACE_NEGATION_PATTERN = re.compile(
@@ -4526,6 +4527,74 @@ STANDALONE_SIDECAR_CONTROL_PLANE_PATTERN = re.compile(
 STANDALONE_SIDECAR_AUTOMATIC_GITHUB_PATTERN = re.compile(
     r"\b(automatic issue creation|automatic PR creation|automatic pull request creation|automatic GitHub mutation|"
     r"creates? GitHub issues? automatically|auto[- ]?merges?|automatic merge)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_BROAD_ACCEPTANCE_PATTERN = re.compile(
+    r"\b(BROAD_STANDALONE_SIDECAR_ACCEPTANCE|broad standalone sidecar acceptance|broad sidecar acceptance)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_BROAD_REQUIRED_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "missing_broad_proxy_battery",
+        re.compile(
+            r"\b(8/8|eight of eight|accepted_proxy_trials|all\s+\d+\s+(?:accepted\s+)?trials)\b"
+            r".{0,120}\b(Opus|proxy|battery|bundle[- ]only)\b|"
+            r"\b(Opus|proxy|battery|bundle[- ]only)\b.{0,120}"
+            r"\b(8/8|eight of eight|accepted_proxy_trials|all\s+\d+\s+(?:accepted\s+)?trials)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
+    (
+        "missing_redteam_regression",
+        re.compile(r"\b(red[- ]team|redteam|boundary regression)\b.{0,120}\b(fail(?:ed|s)? as expected|validation|regression)\b", re.IGNORECASE | re.DOTALL),
+    ),
+    (
+        "missing_local_aware_critique",
+        re.compile(r"\b(local[- ]aware critique|critique pass)\b.{0,160}\b(no unresolved (?:CRITICAL|HIGH)|no unresolved CRITICAL or HIGH)\b", re.IGNORECASE | re.DOTALL),
+    ),
+    (
+        "missing_final_manual_deep_research_transport",
+        re.compile(r"\b(final manual Deep Research|manual Deep Research transport trial|manual Deep Research pasteback)\b", re.IGNORECASE),
+    ),
+    (
+        "missing_deep_research_api_nonclaim",
+        re.compile(r"\b(no|not|without|non[- ]claim|does not claim)\b.{0,100}\bDeep Research API\b|\bDeep Research API\b.{0,100}\b(no|not|without|non[- ]claim|not validated|not authorized)\b", re.IGNORECASE),
+    ),
+    (
+        "missing_authenticated_capture_nonclaim",
+        re.compile(r"\b(no|not|without|non[- ]claim|does not claim)\b.{0,120}\b(authenticated[- ]source capture|authenticated capture)\b|\b(authenticated[- ]source capture|authenticated capture)\b.{0,120}\b(no|not|without|non[- ]claim|not validated|not authorized)\b", re.IGNORECASE),
+    ),
+    (
+        "missing_sidecar_closure_truth_nonclaim",
+        re.compile(r"\b(no|not|without|non[- ]claim|does not claim)\b.{0,120}\b(sidecar closure truth|sidecar output.*closure truth)\b|\b(sidecar closure truth|sidecar output.*closure truth)\b.{0,120}\b(no|not|without|non[- ]claim|not validated|not authorized|never)\b", re.IGNORECASE),
+    ),
+)
+STANDALONE_SIDECAR_SOURCE_LEDGER_V2_PATTERN = re.compile(
+    r"\b(DEEP_RESEARCH_SOURCE_LEDGER_V2_ADOPTION|source[- ]ledger v2|source[- ]ledger-v2)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_SOURCE_LEDGER_V2_FIELD_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("missing_consulted_on_date", re.compile(r"\b(consulted[-_ ]on date|consulted_on_date)\b", re.IGNORECASE)),
+    ("missing_exclusion_rationale", re.compile(r"\b(exclusion rationale|exclusion_rationale)\b", re.IGNORECASE)),
+    ("missing_recommendation_effect", re.compile(r"\b(recommendation effect|recommendation_effect)\b", re.IGNORECASE)),
+)
+STANDALONE_SIDECAR_DEEP_RESEARCH_API_OVERCLAIM_PATTERN = re.compile(
+    r"\bDeep Research API\b.{0,120}\b(accepted|validated|proved|proven|proof|live|ran|executed)\b|"
+    r"\b(accepted|validated|proved|proven|proof|live|ran|executed)\b.{0,120}\bDeep Research API\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_AUTH_CAPTURE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(authenticated[- ]source capture|authenticated capture)\b.{0,120}\b(accepted|validated|proved|proven|proof|live)\b|"
+    r"\b(accepted|validated|proved|proven|proof|live)\b.{0,120}\b(authenticated[- ]source capture|authenticated capture)\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_LOCAL_AWARE_AS_PROOF_PATTERN = re.compile(
+    r"\blocal[- ]aware critique\b.{0,160}\b(standalone proof|standalone sidecar proof|proves? standalone|acceptance proof)\b|"
+    r"\b(standalone proof|standalone sidecar proof|proves? standalone|acceptance proof)\b.{0,160}\blocal[- ]aware critique\b",
+    re.IGNORECASE,
+)
+STANDALONE_SIDECAR_SOURCE_CONTROL_PLANE_PATTERN = re.compile(
+    r"\b(source registry|source crawler|crawler|watcher|automatic ingestion)\b",
     re.IGNORECASE,
 )
 
@@ -4643,13 +4712,35 @@ def standalone_external_intelligence_sidecar_gap(texts: dict[str, str]) -> dict[
         ):
             reasons.append("deep_research_missing_research_shape")
             reason_counts["deep_research_missing_research_shape_count"] += 1
+        if STANDALONE_SIDECAR_SOURCE_LEDGER_V2_PATTERN.search(text):
+            for reason, pattern in STANDALONE_SIDECAR_SOURCE_LEDGER_V2_FIELD_PATTERNS:
+                missing, vague = standalone_sidecar_field_missing_or_vague(text, pattern)
+                if missing:
+                    reasons.append(reason)
+                    reason_counts[reason] += 1
+                elif vague:
+                    reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                    reason_counts["vague_source_ledger_v2_field"] += 1
+        if STANDALONE_SIDECAR_BROAD_ACCEPTANCE_PATTERN.search(text):
+            for reason, pattern in STANDALONE_SIDECAR_BROAD_REQUIRED_PATTERNS:
+                missing, vague = standalone_sidecar_field_missing_or_vague(text, pattern)
+                if missing:
+                    reasons.append(reason)
+                    reason_counts[reason] += 1
+                elif vague:
+                    reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                    reason_counts["vague_broad_acceptance_field"] += 1
 
         overclaim_patterns: tuple[tuple[str, re.Pattern[str]], ...] = (
             ("local_private_github_dependency_count", STANDALONE_SIDECAR_LOCAL_PRIVATE_GITHUB_PATTERN),
             ("prompt_layer_confusion_count", STANDALONE_SIDECAR_PROMPT_LAYER_PATTERN),
             ("sidecar_authority_overclaim_count", STANDALONE_SIDECAR_AUTHORITY_PATTERN),
             ("control_plane_overclaim_count", STANDALONE_SIDECAR_CONTROL_PLANE_PATTERN),
+            ("source_control_plane_overclaim_count", STANDALONE_SIDECAR_SOURCE_CONTROL_PLANE_PATTERN),
             ("automatic_github_overclaim_count", STANDALONE_SIDECAR_AUTOMATIC_GITHUB_PATTERN),
+            ("deep_research_api_overclaim_count", STANDALONE_SIDECAR_DEEP_RESEARCH_API_OVERCLAIM_PATTERN),
+            ("authenticated_capture_overclaim_count", STANDALONE_SIDECAR_AUTH_CAPTURE_OVERCLAIM_PATTERN),
+            ("local_aware_as_standalone_proof_count", STANDALONE_SIDECAR_LOCAL_AWARE_AS_PROOF_PATTERN),
         )
         for reason, pattern in overclaim_patterns:
             if standalone_sidecar_line_overclaim(text, pattern):
@@ -4680,12 +4771,28 @@ def standalone_external_intelligence_sidecar_gap(texts: dict[str, str]) -> dict[
             "undefined_terms_count": reason_counts["undefined_terms_count"],
             "prompt_b_without_actual_prompt_a_count": reason_counts["prompt_b_without_actual_prompt_a_count"],
             "deep_research_missing_research_shape_count": reason_counts["deep_research_missing_research_shape_count"],
+            "missing_consulted_on_date_count": reason_counts["missing_consulted_on_date"],
+            "missing_exclusion_rationale_count": reason_counts["missing_exclusion_rationale"],
+            "missing_recommendation_effect_count": reason_counts["missing_recommendation_effect"],
+            "missing_broad_proxy_battery_count": reason_counts["missing_broad_proxy_battery"],
+            "missing_redteam_regression_count": reason_counts["missing_redteam_regression"],
+            "missing_local_aware_critique_count": reason_counts["missing_local_aware_critique"],
+            "missing_final_manual_deep_research_transport_count": reason_counts["missing_final_manual_deep_research_transport"],
+            "missing_deep_research_api_nonclaim_count": reason_counts["missing_deep_research_api_nonclaim"],
+            "missing_authenticated_capture_nonclaim_count": reason_counts["missing_authenticated_capture_nonclaim"],
+            "missing_sidecar_closure_truth_nonclaim_count": reason_counts["missing_sidecar_closure_truth_nonclaim"],
             "local_private_github_dependency_count": reason_counts["local_private_github_dependency_count"],
             "prompt_layer_confusion_count": reason_counts["prompt_layer_confusion_count"],
             "sidecar_authority_overclaim_count": reason_counts["sidecar_authority_overclaim_count"],
             "control_plane_overclaim_count": reason_counts["control_plane_overclaim_count"],
+            "source_control_plane_overclaim_count": reason_counts["source_control_plane_overclaim_count"],
             "automatic_github_overclaim_count": reason_counts["automatic_github_overclaim_count"],
+            "deep_research_api_overclaim_count": reason_counts["deep_research_api_overclaim_count"],
+            "authenticated_capture_overclaim_count": reason_counts["authenticated_capture_overclaim_count"],
+            "local_aware_as_standalone_proof_count": reason_counts["local_aware_as_standalone_proof_count"],
             "vague_field_count": reason_counts["vague_field"],
+            "vague_source_ledger_v2_field_count": reason_counts["vague_source_ledger_v2_field"],
+            "vague_broad_acceptance_field_count": reason_counts["vague_broad_acceptance_field"],
             "historical_evidence_skipped_count": historical_evidence_skipped,
         },
         "evidence": evidence_join(details, limit=2),
