@@ -307,6 +307,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-scheduled-readback-owner-proof-gap.sh",
     },
+    "AS-50": {
+        "name": "Hermes foreground failure disposition gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-hermes-foreground-failure-disposition-gap.sh",
+    },
 }
 
 
@@ -1443,7 +1449,7 @@ RECIPROCAL_PROVING_GROUND_PATTERN = re.compile(
     re.IGNORECASE,
 )
 WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
-    r"\b(AS-2[0-9]|AS-3[0-9]|AS-4[0-4]|selection handback|too-small goal|too small goal|"
+    r"\b(AS-2[0-9]|AS-3[0-9]|AS-4[0-4]|AS-50|selection handback|too-small goal|too small goal|"
     r"github-native closure regrowth|github native closure regrowth|"
     r"owner-surface ambiguity|owner surface ambiguity|"
     r"reciprocal proving-ground gap|reciprocal proving ground gap|"
@@ -1464,6 +1470,7 @@ WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN = re.compile(
     r"scheduled workflow evidence boundary gap|hermes/github reliability boundary gap|"
     r"campaign sync completed-track readback gap|route-changing learning propagation gap|"
     r"hermes foreground reliability evidence gap|"
+    r"hermes foreground failure disposition gap|"
     r"foreground recovery runtime contract)\b",
     re.IGNORECASE,
 )
@@ -5968,6 +5975,213 @@ def closure_run_identity_gap(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+HERMES_FAILURE_DISPOSITION_SURFACE_PATTERN = re.compile(
+    r"\b(HERMES_FOREGROUND_FAILURE_DISPOSITION|Hermes foreground failure disposition|"
+    r"foreground Hermes failure disposition)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_REQUIRED_FIELDS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("missing_failure_issue", re.compile(r"^\s*failure[ _-]?issue\s*[:=]", re.IGNORECASE | re.MULTILINE)),
+    ("missing_primary_object", re.compile(r"^\s*primary[ _-]?object\s*[:=]", re.IGNORECASE | re.MULTILINE)),
+    ("missing_command_family", re.compile(r"^\s*command[ _-]?family\s*[:=]", re.IGNORECASE | re.MULTILINE)),
+    ("missing_failure_code", re.compile(r"^\s*failure[ _-]?code\s*[:=]", re.IGNORECASE | re.MULTILINE)),
+)
+HERMES_FAILURE_DISPOSITION_CLOSE_PATTERN = re.compile(
+    r"\b(close[_ -]?allowed\s*[:=]\s*true|close allowance\s*[:=]\s*true|"
+    r"resolved_by_merged_repair|close(?:s|d)?\s+(?:the\s+)?failure issue|"
+    r"close_failure_issue_with_merged_repair_reference)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_MERGED_REPAIR_PATTERN = re.compile(
+    r"\b(merged related repair PR|merged repair PR|repair PR)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_REFERENCES_FAILURE_PATTERN = re.compile(
+    r"\b(references?|refs?|links? to)\s+(?:the\s+)?failure issue\b|"
+    r"\bfailure issue itself\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_AMBIGUOUS_REPAIR_PATTERN = re.compile(
+    r"\b(ambiguous|multiple|candidate(?:s)?|primary-object URL equality|"
+    r"primary object URL equality|primary object)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_PROVIDER_POLICY_PATTERN = re.compile(
+    r"\bsuperseded_by_provider_policy\b|\bprovider[- ]policy supersession\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_SUPERSEDED_SIGNAL_PATTERN = re.compile(
+    r"\bexplicit superseded[- ]provider signal\b|\bsuperseded provider\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_CURRENT_PROVIDER_PATTERN = re.compile(
+    r"\bcurrent provider/model policy evidence\b|\bcurrent provider\b.{0,40}\bmodel\b",
+    re.IGNORECASE | re.DOTALL,
+)
+HERMES_FAILURE_DISPOSITION_GITHUB_TRUTH_PATTERN = re.compile(
+    r"\b(GitHub truth|github\.com/[^)\s]+/(?:issues|pull)/\d+|issue/PR/check/merge truth|"
+    r"issue comment|check run|merge commit)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_REPAIR_GITHUB_TRUTH_PATTERN = re.compile(
+    r"\b(merged related repair PR|related repair PR|merged repair PR|repair PR|merge commit)\b|"
+    r"github\.com/[^)\s]+/pull/\d+",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_PRIVATE_ONLY_PATTERN = re.compile(
+    r"\b(raw/private-only|private-only|private only|local-only|workspace-only|raw log|"
+    r"private log|run root|local receipt)\b|/tmp/",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|"
+    r"bounded non-claims?|non-claims?|excluded authority|not a|demotion trigger|"
+    r"kill switch|disables?)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_HIDDEN_CONTROL_PATTERN = re.compile(
+    r"\b(hidden retry|retry loop|scheduler|queue|daemon|controller|registry|"
+    r"background Hermes|background GBrain)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_AUTOCLOSE_PATTERN = re.compile(
+    r"\b(auto[- ]?close|automatically close|automatic closure)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_AUTOMERGE_PATTERN = re.compile(
+    r"\b(auto[- ]?merge|automatically merge|automatic merge)\b",
+    re.IGNORECASE,
+)
+
+
+def hermes_disposition_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
+    prohibition_context = 0
+    for line in text.splitlines():
+        if re.search(
+            r"\b(bounded[_ -]non-claims?|forbidden authority|excluded authority|non-claims?|"
+            r"demotion trigger|kill switch)\b",
+            line,
+            re.IGNORECASE,
+        ):
+            prohibition_context = 4
+        if not pattern.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        if prohibition_context or HERMES_FAILURE_DISPOSITION_NEGATION_PATTERN.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        return True
+    return False
+
+
+def hermes_disposition_positive_field(text: str, pattern: re.Pattern[str]) -> bool:
+    for line in text.splitlines():
+        if pattern.search(line) and not HERMES_FAILURE_DISPOSITION_NEGATION_PATTERN.search(line):
+            return True
+    return False
+
+
+def hermes_foreground_failure_disposition_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
+            continue
+        if not HERMES_FAILURE_DISPOSITION_SURFACE_PATTERN.search(text):
+            continue
+
+        reasons: list[str] = []
+        for reason, pattern in HERMES_FAILURE_DISPOSITION_REQUIRED_FIELDS:
+            if not pattern.search(text):
+                reasons.append(reason)
+                reason_counts[reason] += 1
+
+        close_claim = HERMES_FAILURE_DISPOSITION_CLOSE_PATTERN.search(text) is not None
+        merged_repair_grounded = hermes_disposition_positive_field(
+            text, HERMES_FAILURE_DISPOSITION_MERGED_REPAIR_PATTERN
+        ) and hermes_disposition_positive_field(text, HERMES_FAILURE_DISPOSITION_REFERENCES_FAILURE_PATTERN)
+        provider_claim = HERMES_FAILURE_DISPOSITION_PROVIDER_POLICY_PATTERN.search(text) is not None
+        provider_grounded = hermes_disposition_positive_field(
+            text, HERMES_FAILURE_DISPOSITION_SUPERSEDED_SIGNAL_PATTERN
+        ) and hermes_disposition_positive_field(text, HERMES_FAILURE_DISPOSITION_CURRENT_PROVIDER_PATTERN)
+
+        if close_claim and not (merged_repair_grounded or provider_grounded):
+            reasons.append("missing_merged_repair_evidence")
+            reason_counts["missing_merged_repair_evidence"] += 1
+        if (
+            close_claim
+            and HERMES_FAILURE_DISPOSITION_AMBIGUOUS_REPAIR_PATTERN.search(text)
+            and not merged_repair_grounded
+            and not provider_grounded
+        ):
+            reasons.append("ambiguous_repair_evidence")
+            reason_counts["ambiguous_repair_evidence"] += 1
+        if provider_claim and not provider_grounded:
+            reasons.append("provider_policy_mismatch")
+            reason_counts["provider_policy_mismatch"] += 1
+        if (
+            HERMES_FAILURE_DISPOSITION_PRIVATE_ONLY_PATTERN.search(text)
+            and not HERMES_FAILURE_DISPOSITION_REPAIR_GITHUB_TRUTH_PATTERN.search(text)
+        ):
+            reasons.append("raw_private_only_evidence")
+            reason_counts["raw_private_only_evidence"] += 1
+        if hermes_disposition_line_overclaim(text, HERMES_FAILURE_DISPOSITION_HIDDEN_CONTROL_PATTERN):
+            reasons.append("hidden_retry_scheduler_controller")
+            reason_counts["hidden_retry_scheduler_controller"] += 1
+        if hermes_disposition_line_overclaim(text, HERMES_FAILURE_DISPOSITION_AUTOCLOSE_PATTERN):
+            reasons.append("auto_close")
+            reason_counts["auto_close"] += 1
+        if hermes_disposition_line_overclaim(text, HERMES_FAILURE_DISPOSITION_AUTOMERGE_PATTERN):
+            reasons.append("auto_merge")
+            reason_counts["auto_merge"] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:8])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"hermes_failure_disposition_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"hermes_failure_disposition_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "hermes_failure_disposition_gap_count": len(offenders),
+            "hermes_failure_disposition_grounded_count": len(set(grounded)),
+            "missing_failure_issue_count": reason_counts["missing_failure_issue"],
+            "missing_primary_object_count": reason_counts["missing_primary_object"],
+            "missing_command_family_count": reason_counts["missing_command_family"],
+            "missing_failure_code_count": reason_counts["missing_failure_code"],
+            "missing_merged_repair_evidence_count": reason_counts["missing_merged_repair_evidence"],
+            "ambiguous_repair_evidence_count": reason_counts["ambiguous_repair_evidence"],
+            "provider_policy_mismatch_count": reason_counts["provider_policy_mismatch"],
+            "raw_private_only_evidence_count": reason_counts["raw_private_only_evidence"],
+            "hidden_retry_scheduler_controller_count": reason_counts["hidden_retry_scheduler_controller"],
+            "auto_close_count": reason_counts["auto_close"],
+            "auto_merge_count": reason_counts["auto_merge"],
+            "historical_evidence_skipped": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "Hermes foreground failure disposition surfaces allow unsafe closure or lack required GitHub repair evidence"
+            if offenders
+            else "Hermes foreground failure disposition surfaces are absent, explanatory, or grounded"
+        ),
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -6018,6 +6232,7 @@ EVALUATORS = {
     "AS-47": integrated_native_acceptance_gap,
     "AS-48": standalone_external_intelligence_sidecar_gap,
     "AS-49": scheduled_readback_owner_proof_gap,
+    "AS-50": hermes_foreground_failure_disposition_gap,
 }
 
 

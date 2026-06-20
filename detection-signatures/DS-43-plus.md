@@ -456,3 +456,14 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-scheduled-readback-owner-proof-gap.sh`
+
+### AS-50: Hermes Foreground Failure Disposition Gap
+- **Detects:** Foreground Hermes failure disposition material that allows closure without merged repair evidence, omits primary object/command/failure identity, relies on ambiguous or private-only evidence, mismatches provider-policy supersession, or regrows retry/control-plane authority.
+- **Signal:** A `HERMES_FOREGROUND_FAILURE_DISPOSITION` or Hermes foreground failure disposition surface omits failure issue, primary object, command family, or failure code; permits `resolved_by_merged_repair` closure without exactly one merged related repair PR that references the failure issue itself; treats primary-object identity or ambiguous repair candidates as closure evidence; claims provider-policy supersession without both explicit superseded-provider signal and current provider/model policy evidence; relies on raw/private/local-only evidence without GitHub truth; or grants hidden retry, scheduler, queue, daemon, controller, registry, auto-close, or auto-merge behavior.
+- **Phase range:** Issue #164 Hermes foreground failure issues, owner PR bodies, failure-to-issue conversion comments, BMA/repo-star disposition receipts, and repo-star propagation surfaces.
+- **Check:** Scan owner evidence text for Hermes foreground failure disposition surfaces and require the portable disposition fields plus unambiguous GitHub issue/PR/check/merge truth. Suppress detector docs/templates/tests/fixtures and shared repo-agent-core disposition contract surfaces.
+- **Shared contract:** repo-agent-core `docs/hermes-foreground-failure-disposition-contract.md` defines `HERMES_FOREGROUND_FAILURE_DISPOSITION`.
+- **Fire condition:** `hermes_failure_disposition_gap_count > 0`, `missing_merged_repair_evidence_count > 0`, `ambiguous_repair_evidence_count > 0`, `provider_policy_mismatch_count > 0`, `raw_private_only_evidence_count > 0`, `hidden_retry_scheduler_controller_count > 0`, `auto_close_count > 0`, or `auto_merge_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-hermes-foreground-failure-disposition-gap.sh`
