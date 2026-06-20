@@ -249,6 +249,12 @@ gh issue list returned no open child issues or PRs.
 Runtime Learning Shadow scheduled readback package: comments and artifacts are
 closure truth for #798. This starts a scheduler that owns future readbacks.
 
+SCHEDULED_READBACK_OWNER_PROOF candidate_id=runtime_shadow_schedule_readback
+uses the Runtime Learning Shadow schedule file as its schedule source. The proof says
+workflow_dispatch counts as scheduled proof and may be admitted. It captures raw
+private local logs for retention, then a scheduler queue creates GitHub issues
+automatically and auto-merges repairs.
+
 Issue #164 Hermes/GitHub reliability note for a non-final child PR says it does
 not close #798. HERMES_FOREGROUND_FAILURE_GUIDANCE records
 provider_user_request_timeout with no fresh repro or failure residue
@@ -344,8 +350,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 48
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 48
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 49
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 49
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -397,6 +403,7 @@ assert as_ids == {
     "AS-46",
     "AS-47",
     "AS-48",
+    "AS-49",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -776,6 +783,18 @@ Deep Research API, authenticated capture, source-registry/crawler,
 local-aware-as-standalone-proof, or control-plane claims.
 - **Fire condition:** `standalone_external_intelligence_sidecar_gap_count > 0`
 - **Script:** `scripts/detect-as-standalone-external-intelligence-sidecar-gap.sh`
+
+### AS-49: Scheduled Readback Owner Proof Gap
+- **Detects:** Scheduled-readback owner proof material that counts
+`workflow_dispatch` as scheduled proof, omits owner/cadence/event/blocker
+fields, retains private/raw capture, or regrows hidden scheduler/queue/daemon/
+controller/registry, automatic GitHub mutation, or auto-merge authority.
+- **Signal:** Missing `SCHEDULED_READBACK_OWNER_PROOF` owner issue, candidate
+id, schedule source, allowed event, cadence, blocker rule, promotion gate,
+demotion trigger, kill switch, bounded non-claims, or overclaimed scheduler and
+GitHub mutation authority.
+- **Fire condition:** `scheduled_readback_owner_proof_gap_count > 0`
+- **Script:** `scripts/detect-as-scheduled-readback-owner-proof-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -911,6 +930,11 @@ sidecar acceptance without proxy/red-team/critique/manual transport proof, or
 treats sidecar output, local-aware critique, Deep Research API use,
 authenticated-source capture, source registries, crawlers, or automatic GitHub
 mutation as accepted authority.
+
+**Triggers:** AS-49 fires when scheduled-readback owner proof material counts
+workflow_dispatch as scheduled proof, omits owner/cadence/event/blocker fields,
+retains private/raw capture, or regrows hidden scheduler/queue/daemon/controller/
+registry, automatic GitHub mutation, or auto-merge authority.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -1016,6 +1040,12 @@ admissible owner-surface action remains.
 Runtime Learning Shadow scheduled readback package: comments and artifacts are
 closure truth for #798. This starts a scheduler that owns future readbacks.
 
+SCHEDULED_READBACK_OWNER_PROOF candidate_id=runtime_shadow_schedule_readback
+uses the Runtime Learning Shadow schedule file as its schedule source. The proof says
+workflow_dispatch counts as scheduled proof and may be admitted. It captures raw
+private local logs for retention, then a scheduler queue creates GitHub issues
+automatically and auto-merges repairs.
+
 Final Campaign Sync admission checks next active track, micro-work rule, and
 threshold clause but omits completed-track predicate coverage. Campaign Sync:
 Completed track: #816 Hermes failure residue guidance.
@@ -1089,6 +1119,7 @@ scripts = {
     "AS-44": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
     "AS-46": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
     "AS-48": "detect-as-standalone-external-intelligence-sidecar-gap.sh",
+    "AS-49": "detect-as-scheduled-readback-owner-proof-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1885,6 +1916,7 @@ scripts = {
     "AS-44": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
     "AS-46": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
     "AS-48": "detect-as-standalone-external-intelligence-sidecar-gap.sh",
+    "AS-49": "detect-as-scheduled-readback-owner-proof-gap.sh",
 }
 
 for signature_id, script in scripts.items():

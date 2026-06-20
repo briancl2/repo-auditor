@@ -74,6 +74,13 @@ It checks sidecar prompts for embedded standalone context, defined terms,
 clear Prompt A/B or Deep Research mode shape, advisory-only boundaries, and no
 load-bearing local/private/GitHub context assumptions.
 
+Issue #164 scheduled-readback owner proof detector coverage is provided by
+AS-49 through `scripts/detect-as-scheduled-readback-owner-proof-gap.sh`. It
+checks owner issue, candidate id, event filter, cadence, blocker, gate,
+kill-switch, and bounded non-claim fields; it does not run or install a
+scheduler, queue, daemon, registry, controller, automatic GitHub mutation, or
+auto-merge path.
+
 ## Self-Management
 
 - `make check` — shellcheck + inventory + co-evolution + trailer validation

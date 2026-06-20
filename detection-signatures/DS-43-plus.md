@@ -445,3 +445,14 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-standalone-external-intelligence-sidecar-gap.sh`
+
+### AS-49: Scheduled Readback Owner Proof Gap
+- **Detects:** Scheduled-readback owner proof material that counts `workflow_dispatch` as scheduled proof, omits owner/cadence/event/blocker fields, retains private/raw capture, or regrows hidden scheduler/queue/daemon/controller/registry, automatic GitHub mutation, or auto-merge authority.
+- **Signal:** A `SCHEDULED_READBACK_OWNER_PROOF` or scheduled-readback owner proof surface omits owner issue URL, candidate id, schedule source, allowed event/event filter, cadence, blocker rule, promotion gate, demotion trigger, kill switch, bounded non-claims, or overclaims scheduled proof, private/raw capture, hidden control-plane authority, automatic GitHub mutation, or auto-merge.
+- **Phase range:** Issue #164 scheduled-readback owner proof carrier issues, owner PR bodies, Runtime Learning Shadow readbacks, BMA proof JSON, repo-agent-core contract consumers, repo-auditor fixtures, repo-upgrade-advisor recommendations, and Issue #164 Campaign Sync readbacks.
+- **Check:** Scan owner evidence text for scheduled-readback owner proof surfaces and require portable owner/cadence/event/blocker fields plus bounded non-claims; suppress detector docs/templates/tests/fixtures and shared scheduled-readback owner proof contract surfaces.
+- **Shared contract:** repo-agent-core `docs/scheduled-readback-owner-proof-contract.md` defines `SCHEDULED_READBACK_OWNER_PROOF`.
+- **Fire condition:** `scheduled_readback_owner_proof_gap_count > 0`, `workflow_dispatch_as_scheduled_proof_count > 0`, `private_raw_capture_count > 0`, `hidden_control_plane_count > 0`, or `automatic_github_mutation_or_auto_merge_count > 0`
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-scheduled-readback-owner-proof-gap.sh`
