@@ -289,6 +289,13 @@ Attempt role: doer
 Launcher receipt: missing
 Hermes owns validation and merges the PR after retrying checks as a background
 Hermes worker. Promotion gate: maybe later.
+
+HERMES_FOREGROUND_FAILURE_DISPOSITION:
+classification: resolved_by_merged_repair
+close_allowed: true
+repair evidence: primary object PR #179 and /tmp/private-run-root
+The scheduler queue will automatically close the failure issue and auto-merge the
+next repair after a hidden retry loop.
 EOF
 
 cat > "$TEST_REPO/docs/integrated-native-acceptance-gap.md" <<'EOF'
@@ -350,8 +357,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 49
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 49
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 50
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 50
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -404,6 +411,7 @@ assert as_ids == {
     "AS-47",
     "AS-48",
     "AS-49",
+    "AS-50",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
@@ -795,6 +803,17 @@ demotion trigger, kill switch, bounded non-claims, or overclaimed scheduler and
 GitHub mutation authority.
 - **Fire condition:** `scheduled_readback_owner_proof_gap_count > 0`
 - **Script:** `scripts/detect-as-scheduled-readback-owner-proof-gap.sh`
+
+### AS-50: Hermes Foreground Failure Disposition Gap
+- **Detects:** Hermes foreground failure disposition material that omits failure
+identity fields, closes from ambiguous or private-only evidence, mismatches
+provider-policy supersession, or regrows retry/control-plane behavior.
+- **Signal:** Missing `HERMES_FOREGROUND_FAILURE_DISPOSITION` fields, missing
+merged related repair PR evidence, primary-object-only repair evidence,
+ambiguous repair candidates, provider-policy mismatch, raw/private evidence,
+hidden scheduler/controller behavior, auto-close, or auto-merge.
+- **Fire condition:** `hermes_failure_disposition_gap_count > 0`
+- **Script:** `scripts/detect-as-hermes-foreground-failure-disposition-gap.sh`
 EOF
 cat > "$EXPLAINER_REPO/detection-signatures/recommendation-templates-F14-F28.md" <<'EOF'
 # Recommendation Templates
@@ -935,6 +954,11 @@ mutation as accepted authority.
 workflow_dispatch as scheduled proof, omits owner/cadence/event/blocker fields,
 retains private/raw capture, or regrows hidden scheduler/queue/daemon/controller/
 registry, automatic GitHub mutation, or auto-merge authority.
+
+**Triggers:** AS-50 fires when Hermes foreground failure disposition material
+allows closure without merged repair PR evidence, relies on ambiguous
+primary-object or private-only evidence, mismatches provider-policy evidence, or
+regrows hidden retry/scheduler/controller, auto-close, or auto-merge behavior.
 EOF
 
 LIVE_WORK_MANAGEMENT_REPO="$TMPDIR/as-work-management-live-repo"
@@ -1084,6 +1108,13 @@ Definitions: TBD.
 Read the GitHub issue and review this prompt.
 Deep Research should research the sources without source rules.
 The sidecar approves PRs and becomes closure truth.
+
+HERMES_FOREGROUND_FAILURE_DISPOSITION:
+classification: resolved_by_merged_repair
+close_allowed: true
+repair evidence: primary object PR #179 and /tmp/private-run-root
+The scheduler queue will automatically close the failure issue and auto-merge the
+next repair after a hidden retry loop.
 EOF
 
 python3 - "$REPO_ROOT" "$EXPLAINER_REPO" "$LIVE_WORK_MANAGEMENT_REPO" <<'PY'
@@ -1120,6 +1151,7 @@ scripts = {
     "AS-46": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
     "AS-48": "detect-as-standalone-external-intelligence-sidecar-gap.sh",
     "AS-49": "detect-as-scheduled-readback-owner-proof-gap.sh",
+    "AS-50": "detect-as-hermes-foreground-failure-disposition-gap.sh",
 }
 
 for signature_id, script in scripts.items():
@@ -1142,6 +1174,138 @@ for signature_id, script in scripts.items():
     live_payload = json.loads(live.stdout)
     assert live_payload["ds_id"] == signature_id
     assert live_payload["fired"] is True, live_payload
+PY
+
+AS50_GAP_REPO="$TMPDIR/as50-gap-repo"
+AS50_PROVIDER_GAP_REPO="$TMPDIR/as50-provider-gap-repo"
+AS50_PROVIDER_CLEAN_REPO="$TMPDIR/as50-provider-clean-repo"
+AS50_CLEAN_REPO="$TMPDIR/as50-clean-repo"
+mkdir -p "$AS50_GAP_REPO/docs" "$AS50_PROVIDER_GAP_REPO/docs" "$AS50_PROVIDER_CLEAN_REPO/docs" "$AS50_CLEAN_REPO/docs"
+cat > "$AS50_GAP_REPO/docs/hermes-disposition.md" <<'EOF'
+# Hermes Failure Disposition
+
+HERMES_FOREGROUND_FAILURE_DISPOSITION
+failure issue: https://github.com/example/repo/issues/885
+classification: resolved_by_merged_repair
+close_allowed: true
+recommended action: close the failure issue from primary object PR #179
+repair evidence: primary object PR #179 plus /tmp/private-run-root/raw-log.txt
+The hidden retry scheduler queue will automatically close and auto-merge the next
+repair.
+EOF
+
+cat > "$AS50_PROVIDER_GAP_REPO/docs/hermes-provider-disposition.md" <<'EOF'
+# Hermes Provider Disposition
+
+HERMES_FOREGROUND_FAILURE_DISPOSITION
+failure issue: https://github.com/example/repo/issues/885
+primary object: https://github.com/example/repo/pull/12
+command family: hermes-foreground
+failure code: provider_user_request_timeout
+classification: superseded_by_provider_policy
+close_allowed: true
+provider-policy evidence: stale provider note without an explicit
+superseded-provider signal or current provider/model policy evidence.
+GitHub truth: https://github.com/example/repo/issues/885#issuecomment-1
+EOF
+
+cat > "$AS50_PROVIDER_CLEAN_REPO/docs/hermes-provider-disposition.md" <<'EOF'
+# Hermes Provider Disposition
+
+HERMES_FOREGROUND_FAILURE_DISPOSITION
+failure issue: https://github.com/example/repo/issues/885
+primary object: https://github.com/example/repo/pull/12
+command family: hermes-foreground
+failure code: provider_user_request_timeout
+classification: superseded_by_provider_policy
+close_allowed: true
+provider-policy evidence: explicit superseded-provider signal recorded on the
+failure issue.
+current provider/model policy evidence: provider copilot model gpt-5.5 uses the
+current supported provider path.
+GitHub truth: https://github.com/example/repo/issues/885#issuecomment-1
+bounded non-claims: no retries, no scheduler, no queue, no daemon, no controller,
+no registry, no auto-close, no auto-merge, no upstream Hermes mutation, no
+downstream mutation, and no background Hermes/GBrain.
+EOF
+
+cat > "$AS50_CLEAN_REPO/docs/hermes-disposition.md" <<'EOF'
+# Hermes Failure Disposition
+
+HERMES_FOREGROUND_FAILURE_DISPOSITION
+failure issue: https://github.com/example/repo/issues/885 state=CLOSED
+primary object: https://github.com/example/repo/pull/12
+related repair PRs: exactly one merged related repair PR
+https://github.com/example/repair/pull/179 at merge commit abc123 references the
+failure issue itself.
+command family: hermes-foreground
+failure code: missing_final_response
+classification: resolved_by_merged_repair
+close allowance: true
+recommended action: close with merged repair evidence
+blocker evidence: none
+provider-policy evidence: none
+GitHub truth: https://github.com/example/repo/issues/885#issuecomment-1 and
+https://github.com/example/repair/pull/179
+promotion trigger: clean live proof, merged repair, focused tests, and no
+unresolved high-severity critique.
+demotion trigger: false close, ambiguous repair evidence, stale policy evidence,
+hidden retry behavior, or missing GitHub truth.
+kill switch: false close or background retry behavior disables the disposition.
+bounded non-claims: no retries, no scheduler, no queue, no daemon, no controller,
+no registry, no auto-close, no auto-merge, no upstream Hermes mutation, no
+downstream mutation, no target mutation, and no background Hermes/GBrain.
+EOF
+
+python3 - "$REPO_ROOT" "$AS50_GAP_REPO" "$AS50_PROVIDER_GAP_REPO" "$AS50_PROVIDER_CLEAN_REPO" "$AS50_CLEAN_REPO" <<'PY'
+import json
+import subprocess
+import sys
+
+repo_root, gap_repo, provider_gap_repo, provider_clean_repo, clean_repo = sys.argv[1:6]
+script = f"{repo_root}/scripts/detect-as-hermes-foreground-failure-disposition-gap.sh"
+
+gap = subprocess.run(["bash", script, gap_repo], check=True, text=True, stdout=subprocess.PIPE)
+gap_payload = json.loads(gap.stdout)
+assert gap_payload["ds_id"] == "AS-50", gap_payload
+assert gap_payload["fired"] is True, gap_payload
+assert gap_payload["signals"]["missing_primary_object_count"] == 1, gap_payload
+assert gap_payload["signals"]["missing_command_family_count"] == 1, gap_payload
+assert gap_payload["signals"]["missing_failure_code_count"] == 1, gap_payload
+assert gap_payload["signals"]["missing_merged_repair_evidence_count"] == 1, gap_payload
+assert gap_payload["signals"]["ambiguous_repair_evidence_count"] == 1, gap_payload
+assert gap_payload["signals"]["raw_private_only_evidence_count"] == 1, gap_payload
+assert gap_payload["signals"]["hidden_retry_scheduler_controller_count"] == 1, gap_payload
+assert gap_payload["signals"]["auto_close_count"] == 1, gap_payload
+assert gap_payload["signals"]["auto_merge_count"] == 1, gap_payload
+
+provider_gap = subprocess.run(
+    ["bash", script, provider_gap_repo],
+    check=True,
+    text=True,
+    stdout=subprocess.PIPE,
+)
+provider_payload = json.loads(provider_gap.stdout)
+assert provider_payload["ds_id"] == "AS-50", provider_payload
+assert provider_payload["fired"] is True, provider_payload
+assert provider_payload["signals"]["provider_policy_mismatch_count"] == 1, provider_payload
+
+provider_clean = subprocess.run(
+    ["bash", script, provider_clean_repo],
+    check=True,
+    text=True,
+    stdout=subprocess.PIPE,
+)
+provider_clean_payload = json.loads(provider_clean.stdout)
+assert provider_clean_payload["ds_id"] == "AS-50", provider_clean_payload
+assert provider_clean_payload["fired"] is False, provider_clean_payload
+assert provider_clean_payload["signals"]["hermes_failure_disposition_grounded_count"] == 1, provider_clean_payload
+
+clean = subprocess.run(["bash", script, clean_repo], check=True, text=True, stdout=subprocess.PIPE)
+clean_payload = json.loads(clean.stdout)
+assert clean_payload["ds_id"] == "AS-50", clean_payload
+assert clean_payload["fired"] is False, clean_payload
+assert clean_payload["signals"]["hermes_failure_disposition_grounded_count"] == 1, clean_payload
 PY
 
 AS34_GAP_REPO="$TMPDIR/as34-gap-repo"
@@ -1917,6 +2081,7 @@ scripts = {
     "AS-46": "detect-as-deep-research-source-intelligence-native-corpus-gap.sh",
     "AS-48": "detect-as-standalone-external-intelligence-sidecar-gap.sh",
     "AS-49": "detect-as-scheduled-readback-owner-proof-gap.sh",
+    "AS-50": "detect-as-hermes-foreground-failure-disposition-gap.sh",
 }
 
 for signature_id, script in scripts.items():

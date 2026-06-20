@@ -81,6 +81,14 @@ kill-switch, and bounded non-claim fields; it does not run or install a
 scheduler, queue, daemon, registry, controller, automatic GitHub mutation, or
 auto-merge path.
 
+Issue #164 Hermes foreground failure disposition detector coverage is provided
+by AS-50 through
+`scripts/detect-as-hermes-foreground-failure-disposition-gap.sh`. It checks
+failure issue, primary object, command family, failure code, merged repair PR,
+provider-policy, GitHub truth, and bounded non-claim fields; it does not close
+issues, retry Hermes, install schedulers, create queues, add controllers, or
+auto-merge.
+
 ## Self-Management
 
 - `make check` — shellcheck + inventory + co-evolution + trailer validation
