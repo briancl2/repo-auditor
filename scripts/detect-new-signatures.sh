@@ -81,6 +81,7 @@ scripts=(
     "detect-as-deep-research-source-intelligence-native-corpus-gap.sh"
     "detect-as-integrated-native-capability-acceptance-gap.sh"
     "detect-as-standalone-external-intelligence-sidecar-gap.sh"
+    "detect-as-scheduled-readback-owner-proof-gap.sh"
 )
 
 idx=0

@@ -301,6 +301,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-standalone-external-intelligence-sidecar-gap.sh",
     },
+    "AS-49": {
+        "name": "Scheduled readback owner proof gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-scheduled-readback-owner-proof-gap.sh",
+    },
 }
 
 
@@ -2632,6 +2638,208 @@ def scheduled_evidence_boundary_gap(texts: dict[str, str]) -> dict[str, Any]:
             "scheduled workflow evidence treats comments/artifacts as closure truth, lacks schedule/run identity or review disposition, or regrows background control wording"
             if offenders
             else "scheduled workflow evidence boundaries are complete or absent"
+        ),
+    }
+
+
+SCHEDULED_OWNER_PROOF_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-49|Scheduled Readback Owner Proof Gap)\b.{0,180}\b(detects|detector|signature|triggers?|fires)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+SCHEDULED_OWNER_PROOF_SURFACE_PATTERN = re.compile(
+    r"\b(SCHEDULED_READBACK_OWNER_PROOF|scheduled[- ]readback owner proof|scheduled readback owner proof)\b",
+    re.IGNORECASE,
+)
+SCHEDULED_OWNER_PROOF_CONTRACT_PATH_HINTS = (
+    "scheduled-readback-owner-proof-contract.md",
+    "scheduled-readback-owner-proof.md",
+    "detect-as-scheduled-readback-owner-proof-gap.sh",
+    "test-scheduled-readback-owner-proof-gap.sh",
+)
+SCHEDULED_OWNER_PROOF_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|non[- ]claim|boundary|bounded|context only)\b",
+    re.IGNORECASE,
+)
+SCHEDULED_OWNER_PROOF_REQUIRED_FIELDS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("missing_owner_issue", re.compile(r"\b(owner_issue_url|owner issue|owner issue URL)\b", re.IGNORECASE)),
+    ("missing_candidate_id", re.compile(r"\b(candidate_id|candidate id)\b", re.IGNORECASE)),
+    ("missing_schedule_source", re.compile(r"\b(schedule_source|schedule source|workflow file|cron)\b", re.IGNORECASE)),
+    ("missing_allowed_event", re.compile(r"\b(allowed_event|allowed event|event_filter|event filter|event=schedule|event_name.*schedule)\b", re.IGNORECASE)),
+    ("missing_cadence", re.compile(r"\b(cadence|expected cadence|stale_after_hours|max_age_hours)\b", re.IGNORECASE)),
+    ("missing_blocker_rule", re.compile(r"\b(blocker_rule|blocker rule|blocker trigger)\b", re.IGNORECASE)),
+    ("missing_promotion_gate", re.compile(r"\b(promotion_gate|promotion gate)\b", re.IGNORECASE)),
+    ("missing_demotion_trigger", re.compile(r"\b(demotion_trigger|demotion trigger|rejection trigger)\b", re.IGNORECASE)),
+    ("missing_kill_switch", re.compile(r"\b(kill_switch|kill switch)\b", re.IGNORECASE)),
+    ("missing_bounded_non_claims", re.compile(r"\b(bounded_non_claims|bounded non-claims|non-claims)\b", re.IGNORECASE)),
+)
+SCHEDULED_OWNER_WORKFLOW_DISPATCH_PROOF_PATTERN = re.compile(
+    r"\bworkflow_dispatch\b.{0,120}\b(counts? as|accepted|admit(?:s|ted)?|proof|scheduled proof)\b|"
+    r"\b(counts? as|accepted|admit(?:s|ted)?|proof|scheduled proof)\b.{0,120}\bworkflow_dispatch\b",
+    re.IGNORECASE | re.DOTALL,
+)
+SCHEDULED_OWNER_PRIVATE_RAW_CAPTURE_PATTERN = re.compile(
+    r"\b(private|raw|authenticated|local)\b.{0,80}\b(capture|archive|retention|logs?|DOM|HTML|screenshots?)\b|"
+    r"\b(capture|archive|retention)\b.{0,80}\b(private|raw|authenticated|local)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+SCHEDULED_OWNER_CONTROL_PLANE_PATTERN = re.compile(
+    r"\b(start|starts|install|installs|run|runs|launch|launches|create|creates|own|owns|control|controls)\b.{0,100}"
+    r"\b(scheduler|queue|daemon|controller|registry|retry loop|background gbrain|background hermes)\b|"
+    r"\b(scheduler|queue|daemon|controller|registry|retry loop)\b.{0,100}\b(owns|controls|runs|dispatches|creates)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+SCHEDULED_OWNER_AUTO_GITHUB_PATTERN = re.compile(
+    r"\b(automatic GitHub mutation|automatic issue creation|automatic PR creation|automatic pull request creation|"
+    r"creates? GitHub issues? automatically|auto[- ]?merges?|automatic merge)\b",
+    re.IGNORECASE,
+)
+
+
+def is_scheduled_owner_proof_explainer(path: str, text: str) -> bool:
+    lowered = path.lower()
+    if any(hint in lowered for hint in SCHEDULED_OWNER_PROOF_CONTRACT_PATH_HINTS):
+        return True
+    return SCHEDULED_OWNER_PROOF_EXPLAINER_PATTERN.search(text) is not None
+
+
+def scheduled_owner_proof_positive_surface(text: str) -> bool:
+    for match in SCHEDULED_OWNER_PROOF_SURFACE_PATTERN.finditer(text):
+        start, end = match.span()
+        line_start = text.rfind("\n", 0, start) + 1
+        line_end = text.find("\n", end)
+        if line_end == -1:
+            line_end = len(text)
+        line = text[line_start:line_end]
+        if SCHEDULED_OWNER_PROOF_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def scheduled_owner_proof_positive_field(text: str, pattern: re.Pattern[str]) -> bool:
+    for match in pattern.finditer(text):
+        start, end = match.span()
+        line_start = text.rfind("\n", 0, start) + 1
+        line_end = text.find("\n", end)
+        if line_end == -1:
+            line_end = len(text)
+        line = text[line_start:line_end]
+        previous_start = text.rfind("\n", 0, max(0, line_start - 1)) + 1
+        previous = text[previous_start:max(0, line_start - 1)]
+        is_named_field = re.match(r"\s*[\w -]+(?:_[\w -]+)?\s*[:=]", line) is not None
+        if SCHEDULED_FIELD_NEGATION_PATTERN.search(line) and not is_named_field:
+            continue
+        continuation = bool(line.strip()) and not line.lstrip().startswith(("-", "*", "#")) and not is_named_field
+        if continuation and SCHEDULED_FIELD_NEGATION_PATTERN.search(previous):
+            continue
+        return True
+    return False
+
+
+def scheduled_owner_proof_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
+    prohibition_context = 0
+    for line in text.splitlines():
+        if re.search(
+            r"\b(boundary|bounded[_ -]non-claims|non-claims|forbidden mode|"
+            r"blocker[_ -]rule|demotion[_ -]trigger|rejection trigger|kill[_ -]switch)\b",
+            line,
+            re.IGNORECASE,
+        ):
+            has_negation = SCHEDULED_OWNER_PROOF_NEGATION_PATTERN.search(line) is not None
+            is_boundary_header = re.search(
+                r"^\s*(?:#{1,6}\s*)?(?:boundary|bounded[_ -]non-claims|non-claims|"
+                r"blocker[_ -]rule|demotion[_ -]trigger|rejection trigger|kill[_ -]switch)\s*:?\s*$",
+                line,
+                re.IGNORECASE,
+            )
+            is_guardrail_field = re.search(
+                r"\b(blocker[_ -]rule|demotion[_ -]trigger|rejection trigger|kill[_ -]switch)\b",
+                line,
+                re.IGNORECASE,
+            )
+            prohibition_context = 12 if (has_negation or is_boundary_header or is_guardrail_field) else 0
+        if not pattern.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        if prohibition_context or SCHEDULED_OWNER_PROOF_NEGATION_PATTERN.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        return True
+    return False
+
+
+def scheduled_readback_owner_proof_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+
+    for path, text in owner_evidence_texts(texts).items():
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_scheduled_owner_proof_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
+            continue
+        if not scheduled_owner_proof_positive_surface(text):
+            continue
+
+        reasons: list[str] = []
+        for reason, pattern in SCHEDULED_OWNER_PROOF_REQUIRED_FIELDS:
+            if not scheduled_owner_proof_positive_field(text, pattern):
+                reasons.append(reason)
+                reason_counts[reason] += 1
+
+        if scheduled_owner_proof_line_overclaim(text, SCHEDULED_OWNER_WORKFLOW_DISPATCH_PROOF_PATTERN):
+            reasons.append("workflow_dispatch_as_scheduled_proof")
+            reason_counts["workflow_dispatch_as_scheduled_proof"] += 1
+        if scheduled_owner_proof_line_overclaim(text, SCHEDULED_OWNER_PRIVATE_RAW_CAPTURE_PATTERN):
+            reasons.append("private_raw_capture")
+            reason_counts["private_raw_capture"] += 1
+        if scheduled_owner_proof_line_overclaim(text, SCHEDULED_OWNER_CONTROL_PLANE_PATTERN):
+            reasons.append("hidden_control_plane")
+            reason_counts["hidden_control_plane"] += 1
+        if scheduled_owner_proof_line_overclaim(text, SCHEDULED_OWNER_AUTO_GITHUB_PATTERN):
+            reasons.append("automatic_github_mutation_or_auto_merge")
+            reason_counts["automatic_github_mutation_or_auto_merge"] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:7])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"scheduled_readback_owner_proof_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"scheduled_readback_owner_proof_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "scheduled_readback_owner_proof_gap_count": len(offenders),
+            "scheduled_readback_owner_proof_grounded_count": len(set(grounded)),
+            "missing_owner_issue_count": reason_counts["missing_owner_issue"],
+            "missing_candidate_id_count": reason_counts["missing_candidate_id"],
+            "missing_schedule_source_count": reason_counts["missing_schedule_source"],
+            "missing_allowed_event_count": reason_counts["missing_allowed_event"],
+            "missing_cadence_count": reason_counts["missing_cadence"],
+            "missing_blocker_rule_count": reason_counts["missing_blocker_rule"],
+            "missing_promotion_gate_count": reason_counts["missing_promotion_gate"],
+            "missing_demotion_trigger_count": reason_counts["missing_demotion_trigger"],
+            "missing_kill_switch_count": reason_counts["missing_kill_switch"],
+            "missing_bounded_non_claims_count": reason_counts["missing_bounded_non_claims"],
+            "workflow_dispatch_as_scheduled_proof_count": reason_counts["workflow_dispatch_as_scheduled_proof"],
+            "private_raw_capture_count": reason_counts["private_raw_capture"],
+            "hidden_control_plane_count": reason_counts["hidden_control_plane"],
+            "automatic_github_mutation_or_auto_merge_count": reason_counts["automatic_github_mutation_or_auto_merge"],
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "scheduled readback owner proof is missing owner/cadence/event/blocker fields or overclaims automation authority"
+            if offenders
+            else "scheduled readback owner proof evidence is complete or absent"
         ),
     }
 
@@ -5809,6 +6017,7 @@ EVALUATORS = {
     "AS-46": deep_research_source_intelligence_native_corpus_gap,
     "AS-47": integrated_native_acceptance_gap,
     "AS-48": standalone_external_intelligence_sidecar_gap,
+    "AS-49": scheduled_readback_owner_proof_gap,
 }
 
 
