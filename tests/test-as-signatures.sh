@@ -1306,6 +1306,13 @@ clean_payload = json.loads(clean.stdout)
 assert clean_payload["ds_id"] == "AS-50", clean_payload
 assert clean_payload["fired"] is False, clean_payload
 assert clean_payload["signals"]["hermes_failure_disposition_grounded_count"] == 1, clean_payload
+
+self_scan = subprocess.run(["bash", script, repo_root], check=True, text=True, stdout=subprocess.PIPE)
+self_payload = json.loads(self_scan.stdout)
+assert self_payload["ds_id"] == "AS-50", self_payload
+assert self_payload["fired"] is False, self_payload
+assert self_payload["signals"]["hermes_failure_disposition_gap_count"] == 0, self_payload
+assert self_payload["signals"]["hermes_failure_disposition_grounded_count"] >= 1, self_payload
 PY
 
 AS34_GAP_REPO="$TMPDIR/as34-gap-repo"

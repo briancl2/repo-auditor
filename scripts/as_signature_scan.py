@@ -5980,6 +5980,17 @@ HERMES_FAILURE_DISPOSITION_SURFACE_PATTERN = re.compile(
     r"foreground Hermes failure disposition)\b",
     re.IGNORECASE,
 )
+HERMES_FAILURE_DISPOSITION_EXPLAINER_PATTERN = re.compile(
+    r"\b(detect-as-hermes-foreground-failure-disposition-gap\.sh|"
+    r"Hermes foreground failure disposition detector coverage|Triggers:\s*AS-50|"
+    r"AS-50:\s*Hermes Foreground Failure Disposition Gap)\b",
+    re.IGNORECASE,
+)
+HERMES_FAILURE_DISPOSITION_EXPLAINER_PATHS = {
+    "readme.md",
+    "scripts/detect-as-hermes-foreground-failure-disposition-gap.sh",
+    "scripts/detect-new-signatures.sh",
+}
 HERMES_FAILURE_DISPOSITION_REQUIRED_FIELDS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("missing_failure_issue", re.compile(r"^\s*failure[ _-]?issue\s*[:=]", re.IGNORECASE | re.MULTILINE)),
     ("missing_primary_object", re.compile(r"^\s*primary[ _-]?object\s*[:=]", re.IGNORECASE | re.MULTILINE)),
@@ -6083,6 +6094,17 @@ def hermes_disposition_positive_field(text: str, pattern: re.Pattern[str]) -> bo
     return False
 
 
+def is_hermes_failure_disposition_explainer(path: str, text: str) -> bool:
+    """Treat AS-50 catalog and detector docs as explanatory, not dispositions."""
+    lowered_path = path.lower()
+    if (
+        lowered_path not in HERMES_FAILURE_DISPOSITION_EXPLAINER_PATHS
+        and not lowered_path.startswith("detection-signatures/")
+    ):
+        return False
+    return HERMES_FAILURE_DISPOSITION_EXPLAINER_PATTERN.search(text) is not None
+
+
 def hermes_foreground_failure_disposition_gap(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -6094,6 +6116,9 @@ def hermes_foreground_failure_disposition_gap(texts: dict[str, str]) -> dict[str
             historical_evidence_skipped += 1
             continue
         if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_hermes_failure_disposition_explainer(path, text):
             grounded.append(path)
             continue
         if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
