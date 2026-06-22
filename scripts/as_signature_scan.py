@@ -721,6 +721,198 @@ def unused_platform_surface(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+EXTERNAL_CRITIQUE_CONTRACT_SOURCE = (
+    "repo-agent-core/docs/external-critique-capability-contract.md"
+    "@d4a4c995b1bff58fe99c97ccf09d9d271eb88231"
+)
+EXTERNAL_CRITIQUE_CONTRACT_VERSION = "1.0"
+EXTERNAL_CRITIQUE_TOKEN_PATTERN = re.compile(
+    r"\b(EXTERNAL_CRITIQUE_CAPABILITY|CRITIQUE_RESULT)\b",
+    re.IGNORECASE,
+)
+EXTERNAL_CRITIQUE_CONCEPT_PATTERN = re.compile(
+    r"\b(external[-_ ]critique|external critic|critic mode|critic request|"
+    r"critique result|bounded risk sensor|latest[-_ ]panel|high[-_ ]stakes context|"
+    r"blocker findings?|advisory findings?|finding quota|no[-_ ]findings?)\b",
+    re.IGNORECASE,
+)
+EXTERNAL_CRITIQUE_SEMANTIC_PATTERNS = {
+    "authority": re.compile(
+        r"\b(authority refs?|local authority|repo[- ]local instructions?|"
+        r"owner evidence|owner decision|github issue/pr/check/merge truth|"
+        r"target repo principles|local principles)\b",
+        re.IGNORECASE,
+    ),
+    "invocation": re.compile(
+        r"\b(invoke|invocation|critic mode|one critic|panel|latest[- ]panel|"
+        r"trigger examples?|when[- ]not[- ]to[- ]invoke)\b",
+        re.IGNORECASE,
+    ),
+    "admission": re.compile(
+        r"\b(admissible|admission|owner disposition|blocker findings?|"
+        r"advisory findings?|no[- ]finding result|independent owner evidence)\b",
+        re.IGNORECASE,
+    ),
+    "privacy": re.compile(
+        r"\b(privacy|redaction|credentials?|private data|customer details?|"
+        r"private urls?|internal text)\b",
+        re.IGNORECASE,
+    ),
+    "budget": re.compile(
+        r"\b(pass budget|one follow[- ]up|one initial pass|loop caps?|"
+        r"stopping condition|max(?:imum)? passes?)\b",
+        re.IGNORECASE,
+    ),
+}
+EXTERNAL_CRITIQUE_VERSION_PATTERN = re.compile(
+    r"\b(?:external critique capability )?(?:contract )?version\s*[:=]\s*`?([0-9]+(?:\.[0-9]+)*)`?",
+    re.IGNORECASE,
+)
+PANEL_PATTERN = re.compile(r"\b(panel|latest[- ]panel)\b", re.IGNORECASE)
+NAMED_HIGH_STAKES_CONTEXT_PATTERN = re.compile(
+    r"\b(named|specific|concrete|explicit)\b.{0,50}\bhigh[- ]stakes context\b|"
+    r"\bhigh[- ]stakes context\b.{0,70}\b(required|before invocation|before use|must be named)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+CONTEXT_SUPPORT_PATTERN = re.compile(
+    r"\b(context support|scope reviewed|subject and scope|embedded context|"
+    r"repository context|local context|named high[- ]stakes context|"
+    r"answered context|context gaps?)\b",
+    re.IGNORECASE,
+)
+FORCED_FINDING_QUOTA_PATTERN = re.compile(
+    r"\b(forced finding quota|must return (?:at least )?(?:one|two|three|[1-9][0-9]*) findings?|"
+    r"at least (?:one|two|three|[1-9][0-9]*) findings?|minimum (?:one|two|three|[1-9][0-9]*) findings?|"
+    r"always (?:find|return) (?:a finding|findings)|find (?:three|two|[2-9][0-9]*) issues?)\b",
+    re.IGNORECASE,
+)
+NO_FORCED_FINDING_QUOTA_PATTERN = re.compile(
+    r"\b(no forced finding quota|finding quota:\s*none|no[- ]finding results? (?:are|is) valid|"
+    r"valid critique may return no findings|no findings? result is valid|"
+    r"do not ask for a forced finding count)\b",
+    re.IGNORECASE,
+)
+BLOCKER_ADVISORY_PATTERN = re.compile(
+    r"\b(blocker findings?|blockers?)\b.{0,80}\b(advisory findings?|advisory)\b|"
+    r"\b(advisory findings?|advisory)\b.{0,80}\b(blocker findings?|blockers?)\b|"
+    r"\bblocker/advisory\b",
+    re.IGNORECASE | re.DOTALL,
+)
+LOOP_CAP_PATTERN = re.compile(
+    r"\b(pass budget|one initial pass plus one follow[- ]up|one follow[- ]up pass|"
+    r"loop caps?|max(?:imum)? passes?|stopping condition|budget expansion)\b",
+    re.IGNORECASE,
+)
+LOCAL_AUTHORITY_REF_PATTERN = re.compile(
+    r"\b(authority refs?|local authority|repo[- ]local instructions?|repo[- ]local policy|"
+    r"owner evidence|owner decision|independent owner evidence|"
+    r"github issue/pr/check/merge truth|github issue|pull request|checks?|"
+    r"AGENTS\.md|CODEX\.md|CLAUDE\.md|target repo principles|local principles)\b",
+    re.IGNORECASE,
+)
+PRIVACY_BOUNDARY_PATTERN = re.compile(
+    r"\b(privacy|redaction|redact|credentials?|secrets?|private data|private urls?|"
+    r"account details?|customer details?|internal text|omit|summarize)\b",
+    re.IGNORECASE,
+)
+BMA_ONLY_TERM_PATTERN = re.compile(
+    r"\b(BMA|Build Meta Analysis|build-meta-analysis|Issue #164|repo-star|"
+    r"coordinator|child issue|run root|progress-ledger)\b",
+    re.IGNORECASE,
+)
+BMA_TRANSLATION_PATTERN = re.compile(
+    r"\b(seed evidence|provenance only|non[- ]canonical|not canonical|"
+    r"target[- ]local translation|locali[sz]e|locali[sz]ed|"
+    r"target repo principles outrank|local principles outrank|"
+    r"rewrites? it through local principles)\b",
+    re.IGNORECASE,
+)
+AUTHORITY_OVERCLAIM_PATTERN = re.compile(
+    r"\b(critique is authority|critic output is authority|external output into authority|"
+    r"closure truth|approves? (?:prs?|pull requests?|closure|merges?)|"
+    r"decides? (?:owner )?action|blocks? work by itself|blockers? stop by themselves|"
+    r"replacement authority|replaces? local tests|replaces? github)\b",
+    re.IGNORECASE,
+)
+AUTHORITY_NEGATION_PATTERN = re.compile(
+    r"\b(not|no|never|without|cannot|does not|do not|is not|are not|not a|not authority|"
+    r"not closure truth|doesn't)\b",
+    re.IGNORECASE,
+)
+BMA_CANONICAL_PATTERN = re.compile(
+    r"\b(BMA|Build Meta Analysis|build-meta-analysis)\b.{0,100}"
+    r"\b(canonical|authority|authoritative|source of truth|outranks?|must follow)\b|"
+    r"\b(canonical|authority|authoritative|source of truth|outranks?|must follow)\b.{0,100}"
+    r"\b(BMA|Build Meta Analysis|build-meta-analysis)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+FLEET_FINDING_PATTERN = re.compile(
+    r"\b(fleet findings?|repo[- ]star findings?|cross[- ]repo findings?|"
+    r"downstream findings?|repo-agent fleet|core[- ]five findings?)\b",
+    re.IGNORECASE,
+)
+FLEET_ADVISORY_PATTERN = re.compile(
+    r"\b(advisory until owner evidence|not owner[- ]binding|owner evidence exists|"
+    r"until tied to (?:target|owner) evidence|owner routing|target evidence)\b",
+    re.IGNORECASE,
+)
+
+
+def external_critique_role(path: str) -> str:
+    lowered = path.lower()
+    name = Path(path).name.lower()
+    if lowered.startswith(".github/workflows/"):
+        return "workflow"
+    if path == "Makefile" or name == "makefile":
+        return "make_target"
+    if ".agents/skills/" in lowered or ".github/skills/" in lowered or "/skills/" in lowered:
+        return "skill"
+    if lowered.startswith(".github/prompts/") or lowered.endswith((".prompt", ".prompt.md")) or "prompt" in name:
+        return "prompt"
+    if (
+        path in INSTRUCTION_FILES
+        or lowered.startswith(".github/agents/")
+        or lowered.endswith(".agent.md")
+        or name in {"agents.md", "agent.md", "codex.md", "claude.md", "gemini.md"}
+    ):
+        return "agent_instruction"
+    if lowered.startswith("scripts/") or "/scripts/" in lowered or lowered.startswith("tools/") or "/tools/" in lowered:
+        return "runner"
+    if lowered.startswith("docs/") or name in {"readme.md", "learnings.md"}:
+        return "docs"
+    return "docs" if lowered.endswith((".md", ".txt")) else "other"
+
+
+def external_critique_semantic_hit_count(text: str) -> int:
+    return sum(pattern.search(text) is not None for pattern in EXTERNAL_CRITIQUE_SEMANTIC_PATTERNS.values())
+
+
+def is_external_critique_capability_surface(path: str, text: str) -> bool:
+    if is_instrumentation_noise_path(path):
+        return False
+    if EXTERNAL_CRITIQUE_TOKEN_PATTERN.search(text):
+        return True
+    if not EXTERNAL_CRITIQUE_CONCEPT_PATTERN.search(text):
+        return False
+    return external_critique_semantic_hit_count(text) >= 2
+
+
+def external_critique_has_authority_overclaim(text: str) -> bool:
+    for line in text.splitlines():
+        if not AUTHORITY_OVERCLAIM_PATTERN.search(line):
+            continue
+        if AUTHORITY_NEGATION_PATTERN.search(line):
+            continue
+        return True
+    return False
+
+
+def external_critique_has_bma_canonical_drift(text: str) -> bool:
+    if not BMA_CANONICAL_PATTERN.search(text):
+        return False
+    return BMA_TRANSLATION_PATTERN.search(text) is None
+
+
 def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
     evidence_texts = owner_evidence_texts(texts)
     responder_truth_files = rels_matching(
@@ -763,14 +955,139 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
             bounded_calibration_files,
         )
     )
-    fired = observed_classes >= 2 and len(validation_files) >= 1
+    legacy_health_fired = observed_classes >= 2 and len(validation_files) >= 1
+
+    capability_surfaces = {
+        path: text
+        for path, text in evidence_texts.items()
+        if is_external_critique_capability_surface(path, text)
+    }
+    paths_by_role: dict[str, list[str]] = {role: [] for role in (
+        "runner",
+        "prompt",
+        "skill",
+        "make_target",
+        "docs",
+        "workflow",
+        "agent_instruction",
+        "other",
+    )}
+    for path in sorted(capability_surfaces):
+        paths_by_role[external_critique_role(path)].append(path)
+
+    evidence_class_counts: dict[str, int] = {
+        "missing_capability": 0,
+        "stale_bma_copy": 0,
+        "local_principle_drift": 0,
+        "panel_without_context": 0,
+        "forced_finding_quota": 0,
+        "no_loop_cap": 0,
+        "no_local_authority_refs": 0,
+        "privacy_boundary_missing": 0,
+    }
+    extra_drift_counts: dict[str, int] = {
+        "blocker_advisory_missing": 0,
+        "fleet_advisory_missing": 0,
+        "contract_version_drift": 0,
+    }
+    semantic_support_counts = Counter()
+    class_evidence: list[str] = []
+    local_version_records: list[str] = []
+
+    if not capability_surfaces:
+        evidence_class_counts["missing_capability"] = 1
+        class_evidence.append("missing_capability=>no target-local external-critique capability surface")
+    else:
+        for path, text in sorted(capability_surfaces.items()):
+            role = external_critique_role(path)
+            version_match = EXTERNAL_CRITIQUE_VERSION_PATTERN.search(text)
+            if version_match:
+                version = version_match.group(1)
+                local_version_records.append(f"{path}=>{version}")
+                if version != EXTERNAL_CRITIQUE_CONTRACT_VERSION:
+                    extra_drift_counts["contract_version_drift"] += 1
+                    class_evidence.append(f"contract_version_drift=>{path}:{version}")
+
+            if CONTEXT_SUPPORT_PATTERN.search(text):
+                semantic_support_counts["context_support"] += 1
+            if PANEL_PATTERN.search(text):
+                semantic_support_counts["panel_surface"] += 1
+                if NAMED_HIGH_STAKES_CONTEXT_PATTERN.search(text):
+                    semantic_support_counts["named_high_stakes_context"] += 1
+                else:
+                    evidence_class_counts["panel_without_context"] += 1
+                    class_evidence.append(f"panel_without_context=>{path}")
+            if FORCED_FINDING_QUOTA_PATTERN.search(text) and not NO_FORCED_FINDING_QUOTA_PATTERN.search(text):
+                evidence_class_counts["forced_finding_quota"] += 1
+                class_evidence.append(f"forced_finding_quota=>{path}")
+            if NO_FORCED_FINDING_QUOTA_PATTERN.search(text):
+                semantic_support_counts["no_forced_finding_quota"] += 1
+            if BLOCKER_ADVISORY_PATTERN.search(text):
+                semantic_support_counts["blocker_advisory_support"] += 1
+            else:
+                extra_drift_counts["blocker_advisory_missing"] += 1
+                class_evidence.append(f"blocker_advisory_missing=>{path}")
+            if LOOP_CAP_PATTERN.search(text):
+                semantic_support_counts["loop_cap_support"] += 1
+            else:
+                evidence_class_counts["no_loop_cap"] += 1
+                class_evidence.append(f"no_loop_cap=>{path}")
+            if LOCAL_AUTHORITY_REF_PATTERN.search(text):
+                semantic_support_counts["local_authority_refs"] += 1
+            else:
+                evidence_class_counts["no_local_authority_refs"] += 1
+                class_evidence.append(f"no_local_authority_refs=>{path}")
+            if PRIVACY_BOUNDARY_PATTERN.search(text):
+                semantic_support_counts["privacy_boundary"] += 1
+            else:
+                evidence_class_counts["privacy_boundary_missing"] += 1
+                class_evidence.append(f"privacy_boundary_missing=>{path}")
+            if BMA_ONLY_TERM_PATTERN.search(text):
+                semantic_support_counts["bma_term_surface"] += 1
+                if BMA_TRANSLATION_PATTERN.search(text):
+                    semantic_support_counts["bma_translation"] += 1
+                else:
+                    evidence_class_counts["stale_bma_copy"] += 1
+                    class_evidence.append(f"stale_bma_copy=>{path}")
+            if external_critique_has_authority_overclaim(text) or external_critique_has_bma_canonical_drift(text):
+                evidence_class_counts["local_principle_drift"] += 1
+                class_evidence.append(f"local_principle_drift=>{path}")
+            if FLEET_FINDING_PATTERN.search(text):
+                semantic_support_counts["fleet_finding_surface"] += 1
+                if FLEET_ADVISORY_PATTERN.search(text):
+                    semantic_support_counts["fleet_advisory_until_owner_evidence"] += 1
+                else:
+                    extra_drift_counts["fleet_advisory_missing"] += 1
+                    class_evidence.append(f"fleet_advisory_missing=>{path}")
+            semantic_support_counts[f"role_{role}"] += 1
+
+    active_evidence_classes = [
+        name for name, count in {**evidence_class_counts, **extra_drift_counts}.items() if count
+    ]
+    fired = legacy_health_fired or bool(active_evidence_classes)
+    role_details = [
+        f"{role}=>{','.join(paths[:4])}"
+        for role, paths in paths_by_role.items()
+        if paths
+    ]
     details = [
         f"responder_truth=>{','.join(responder_truth_files[:4]) or 'none'}",
         f"receipt_output=>{','.join(receipt_output_files[:4]) or 'none'}",
         f"helper_only=>{','.join(helper_only_files[:4]) or 'none'}",
         f"bounded_calibration=>{','.join(bounded_calibration_files[:4]) or 'none'}",
         f"validation=>{','.join(validation_files[:4]) or 'none'}",
+        f"capability_roles=>{';'.join(role_details) or 'missing'}",
+        f"evidence_classes=>{';'.join(class_evidence[:8]) or 'none'}",
     ]
+    if evidence_class_counts["missing_capability"]:
+        reason = "external critique capability surface is missing"
+    elif active_evidence_classes:
+        reason = "external critique capability surfaces have localization, admission, or authority drift"
+    elif legacy_health_fired:
+        reason = "repo exposes two or more critique-health evidence classes with validation support"
+    else:
+        reason = "external critique capability is absent from drift classes or is locally bounded"
+
     return {
         "fired": fired,
         "signals": {
@@ -779,9 +1096,34 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
             "helper_only_file_count": len(helper_only_files),
             "bounded_calibration_file_count": len(bounded_calibration_files),
             "validation_file_count": len(validation_files),
+            "contract_semantics_source": EXTERNAL_CRITIQUE_CONTRACT_SOURCE,
+            "contract_source_version": EXTERNAL_CRITIQUE_CONTRACT_VERSION,
+            "external_critique_capability_present": bool(capability_surfaces),
+            "external_critique_mechanism_count": len(capability_surfaces),
+            "mechanism_roles": [role for role, paths in paths_by_role.items() if paths],
+            "mechanism_paths_by_role": {role: paths for role, paths in paths_by_role.items() if paths},
+            "local_version_records": local_version_records,
+            "local_version_unknown_count": max(len(capability_surfaces) - len(local_version_records), 0),
+            "context_support_count": semantic_support_counts["context_support"],
+            "panel_surface_count": semantic_support_counts["panel_surface"],
+            "named_high_stakes_context_count": semantic_support_counts["named_high_stakes_context"],
+            "no_forced_finding_quota_count": semantic_support_counts["no_forced_finding_quota"],
+            "blocker_advisory_support_count": semantic_support_counts["blocker_advisory_support"],
+            "loop_cap_support_count": semantic_support_counts["loop_cap_support"],
+            "local_authority_ref_count": semantic_support_counts["local_authority_refs"],
+            "privacy_boundary_count": semantic_support_counts["privacy_boundary"],
+            "bma_term_surface_count": semantic_support_counts["bma_term_surface"],
+            "bma_translation_count": semantic_support_counts["bma_translation"],
+            "fleet_finding_surface_count": semantic_support_counts["fleet_finding_surface"],
+            "fleet_advisory_until_owner_evidence_count": semantic_support_counts[
+                "fleet_advisory_until_owner_evidence"
+            ],
+            "evidence_class_counts": evidence_class_counts,
+            "extra_drift_counts": extra_drift_counts,
+            "active_evidence_classes": active_evidence_classes,
         },
         "evidence": evidence_join(details),
-        "reason": "repo exposes two or more critique-health evidence classes with validation support" if fired else "critique-health mismatch is absent or explicitly grounded",
+        "reason": reason,
     }
 
 
