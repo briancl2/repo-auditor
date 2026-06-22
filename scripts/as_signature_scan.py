@@ -723,9 +723,9 @@ def unused_platform_surface(texts: dict[str, str]) -> dict[str, Any]:
 
 EXTERNAL_CRITIQUE_CONTRACT_SOURCE = (
     "repo-agent-core/docs/external-critique-capability-contract.md"
-    "@d4a4c995b1bff58fe99c97ccf09d9d271eb88231"
+    "@d31c7017a8c01a7aa798ac2102f91eb1199e36d1"
 )
-EXTERNAL_CRITIQUE_CONTRACT_VERSION = "1.0"
+EXTERNAL_CRITIQUE_CONTRACT_VERSION = "1.1"
 EXTERNAL_CRITIQUE_TOKEN_PATTERN = re.compile(
     r"\b(EXTERNAL_CRITIQUE_CAPABILITY|CRITIQUE_RESULT)\b",
     re.IGNORECASE,
@@ -856,6 +856,35 @@ FLEET_ADVISORY_PATTERN = re.compile(
     r"until tied to (?:target|owner) evidence|owner routing|target evidence)\b",
     re.IGNORECASE,
 )
+SKILL_OR_CAPABILITY_CONVENTION_PATH_PATTERN = re.compile(
+    r"(^|/)(?:\.agents/skills|\.github/skills|skills)/[^/]+/(?:SKILL\.md|[^/]+\.(?:md|txt|yml|yaml|json))$|"
+    r"(^|/)(?:\.github/agents|\.agents)/[^/]+\.agent\.md$",
+    re.IGNORECASE,
+)
+SKILL_OR_CAPABILITY_CONVENTION_TEXT_PATTERN = re.compile(
+    r"\b(skill system|repo-agent capability|repo[- ]agent capability|capability convention|"
+    r"capability surface|capability registry|agent skill|skills/)\b",
+    re.IGNORECASE,
+)
+EXTERNAL_CRITIQUE_MODEL_RUNTIME_PATTERNS = {
+    "requested_path": re.compile(r"\b(requested[_ -]?path|requested[_ -]?provider|requested[_ -]?route)\b", re.IGNORECASE),
+    "requested_model": re.compile(r"\b(requested[_ -]?model|model[_ -]?requested)\b", re.IGNORECASE),
+    "actual_responding_path": re.compile(
+        r"\b(actual[_ -]?responding[_ -]?path|actual[_ -]?path|responding[_ -]?path|"
+        r"actual[_ -]?responding[_ -]?provider|responding[_ -]?provider)\b",
+        re.IGNORECASE,
+    ),
+    "actual_responding_model": re.compile(
+        r"\b(actual[_ -]?responding[_ -]?model|actual[_ -]?model|responding[_ -]?model)\b",
+        re.IGNORECASE,
+    ),
+    "unavailable_disposition": re.compile(
+        r"\b(unavailable[_ -]?disposition|model[_ -]?unavailable|model[_ -]?not[_ -]?available|"
+        r"provider[_ -]?unavailable|provider[_ -]?not[_ -]?available|fallback disposition)\b",
+        re.IGNORECASE,
+    ),
+}
+EXTERNAL_CRITIQUE_MODEL_RUNTIME_REQUIRED_FIELDS = frozenset(EXTERNAL_CRITIQUE_MODEL_RUNTIME_PATTERNS)
 
 
 def external_critique_role(path: str) -> str:
@@ -895,6 +924,29 @@ def is_external_critique_capability_surface(path: str, text: str) -> bool:
     if not EXTERNAL_CRITIQUE_CONCEPT_PATTERN.search(text):
         return False
     return external_critique_semantic_hit_count(text) >= 2
+
+
+def is_skill_or_capability_convention_surface(path: str, text: str) -> bool:
+    if is_instrumentation_noise_path(path):
+        return False
+    if SKILL_OR_CAPABILITY_CONVENTION_PATH_PATTERN.search(path):
+        return True
+    return SKILL_OR_CAPABILITY_CONVENTION_TEXT_PATTERN.search(text) is not None
+
+
+def external_critique_model_runtime_hits(text: str) -> set[str]:
+    if not (
+        EXTERNAL_CRITIQUE_TOKEN_PATTERN.search(text)
+        or EXTERNAL_CRITIQUE_CONCEPT_PATTERN.search(text)
+    ):
+        return set()
+    if not re.search(r"\b(receipt[-_ ]?output|receipt|output truth|runtime truth)\b", text, re.IGNORECASE):
+        return set()
+    return {
+        name
+        for name, pattern in EXTERNAL_CRITIQUE_MODEL_RUNTIME_PATTERNS.items()
+        if pattern.search(text)
+    }
 
 
 def external_critique_has_authority_overclaim(text: str) -> bool:
@@ -946,8 +998,34 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
         and re.search(r"\b(test|validate|assert|receipt)\b", text) is not None,
     )
 
-    observed_classes = sum(
-        bool(bucket)
+    capability_surfaces = {
+        path: text
+        for path, text in evidence_texts.items()
+        if is_external_critique_capability_surface(path, text)
+    }
+    skill_or_capability_convention_paths = sorted(
+        path
+        for path, text in evidence_texts.items()
+        if is_skill_or_capability_convention_surface(path, text)
+        and not is_external_critique_capability_surface(path, text)
+    )
+    model_runtime_truth_hits: dict[str, set[str]] = {
+        path: hits
+        for path, text in evidence_texts.items()
+        if (hits := external_critique_model_runtime_hits(text))
+    }
+    model_runtime_truth_paths = sorted(model_runtime_truth_hits)
+    model_runtime_truth_complete_paths = sorted(
+        path
+        for path, hits in model_runtime_truth_hits.items()
+        if EXTERNAL_CRITIQUE_MODEL_RUNTIME_REQUIRED_FIELDS.issubset(hits)
+    )
+    model_runtime_truth_path_set = set(model_runtime_truth_paths)
+    model_runtime_field_counts = Counter(
+        field for hits in model_runtime_truth_hits.values() for field in hits
+    )
+    legacy_observed_classes = sum(
+        bool([path for path in bucket if path not in model_runtime_truth_path_set])
         for bucket in (
             responder_truth_files,
             receipt_output_files,
@@ -955,13 +1033,10 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
             bounded_calibration_files,
         )
     )
-    legacy_health_fired = observed_classes >= 2 and len(validation_files) >= 1
-
-    capability_surfaces = {
-        path: text
-        for path, text in evidence_texts.items()
-        if is_external_critique_capability_surface(path, text)
-    }
+    legacy_validation_files = [
+        path for path in validation_files if path not in model_runtime_truth_path_set
+    ]
+    legacy_health_fired = legacy_observed_classes >= 2 and len(legacy_validation_files) >= 1
     paths_by_role: dict[str, list[str]] = {role: [] for role in (
         "runner",
         "prompt",
@@ -974,6 +1049,10 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
     )}
     for path in sorted(capability_surfaces):
         paths_by_role[external_critique_role(path)].append(path)
+    prompt_only_external_critique = (
+        bool(paths_by_role["prompt"])
+        and not any(paths for role, paths in paths_by_role.items() if role != "prompt")
+    )
 
     evidence_class_counts: dict[str, int] = {
         "missing_capability": 0,
@@ -989,6 +1068,8 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
         "blocker_advisory_missing": 0,
         "fleet_advisory_missing": 0,
         "contract_version_drift": 0,
+        "prompt_only_external_critique": 0,
+        "model_runtime_truth_missing": 0,
     }
     semantic_support_counts = Counter()
     class_evidence: list[str] = []
@@ -998,6 +1079,18 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
         evidence_class_counts["missing_capability"] = 1
         class_evidence.append("missing_capability=>no target-local external-critique capability surface")
     else:
+        if prompt_only_external_critique and skill_or_capability_convention_paths:
+            extra_drift_counts["prompt_only_external_critique"] = 1
+            class_evidence.append(
+                "prompt_only_external_critique=>"
+                f"prompt:{','.join(paths_by_role['prompt'][:3])};"
+                f"convention:{','.join(skill_or_capability_convention_paths[:3])}"
+            )
+        if not model_runtime_truth_complete_paths:
+            extra_drift_counts["model_runtime_truth_missing"] = 1
+            class_evidence.append(
+                "model_runtime_truth_missing=>no external-critique receipt/output model-runtime truth fields"
+            )
         for path, text in sorted(capability_surfaces.items()):
             role = external_critique_role(path)
             version_match = EXTERNAL_CRITIQUE_VERSION_PATTERN.search(text)
@@ -1070,6 +1163,7 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
         for role, paths in paths_by_role.items()
         if paths
     ]
+    prompt_only_external_critique_count = 1 if prompt_only_external_critique else 0
     details = [
         f"responder_truth=>{','.join(responder_truth_files[:4]) or 'none'}",
         f"receipt_output=>{','.join(receipt_output_files[:4]) or 'none'}",
@@ -1102,6 +1196,20 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
             "external_critique_mechanism_count": len(capability_surfaces),
             "mechanism_roles": [role for role, paths in paths_by_role.items() if paths],
             "mechanism_paths_by_role": {role: paths for role, paths in paths_by_role.items() if paths},
+            "skill_or_capability_convention_present": bool(skill_or_capability_convention_paths),
+            "skill_or_capability_convention_paths": skill_or_capability_convention_paths,
+            "prompt_only_external_critique_count": prompt_only_external_critique_count,
+            "prompt_only_external_critique_drift_count": extra_drift_counts["prompt_only_external_critique"],
+            "model_runtime_truth_file_count": len(model_runtime_truth_paths),
+            "model_runtime_truth_paths": model_runtime_truth_paths,
+            "model_runtime_truth_complete_file_count": len(model_runtime_truth_complete_paths),
+            "model_runtime_truth_complete_paths": model_runtime_truth_complete_paths,
+            "model_runtime_truth_missing_count": extra_drift_counts["model_runtime_truth_missing"],
+            "requested_path_evidence_count": model_runtime_field_counts["requested_path"],
+            "requested_model_evidence_count": model_runtime_field_counts["requested_model"],
+            "actual_responding_path_evidence_count": model_runtime_field_counts["actual_responding_path"],
+            "actual_responding_model_evidence_count": model_runtime_field_counts["actual_responding_model"],
+            "unavailable_disposition_evidence_count": model_runtime_field_counts["unavailable_disposition"],
             "local_version_records": local_version_records,
             "local_version_unknown_count": max(len(capability_surfaces) - len(local_version_records), 0),
             "context_support_count": semantic_support_counts["context_support"],
