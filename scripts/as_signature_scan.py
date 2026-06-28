@@ -319,6 +319,18 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-missing-operating-model-alignment-anchor.sh",
     },
+    "AS-52": {
+        "name": "Missing repo-anthropology surface",
+        "severity": "MEDIUM",
+        "prevention_tier": "T2",
+        "script": "detect-as-missing-repo-anthropology-surface.sh",
+    },
+    "AS-53": {
+        "name": "Maturity-boundary claim overreach",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-maturity-boundary-claim-overreach.sh",
+    },
 }
 
 
@@ -6750,6 +6762,142 @@ def missing_operating_model_alignment_anchor(texts: dict[str, str]) -> dict[str,
     }
 
 
+ANTHROPOLOGY_CONTEXT_PATTERN = re.compile(
+    r"(?im)^#{1,3}\s+.*\bconstitution\b|\boperating[- ]model\b|\bAGENTS\.md\b|\brepo[- ]agent\b"
+)
+ANTHROPOLOGY_PURPOSE_PATTERN = re.compile(
+    r"(?i)\b(purpose|what this repo is|what this repo does|mission|charter|reason this repo exists)\b"
+)
+ANTHROPOLOGY_DELIVERABLE_PATTERN = re.compile(
+    r"(?i)\b(use[- ]case|use cases|deliverable|primary output|primary deliverable|consumers?|who uses)\b"
+)
+ANTHROPOLOGY_PRINCIPLE_DUALITY_PATTERN = re.compile(
+    r"(?i)("
+    r"revealed[- ]vs[- ]defined principle|"
+    r"revealed principle.{0,80}defined principle|"
+    r"defined principle.{0,80}revealed principle|"
+    r"revealed[- ]principle"
+    r")"
+)
+ANTHROPOLOGY_NAMED_SURFACE_PATTERN = re.compile(
+    r"(?i)(repo[- ]anthropology|repository anthropology|anthropology (?:surface|record|note))"
+)
+
+
+def missing_repo_anthropology_surface(texts: dict[str, str]) -> dict[str, Any]:
+    """AS-52: a repo-agent under assimilation that never produced a repo-anthropology
+    surface -- a single record of purpose, use-cases/deliverables, and the
+    defined-vs-revealed principle duality -- before repairs were selected."""
+    owner = owner_evidence_texts(texts)
+
+    context_files = [
+        path
+        for path, text in owner.items()
+        if path.endswith("constitution.md")
+        or path.endswith("AGENTS.md")
+        or "/memory/constitution" in path
+        or ANTHROPOLOGY_CONTEXT_PATTERN.search(text)
+    ]
+    anthropology_files = [
+        path
+        for path, text in owner.items()
+        if ANTHROPOLOGY_NAMED_SURFACE_PATTERN.search(text)
+        or (
+            ANTHROPOLOGY_PURPOSE_PATTERN.search(text)
+            and ANTHROPOLOGY_DELIVERABLE_PATTERN.search(text)
+            and ANTHROPOLOGY_PRINCIPLE_DUALITY_PATTERN.search(text)
+        )
+    ]
+
+    assimilation_context = bool(context_files)
+    anthropology_present = bool(anthropology_files)
+    fired = assimilation_context and not anthropology_present
+
+    details = [
+        f"assimilation_context=>{','.join(context_files[:3]) or 'none'}",
+        f"anthropology_surface=>{','.join(anthropology_files[:3]) or 'none'}",
+    ]
+    return {
+        "fired": fired,
+        "signals": {
+            "assimilation_context_present": assimilation_context,
+            "repo_anthropology_surface_present": anthropology_present,
+            "missing_repo_anthropology_surface_count": 1 if fired else 0,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "repo-agent context exists but no repo-anthropology surface (purpose + use-cases/deliverables + defined-vs-revealed principles) was found"
+            if fired
+            else "a repo-anthropology surface is present, or this is not a repo-agent assimilation context"
+        ),
+    }
+
+
+MATURITY_OVERCLAIM_PATTERN = re.compile(
+    r"(?i)("
+    r"fully autonomous|"
+    r"production[- ]ready|"
+    r"proven (?:domain )?capability|"
+    r"proves (?:domain |live cloud )|"
+    r"domain autonomy|"
+    r"improved runtime autonomy|"
+    r"end[- ]to[- ]end autonomous|"
+    r"autonomous[^.\n]{0,40}from issue[^.\n]{0,40}(?:to )?(?:pr |pull request |)merge|"
+    r"complete autonomy"
+    r")"
+)
+MATURITY_QUALIFIER_PATTERN = re.compile(
+    r"(?i)("
+    r"bounded non[- ]claim|"
+    r"does not (?:prove|claim)|"
+    r"not (?:yet )?(?:domain|production)|"
+    r"operating[- ]model (?:progress|maturity|capability)|"
+    r"readiness[^.\n]{0,30}(?:not|vs)[^.\n]{0,30}capability|"
+    r"maturity[- ](?:boundary|class)|"
+    r"\bn=\d"
+    r")"
+)
+
+
+def maturity_boundary_claim_overreach(texts: dict[str, str]) -> dict[str, Any]:
+    """AS-53: an owner surface that claims domain capability or autonomy while only
+    operating-model progress, readiness, or validation legibility has been proven,
+    with no co-located maturity-class qualifier or bounded non-claim."""
+    offenders: list[str] = []
+    grounded: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith("scripts/") or path.startswith("detection-signatures/"):
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not MATURITY_OVERCLAIM_PATTERN.search(text):
+            continue
+        if MATURITY_QUALIFIER_PATTERN.search(text):
+            grounded.append(path)
+            continue
+        offenders.append(f"{path}=>maturity_overclaim_without_qualifier")
+
+    details = [
+        f"maturity_boundary_overclaim=>{';'.join(offenders[:4]) or 'none'}",
+        f"maturity_class_grounded=>{','.join(grounded[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "maturity_boundary_claim_overreach_count": len(offenders),
+            "maturity_class_grounded_count": len(grounded),
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "a domain-capability/autonomy claim lacks a co-located maturity-class qualifier or bounded non-claim"
+            if offenders
+            else "maturity claims are class-qualified or absent"
+        ),
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -6802,6 +6950,8 @@ EVALUATORS = {
     "AS-49": scheduled_readback_owner_proof_gap,
     "AS-50": hermes_foreground_failure_disposition_gap,
     "AS-51": missing_operating_model_alignment_anchor,
+    "AS-52": missing_repo_anthropology_surface,
+    "AS-53": maturity_boundary_claim_overreach,
 }
 
 

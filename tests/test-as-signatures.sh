@@ -344,6 +344,13 @@ GitHub issue/PR/check/merge truth, and next owner action. Deep Research API ran
 live and proved the corpus.
 EOF
 
+cat > "$TEST_REPO/docs/maturity-overclaim.md" <<'EOF'
+# Capability status
+
+This repo-agent is fully autonomous and production-ready. It is proven domain
+capability and runs end-to-end autonomous from issue to PR merge.
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -357,8 +364,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 51
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 51
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 53
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 53
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -413,6 +420,8 @@ assert as_ids == {
     "AS-49",
     "AS-50",
     "AS-51",
+    "AS-52",
+    "AS-53",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the

@@ -478,3 +478,25 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-missing-operating-model-alignment-anchor.sh`
+
+### AS-52: Missing Repo-Anthropology Surface
+- **Detects:** A repo-agent under assimilation (operating-model context present) that never produced a single repo-anthropology surface — one owner record co-locating the repo's purpose, its use-cases/deliverables/consumers, and the defined-vs-revealed principle duality — before repairs were selected (the Repo Anthropology step of the assimilation method).
+- **Signal:** An assimilation context exists (a `constitution` or `AGENTS.md` surface, or other repo-agent/operating-model markers) AND no owner surface is either explicitly named a repo-anthropology record OR co-locates all three field groups (purpose AND use-cases/deliverables AND a revealed-vs-defined principle statement).
+- **Phase range:** Any repo-agent assimilation candidate that has operating-model context but has not yet written the anthropology surface; independent of Issue #164 campaign phase.
+- **Check:** Scan owner evidence text for assimilation context, then require a single anthropology surface (named, or co-locating purpose + deliverables + principle-duality) before treating the repo as anthropologically grounded. Suppress detector docs/templates/tests/fixtures and the shared repo-agent-core anthropology contract/template surfaces.
+- **Shared contract:** repo-agent-core `docs/repo-anthropology-contract.md` defines the anthropology surface and `templates/repo-anthropology.md` its shape.
+- **Fire condition:** `assimilation_context_present AND NOT repo_anthropology_surface_present` (`missing_repo_anthropology_surface_count > 0`)
+- **Prevention tier:** T2
+- **Severity:** MEDIUM
+- **Script:** `scripts/detect-as-missing-repo-anthropology-surface.sh`
+
+### AS-53: Maturity-Boundary Claim Overreach
+- **Detects:** An owner surface that claims domain capability or full autonomy (e.g. "fully autonomous", "production-ready", "proven domain capability", "end-to-end autonomous from issue to merge", "improved runtime autonomy") while only operating-model progress, readiness, or validation legibility has actually been proven, with no co-located maturity-class qualifier or bounded non-claim (the Maturity-Boundary claim-separation guard of the assimilation method).
+- **Signal:** Per owner surface (excluding `scripts/`, `detection-signatures/`, and work-management signature explainers): the text matches a maturity-overclaim pattern AND does NOT co-locate a maturity-class qualifier (`bounded non-claim`, `does not prove/claim`, `operating-model maturity/capability`, `readiness ... vs ... capability`, `maturity boundary/class`, `n=<digit>`).
+- **Phase range:** Any repo-agent that has begun publishing capability/autonomy claims; the guard is most valuable right after a system-maturation milestone when operating-model wins are easy to over-state as domain wins.
+- **Check:** For each owner surface, flag a maturity overclaim that lacks a co-located qualifier. The check is file-level and deliberately **precision-biased**: any qualifier keyword anywhere in a file grounds that file (favoring a low false-positive rate for a HIGH-severity guard over exhaustive recall).
+- **Shared contract:** repo-agent-core `docs/maturity-boundary-claim-contract.md` defines the four claim classes (operating-model vs readiness vs capability vs stack-integrated) and `templates/maturity-boundary-claim.md` the separation shape.
+- **Fire condition:** `any owner surface matches MATURITY_OVERCLAIM and not MATURITY_QUALIFIER` (`maturity_boundary_claim_overreach_count > 0`)
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-maturity-boundary-claim-overreach.sh`

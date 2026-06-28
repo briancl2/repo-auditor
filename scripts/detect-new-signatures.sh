@@ -84,6 +84,8 @@ scripts=(
     "detect-as-scheduled-readback-owner-proof-gap.sh"
     "detect-as-hermes-foreground-failure-disposition-gap.sh"
     "detect-as-missing-operating-model-alignment-anchor.sh"
+    "detect-as-missing-repo-anthropology-surface.sh"
+    "detect-as-maturity-boundary-claim-overreach.sh"
 )
 
 idx=0

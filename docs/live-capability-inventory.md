@@ -164,8 +164,10 @@ surfaces only as bounded owner-local tracking when the claim is anchored:
 | `scripts/detect-as-hermes-foreground-reliability-evidence-gap.sh` | runtime-loaded deterministic detector | Issue #164 Hermes foreground reliability proof detector for doer/checker evidence gaps | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-instruction-root-drift.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-interrupted-goal-recovery-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
+| `scripts/detect-as-maturity-boundary-claim-overreach.sh` | runtime-loaded deterministic detector | AS-53 assimilation-method maturity-boundary claim-overreach guard added by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-memory-authority-confusion.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-missing-operating-model-alignment-anchor.sh` | runtime-loaded deterministic detector | AS-51 assimilation-method anchor detector added by this PR | Keep tracked as an existing deterministic detector. |
+| `scripts/detect-as-missing-repo-anthropology-surface.sh` | runtime-loaded deterministic detector | AS-52 assimilation-method repo-anthropology-surface gap detector added by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-missing-rollback-control-proof.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-missing-runtime-heartbeat.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-owner-surface-ambiguity.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
