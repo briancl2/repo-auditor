@@ -467,3 +467,14 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-hermes-foreground-failure-disposition-gap.sh`
+
+### AS-51: Missing Operating-Model Alignment Anchor
+- **Detects:** A repo-agent that has adopted a constitution and scattered operating-model point-repairs but never produced a single alignment-anchor artifact that imports the operating-model principle canon and reconciles revealed-vs-defined principles against it (the G0 / Principle-Alignment Anchor step of the assimilation method).
+- **Signal:** A `constitution` surface is present AND more than one operating-model reference is scattered across owner surfaces (work-closure, automation authority, grounded route-change, GitHub-truth, campaign-sync, anti-overclaim themes) AND no single surface contains BOTH an imported-canon term AND a reconciliation / gap-matrix term — so the principles were point-repaired without an anchored reconciliation.
+- **Phase range:** Any repo-agent assimilation candidate that has begun operating-model adoption (constitution + scattered principle repairs) but not yet anchored it; the gap is independent of Issue #164 campaign phase.
+- **Check:** Scan owner evidence text for a constitution surface and scattered operating-model references, then require a single alignment-anchor artifact (imported canon + reconciliation/gap-matrix) before treating the operating model as anchored. Suppress detector docs/templates/tests/fixtures and the shared repo-agent-core anchor contract/template surfaces.
+- **Shared contract:** repo-agent-core `docs/principle-alignment-anchor-contract.md` defines the alignment-anchor artifact and `templates/principle-alignment-anchor.md` its shape.
+- **Fire condition:** `constitution_present AND scattered_operating_model_ref_count > 1 AND NOT alignment_anchor_artifact_present` (`missing_operating_model_alignment_anchor_count > 0`)
+- **Prevention tier:** T1
+- **Severity:** HIGH
+- **Script:** `scripts/detect-as-missing-operating-model-alignment-anchor.sh`
