@@ -313,6 +313,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-hermes-foreground-failure-disposition-gap.sh",
     },
+    "AS-51": {
+        "name": "Missing operating-model alignment anchor",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-missing-operating-model-alignment-anchor.sh",
+    },
 }
 
 
@@ -6657,6 +6663,93 @@ def hermes_foreground_failure_disposition_gap(texts: dict[str, str]) -> dict[str
     }
 
 
+ANCHOR_CONSTITUTION_PATTERN = re.compile(
+    r"(?im)^#{1,3}\s+.*\bconstitution\b|\boperating[- ]model constitution\b"
+)
+ANCHOR_OPERATING_MODEL_REF_PATTERN = re.compile(
+    r"(?i)\b("
+    r"work[- ]clos(?:e|ure)|"
+    r"automation[- ](?:health|authority)|automation earns authority|"
+    r"grounded route[- ]change|route[- ]grounding|grounded route|"
+    r"github[- ](?:truth|deterministic|native closure)|"
+    r"fail[- ]closed|"
+    r"responder[- ]truth|"
+    r"operating[- ]model principle"
+    r")\b"
+)
+ANCHOR_CANON_IMPORT_PATTERN = re.compile(
+    r"(?i)("
+    r"operating[- ]model (?:principle )?(?:canon|criteria)|"
+    r"imported (?:operating[- ]model )?principle canon|"
+    r"principle[- ]alignment anchor|"
+    r"alignment anchor|"
+    r"revealed[- ]vs[- ]defined principle"
+    r")"
+)
+ANCHOR_RECONCILIATION_PATTERN = re.compile(
+    r"(?i)("
+    r"reconciliation table|"
+    r"principle gap matrix|"
+    r"gap matrix|"
+    r"principle reconciliation|"
+    r"revealed[- ]vs[- ]defined"
+    r")"
+)
+
+
+def missing_operating_model_alignment_anchor(texts: dict[str, str]) -> dict[str, Any]:
+    """AS-51: a repo-agent with a constitution and scattered operating-model
+    point-repairs (work-closure, automation-health, route-grounding, GitHub-truth)
+    that never imported an operating-model canon, reconciled it, and produced a
+    principle gap matrix -- i.e. it has no alignment anchor."""
+    owner = owner_evidence_texts(texts)
+
+    constitution_files = [
+        path
+        for path, text in owner.items()
+        if path.endswith("constitution.md")
+        or "/memory/constitution" in path
+        or ANCHOR_CONSTITUTION_PATTERN.search(text)
+    ]
+    operating_model_ref_files = [
+        path
+        for path, text in owner.items()
+        if ANCHOR_OPERATING_MODEL_REF_PATTERN.search(text)
+    ]
+    anchor_artifact_files = [
+        path
+        for path, text in owner.items()
+        if ANCHOR_CANON_IMPORT_PATTERN.search(text)
+        and ANCHOR_RECONCILIATION_PATTERN.search(text)
+    ]
+
+    constitution_present = bool(constitution_files)
+    scattered_count = len(operating_model_ref_files)
+    anchor_present = bool(anchor_artifact_files)
+    fired = constitution_present and scattered_count > 1 and not anchor_present
+
+    details = [
+        f"constitution=>{','.join(constitution_files[:3]) or 'none'}",
+        f"operating_model_refs=>{','.join(operating_model_ref_files[:4]) or 'none'}",
+        f"alignment_anchor=>{','.join(anchor_artifact_files[:3]) or 'none'}",
+    ]
+    return {
+        "fired": fired,
+        "signals": {
+            "constitution_present": constitution_present,
+            "scattered_operating_model_ref_count": scattered_count,
+            "alignment_anchor_artifact_present": anchor_present,
+            "missing_operating_model_alignment_anchor_count": 1 if fired else 0,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "constitution and scattered operating-model point-repairs exist but no imported-canon + reconciliation/gap-matrix alignment anchor was found"
+            if fired
+            else "alignment anchor is present, or constitution/operating-model references are absent"
+        ),
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -6708,6 +6801,7 @@ EVALUATORS = {
     "AS-48": standalone_external_intelligence_sidecar_gap,
     "AS-49": scheduled_readback_owner_proof_gap,
     "AS-50": hermes_foreground_failure_disposition_gap,
+    "AS-51": missing_operating_model_alignment_anchor,
 }
 
 

@@ -357,8 +357,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 50
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 50
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 51
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 51
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -412,6 +412,7 @@ assert as_ids == {
     "AS-48",
     "AS-49",
     "AS-50",
+    "AS-51",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the

@@ -42,7 +42,7 @@ fi
 
 # ── Inventory match ───────────────────────────────────────────────────
 echo "── inventory ──"
-EXPECTED=89  # shell scripts only; current scripts/ also has 14 Python helpers
+EXPECTED=90  # shell scripts only; current scripts/ also has 14 Python helpers
 COUNTED=$(find scripts -maxdepth 1 -name '*.sh' -type f | wc -l | tr -d ' ')
 if [ "$COUNTED" != "$EXPECTED" ]; then
     echo "  FAIL: expected $EXPECTED scripts, found $COUNTED"
