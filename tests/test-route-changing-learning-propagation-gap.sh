@@ -11,8 +11,10 @@ GAP_REPO="$TMPDIR/route-learning-gap"
 CLEAN_REPO="$TMPDIR/route-learning-clean"
 NEUTRAL_REPO="$TMPDIR/route-learning-neutral"
 HISTORICAL_REPO="$TMPDIR/route-learning-historical"
+PRECISION_REPO="$TMPDIR/route-learning-precision"
 mkdir -p "$GAP_REPO/docs" "$CLEAN_REPO/docs" "$NEUTRAL_REPO/docs"
 mkdir -p "$HISTORICAL_REPO/docs/completions"
+mkdir -p "$PRECISION_REPO/docs"
 
 cat > "$GAP_REPO/docs/route-learning.md" <<'EOF'
 # Route-changing learning note
@@ -92,13 +94,60 @@ cat > "$HISTORICAL_REPO/docs/completions/stale-route-learning.md" <<'EOF'
 ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT without current GitHub evidence.
 EOF
 
-python3 - "$REPO_ROOT" "$GAP_REPO" "$CLEAN_REPO" "$NEUTRAL_REPO" "$HISTORICAL_REPO" <<'PY'
+# --- Precision fixtures (repo-auditor#174): three known false-positive classes
+#     that must NOT fire once the surface adjective, no-capture, and wrapped
+#     non-claims handling are tightened. Each doc is otherwise grounded so a
+#     revert of one precision fix re-fires exactly that doc.
+#
+# P1: principle-naming prose. Uses the bare "route-changing" adjective only, with
+#     no record markers -> must de-classify (no surface match) and not fire.
+cat > "$PRECISION_REPO/docs/principle-naming.md" <<'EOF'
+# Grounded route-changing learning principle
+
+Naming policy: grounded route-changing learnings should carry a fallback and a
+runtime reference. This is principle-naming prose, not a learning record, and
+creates no GitHub or owner obligation.
+EOF
+
+# P2: a genuine route-change record whose memory disposition is an explicit
+#     no-capture reason -> there is no memory to fall back from, so
+#     missing_fallback_without_memory must be suppressed.
+cat > "$PRECISION_REPO/docs/no-capture-record.md" <<'EOF'
+# Route-changing learning record (no-capture)
+
+- ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT route_changed=true.
+- GitHub surface: https://github.com/briancl2/repo-auditor/issues/174
+- Raw evidence: /tmp/issue164-precision/as42-no-capture-receipt.jsonl
+- Memory disposition: no_capture_reason=routine-validation not_reusable.
+- Owner action: open the repo-auditor AS-42 owner PR.
+- Bounded non-claims: this record does not start a controller, scheduler, queue, or daemon.
+EOF
+
+# P3: a fully grounded record whose bounded-non-claims sentence WRAPS across two
+#     physical lines, leaving the control words (daemon, queue, registry) on a
+#     line with no negation. Sentence-aware segmentation must keep the negation
+#     attached so background_or_controller_overclaim does not fire.
+cat > "$PRECISION_REPO/docs/wrapped-non-claims.md" <<'EOF'
+# Route-changing learning record (wrapped non-claims)
+
+- ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT route_changed=true.
+- GitHub surface: https://github.com/briancl2/repo-auditor/issues/174
+- Raw evidence: /tmp/issue164-precision/as42-wrapped-receipt.jsonl
+- gbrain_slug_or_no_capture_reason: bma/issue164/learning/as42-precision-2026-06-29
+- Exact handle replay: timeout 10 gbrain get bma/issue164/learning/as42-precision-2026-06-29 status=passed.
+- fallback_without_memory: use GitHub issue/PR/check truth without advisory GBrain.
+- Owner action: open the repo-auditor AS-42 owner PR.
+- Bounded non-claims: this record does not authorize a background controller, scheduler,
+  daemon, queue, registry, or retry loop.
+EOF
+
+python3 - "$REPO_ROOT" "$GAP_REPO" "$CLEAN_REPO" "$NEUTRAL_REPO" "$HISTORICAL_REPO" "$PRECISION_REPO" <<'PY'
 import json
 import subprocess
 import sys
 from pathlib import Path
 
-repo_root, gap_repo, clean_repo, neutral_repo, historical_repo = map(Path, sys.argv[1:])
+repo_root, gap_repo, clean_repo, neutral_repo, historical_repo, precision_repo = map(Path, sys.argv[1:])
 
 
 def run(repo: Path) -> dict:
@@ -140,6 +189,21 @@ assert historical_payload["ds_id"] == "AS-42", historical_payload
 assert historical_payload["fired"] is False, historical_payload
 assert historical_payload["signals"]["route_changing_learning_gap_count"] == 0, historical_payload
 assert historical_payload["signals"]["historical_evidence_skipped_count"] == 1, historical_payload
+
+# Precision (repo-auditor#174): all three false-positive classes must clear.
+# A revert of any one precision fix re-fires its own doc, so these asserts pin
+# each fix individually.
+precision = run(precision_repo)
+assert precision["ds_id"] == "AS-42", precision
+assert precision["fired"] is False, precision
+assert precision["signals"]["route_changing_learning_gap_count"] == 0, precision
+# Bug 3 lock: a no-capture record has no memory to fall back from.
+assert precision["signals"]["missing_fallback_without_memory_count"] == 0, precision
+# Bug 2 lock: a wrapped bounded-non-claims sentence is not an affirmative overclaim.
+assert precision["signals"]["background_or_controller_overclaim_count"] == 0, precision
+# Bug 1 lock: principle-naming + grounded records leave two grounded surfaces and
+# de-classify the adjective-only doc (so grounded count is 2, not 3).
+assert precision["signals"]["route_changing_learning_grounded_count"] == 2, precision
 PY
 
 echo "PASS: AS-42 route-changing learning propagation detector covered"
