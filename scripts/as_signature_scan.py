@@ -1262,9 +1262,26 @@ COST_ESTIMATE_PATTERN = re.compile(
     r"(\$[0-9][0-9,]*(?:\.[0-9]+)?|usd\s*[0-9][0-9,]*(?:\.[0-9]+)?|"
     r"\b(cost|dollar|spend|price|pricing|estimate|estimated)\b)"
 )
+# A bare ``$<digit>`` is ambiguous: shell positionals ($1, $2), awk fields
+# ($$1), and template placeholders match it just as readily as money. Only treat
+# a dollar amount as a cost claim when it is unambiguously money-shaped (decimal,
+# thousands grouping, magnitude/currency suffix, or ``usd N``) OR co-occurs with
+# a money-context word. Applied to lowercased text (see cost_without_token_fields).
+UNAMBIGUOUS_MONEY_DOLLAR = (
+    r"\$[0-9][0-9,]*\.[0-9]+"                                  # $5.00, $1,234.56
+    r"|\$[0-9]{1,3}(?:,[0-9]{3})+"                             # $1,000, $12,500
+    r"|\$[0-9][0-9,]*(?:\.[0-9]+)?\s*(?:k|m|bn|b)\b"           # $5k, $1.5m
+    r"|\$[0-9][0-9,]*(?:\.[0-9]+)?\s*(?:/|per\b|usd|dollar)"   # $5/mo, $5 usd
+    r"|usd\s*[0-9][0-9,]*(?:\.[0-9]+)?"                        # usd 5000
+)
+MONEY_CONTEXT_WORD = (
+    r"(?:cost|costs|spend|spent|price|pricing|priced|budget|"
+    r"estimate|estimated|usd|dollars?)"
+)
 DIRECT_COST_CLAIM_PATTERN = re.compile(
-    r"(\$[0-9][0-9,]*(?:\.[0-9]+)?|usd\s*[0-9][0-9,]*(?:\.[0-9]+)?|"
-    r"\b(estimated|estimate|cost|spend)\b.{0,80}\$)"
+    r"(" + UNAMBIGUOUS_MONEY_DOLLAR
+    + r"|\b" + MONEY_CONTEXT_WORD + r"\b.{0,80}\$[0-9]"
+    + r"|\$[0-9].{0,80}\b" + MONEY_CONTEXT_WORD + r"\b)"
 )
 
 
@@ -3599,7 +3616,7 @@ ROUTE_CHANGING_LEARNING_EXPLAINER_PATTERN = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 ROUTE_CHANGING_LEARNING_SURFACE_PATTERN = re.compile(
-    r"\b(route[- ]changing|route_changed|route_change_reason|ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT|"
+    r"\b(route_changed|route_change_reason|ROUTE_CHANGING_LEARNING_FAILURE_RECEIPT|"
     r"learning_recovery_block|Learning / Recovery|fallback_without_memory|fallback without memory|"
     r"gbrain_exact_handle_replay|gbrain_slug_or_no_capture_reason|exact[- ]handle replay|"
     r"literal_safe_github_readback|literal[- ]safe GitHub|broad GBrain search miss|"
@@ -3674,8 +3691,17 @@ ROUTE_BACKGROUND_CONTROL_PATTERN = re.compile(
     r"automatic\s+(?:issue|PR|pull request)\s+creation)\b",
     re.IGNORECASE,
 )
-ROUTE_BACKGROUND_NEGATION_PATTERN = re.compile(
-    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|non[- ]claim|boundary|bounded)\b",
+# Superset negation/non-claim context used by the sentence-aware overclaim check.
+# Supersedes the former line-based ROUTE_BACKGROUND_NEGATION_PATTERN: adds
+# underscore JSON-key variants ("non_claims", "bounded_non_claims",
+# "out_of_scope", "not_allowed") and more negation/prohibition forms so a
+# bounded-non-claims list (prose, bullet, or JSON array) is recognized even when
+# the negation lead-in wraps onto another physical line from its control words.
+ROUTE_NONCLAIM_CONTEXT_PATTERN = re.compile(
+    r"\b(no|not|never|cannot|can't|does not|do not|must not|will not|without|"
+    r"forbid(?:s|den)?|forbidden[-_ ]?modes?|prohibit(?:s|ed)?|disallow(?:s|ed)?|"
+    r"exclud(?:e|es|ed)|non[-_ ]?claims?|bounded[-_ ]?non[-_ ]?claims?|"
+    r"out[-_ ]?of[-_ ]?scope|not[-_ ]?allowed|boundary|bounded)\b",
     re.IGNORECASE,
 )
 ROUTE_GBRAIN_STALE_FAILED_PATTERN = re.compile(
@@ -3700,11 +3726,32 @@ def is_route_changing_learning_explainer(text: str) -> bool:
     return ROUTE_CHANGING_LEARNING_EXPLAINER_PATTERN.search(text) is not None
 
 
+def _route_overclaim_sentences(text: str) -> list[str]:
+    """Segment text into sentence-ish units for negation-aware overclaim checks.
+
+    Single newlines (line wraps) are collapsed to spaces so a negated
+    enumeration that wraps across physical lines (``... not a controller,
+    scheduler, / daemon, queue ...``) or a ``"bounded_non_claims": [ ... ]``
+    array stays one unit with its negation lead-in. Blank lines and sentence
+    terminators (``.?!``) end a unit, so an affirmative overclaim in its own
+    sentence is still detected even when an unrelated negation sits earlier in
+    the same paragraph.
+    """
+    sentences: list[str] = []
+    for paragraph in re.split(r"\n[ \t]*\n", text):
+        collapsed = re.sub(r"\s*\n\s*", " ", paragraph.strip())
+        for sentence in re.split(r"(?<=[.!?])\s+", collapsed):
+            sentence = sentence.strip()
+            if sentence:
+                sentences.append(sentence)
+    return sentences
+
+
 def route_learning_background_overclaim(text: str) -> bool:
-    for line in text.splitlines():
-        if not ROUTE_BACKGROUND_CONTROL_PATTERN.search(line):
+    for sentence in _route_overclaim_sentences(text):
+        if not ROUTE_BACKGROUND_CONTROL_PATTERN.search(sentence):
             continue
-        if ROUTE_BACKGROUND_NEGATION_PATTERN.search(line):
+        if ROUTE_NONCLAIM_CONTEXT_PATTERN.search(sentence):
             continue
         return True
     return False
@@ -3775,7 +3822,10 @@ def route_changing_learning_propagation_gap(texts: dict[str, str]) -> dict[str, 
         if route_learning_missing_exact_readback_or_no_capture(text):
             reasons.append("missing_exact_readback_or_no_capture")
             reason_counts["missing_exact_readback_or_no_capture"] += 1
-        if not ROUTE_FALLBACK_WITHOUT_MEMORY_PATTERN.search(text):
+        if (
+            not ROUTE_FALLBACK_WITHOUT_MEMORY_PATTERN.search(text)
+            and not ROUTE_NO_CAPTURE_PATTERN.search(text)
+        ):
             reasons.append("missing_fallback_without_memory")
             reason_counts["missing_fallback_without_memory"] += 1
         if not ROUTE_OWNER_ACTION_PATTERN.search(text):
