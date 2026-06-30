@@ -86,6 +86,8 @@ scripts=(
     "detect-as-missing-operating-model-alignment-anchor.sh"
     "detect-as-missing-repo-anthropology-surface.sh"
     "detect-as-maturity-boundary-claim-overreach.sh"
+    "detect-as-closure-signal-integrity.sh"
+    "detect-as-review-ergonomics-working-memory-lightness.sh"
 )
 
 idx=0
