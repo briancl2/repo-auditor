@@ -331,6 +331,18 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-maturity-boundary-claim-overreach.sh",
     },
+    "AS-54": {
+        "name": "closure-signal-integrity",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-closure-signal-integrity.sh",
+    },
+    "AS-55": {
+        "name": "review-ergonomics-working-memory-lightness",
+        "severity": "MEDIUM",
+        "prevention_tier": "T2",
+        "script": "detect-as-review-ergonomics-working-memory-lightness.sh",
+    },
 }
 
 
@@ -6948,6 +6960,199 @@ def maturity_boundary_claim_overreach(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+AS_FRICTION_SURFACE_SUFFIXES = (".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")
+
+CLOSURE_SIGNAL_CONTEXT_PATTERN = re.compile(
+    r"(?i)\b(work[- ]?close(?:\.sh)?|closeout|closure (?:gate|run|contract)|"
+    r"score[- ]session|post[- ]audit|audit[- ]post|scorecard|scorer)\b"
+)
+CLOSURE_SIGNAL_SUCCESS_PATTERN = re.compile(
+    r"(?i)\b("
+    r"work[- ]?close(?:\.sh)?[^.\n]{0,120}(?:exit(?:ed|s)?|return(?:ed|s)?|status|rc)\s*[:=]?\s*0|"
+    r"(?:exit(?:ed|s)?|return(?:ed|s)?|status|rc)\s*[:=]?\s*0[^.\n]{0,120}work[- ]?close(?:\.sh)?|"
+    r"closure[^.\n]{0,80}(?:exit(?:ed|s)?|return(?:ed|s)?|status)\s*[:=]?\s*0"
+    r")\b"
+)
+CLOSURE_SIGNAL_DEGRADED_PATTERN = re.compile(
+    r"(?i)("
+    r"integer[- ]expression (?:expected|error)|"
+    r"post[- ]audit[^.\n]{0,80}\b(?:unavailable|missing|partial|degraded)\b|"
+    r"audit[- ]post[^.\n]{0,80}\b(?:unavailable|missing|partial|degraded)\b|"
+    r"\bPARTIAL\b[^.\n]{0,80}\bscorecard\b|"
+    r"\bscorecard\b[^.\n]{0,80}\bPARTIAL\b|"
+    r"\bscorer\b[^.\n]{0,80}\b(?:unavailable|missing|partial|degraded)\b|"
+    r"degraded[^.\n]{0,80}\b(?:post[- ]audit|scorecard|scorer)\b"
+    r")"
+)
+CLOSURE_SIGNAL_NEGATION_PATTERN = re.compile(
+    r"(?i)\b(no|not|never|without|absent|clean|healthy|green|avoids?|prevent(?:s|ed)?)\b"
+)
+
+CURRENT_STATE_OVERSIZED_CHAR_THRESHOLD = 16000
+REVIEW_ERGONOMICS_CONTEXT_PATTERN = re.compile(
+    r"(?i)\b(CURRENT_STATE\.md|current state|working[- ]memory|make review|local review|review)\b"
+)
+REVIEW_TIMEOUT_OVERRIDE_PATTERN = re.compile(
+    r"(?i)\b(review timeout override|review[^.\n]{0,80}\btimeout\b|timeout[^.\n]{0,80}\breview)\b"
+)
+REVIEW_WORKING_MEMORY_OVERLOAD_PATTERN = re.compile(
+    r"(?i)("
+    r"\bCURRENT_STATE\.md\b[^.\n]{0,120}\b(?:oversized|too large|large|bloated|bloat|timeout|working[- ]memory)\b|"
+    r"\b(?:oversized|too large|large|bloated|bloat|timeout|working[- ]memory)\b[^.\n]{0,120}\bCURRENT_STATE\.md\b|"
+    r"\bworking[- ]memory\b[^.\n]{0,80}\b(?:overload|pressure|drag|friction|bloat|too large)\b|"
+    r"\breview\b[^.\n]{0,80}\b(?:timeout override|working[- ]memory|CURRENT_STATE\.md)\b"
+    r")"
+)
+REVIEW_ERGONOMICS_NEGATION_PATTERN = re.compile(
+    r"(?i)\b(no|not|never|without|absent|small|bounded|clean|normal|avoids?|prevent(?:s|ed)?)\b"
+)
+
+
+def _unnegated_line_match_count(
+    text: str, pattern: re.Pattern[str], negation_pattern: re.Pattern[str]
+) -> int:
+    return sum(
+        1
+        for line in text.splitlines()
+        if pattern.search(line) and not negation_pattern.search(line)
+    )
+
+
+def _skip_friction_detector_surface(path: str, text: str) -> bool:
+    if path.startswith("scripts/") or path.startswith("detection-signatures/"):
+        return True
+    if not path.endswith(AS_FRICTION_SURFACE_SUFFIXES):
+        return True
+    return is_work_management_signature_explainer(path, text)
+
+
+def closure_signal_integrity(texts: dict[str, str]) -> dict[str, Any]:
+    """AS-54: work-close reports a successful closeout while retained post-audit
+    or scorecard evidence is unavailable, partial, or degraded."""
+    offenders: list[str] = []
+    grounded: list[str] = []
+    closure_success_surfaces = 0
+    degraded_signal_surfaces = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if _skip_friction_detector_surface(path, text):
+            continue
+        if not CLOSURE_SIGNAL_CONTEXT_PATTERN.search(text):
+            continue
+
+        success_count = _unnegated_line_match_count(
+            text, CLOSURE_SIGNAL_SUCCESS_PATTERN, CLOSURE_SIGNAL_NEGATION_PATTERN
+        )
+        degraded_count = _unnegated_line_match_count(
+            text, CLOSURE_SIGNAL_DEGRADED_PATTERN, CLOSURE_SIGNAL_NEGATION_PATTERN
+        )
+
+        if success_count:
+            closure_success_surfaces += 1
+        if degraded_count:
+            degraded_signal_surfaces += 1
+
+        if success_count and degraded_count:
+            offenders.append(
+                f"{path}=>successful_closeout_with_degraded_post_audit_signal"
+            )
+        else:
+            grounded.append(path)
+
+    details = [
+        f"closure_signal_integrity_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"closure_signal_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "closure_signal_integrity_gap_count": len(offenders),
+            "closure_success_surface_count": closure_success_surfaces,
+            "degraded_closure_signal_surface_count": degraded_signal_surfaces,
+            "closure_signal_grounded_count": len(set(grounded)),
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "successful work-close/closure evidence coexists with degraded post-audit, scorer, or PARTIAL scorecard evidence"
+            if offenders
+            else "closure success evidence is absent, or post-audit/scorer signals are clean or negated"
+        ),
+    }
+
+
+def review_ergonomics_working_memory_lightness(texts: dict[str, str]) -> dict[str, Any]:
+    """AS-55: review ergonomics are degraded by oversized CURRENT_STATE.md or
+    review-timeout override pressure on working memory."""
+    offenders: list[str] = []
+    grounded: list[str] = []
+    current_state_files = 0
+    oversized_current_state_files = 0
+    timeout_override_surfaces = 0
+    working_memory_overload_surfaces = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if _skip_friction_detector_surface(path, text):
+            continue
+
+        is_current_state_file = path.endswith("CURRENT_STATE.md")
+        if is_current_state_file:
+            current_state_files += 1
+
+        has_context = is_current_state_file or REVIEW_ERGONOMICS_CONTEXT_PATTERN.search(text)
+        if not has_context:
+            continue
+
+        oversized_file = is_current_state_file and len(text) >= CURRENT_STATE_OVERSIZED_CHAR_THRESHOLD
+        timeout_count = _unnegated_line_match_count(
+            text, REVIEW_TIMEOUT_OVERRIDE_PATTERN, REVIEW_ERGONOMICS_NEGATION_PATTERN
+        )
+        overload_count = _unnegated_line_match_count(
+            text, REVIEW_WORKING_MEMORY_OVERLOAD_PATTERN, REVIEW_ERGONOMICS_NEGATION_PATTERN
+        )
+
+        if oversized_file:
+            oversized_current_state_files += 1
+        if timeout_count:
+            timeout_override_surfaces += 1
+        if overload_count:
+            working_memory_overload_surfaces += 1
+
+        reasons: list[str] = []
+        if oversized_file:
+            reasons.append("oversized_current_state_file")
+        if timeout_count:
+            reasons.append("review_timeout_override")
+        if overload_count:
+            reasons.append("working_memory_overload")
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:4])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"review_ergonomics_working_memory_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"review_ergonomics_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "review_ergonomics_working_memory_lightness_count": len(offenders),
+            "current_state_file_count": current_state_files,
+            "oversized_current_state_file_count": oversized_current_state_files,
+            "review_timeout_override_surface_count": timeout_override_surfaces,
+            "working_memory_overload_surface_count": working_memory_overload_surfaces,
+            "current_state_oversize_threshold_chars": CURRENT_STATE_OVERSIZED_CHAR_THRESHOLD,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "review ergonomics show oversized CURRENT_STATE.md, working-memory overload, or review-timeout override pressure"
+            if offenders
+            else "CURRENT_STATE.md/review working-memory pressure is absent, bounded, or negated"
+        ),
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -7002,6 +7207,8 @@ EVALUATORS = {
     "AS-51": missing_operating_model_alignment_anchor,
     "AS-52": missing_repo_anthropology_surface,
     "AS-53": maturity_boundary_claim_overreach,
+    "AS-54": closure_signal_integrity,
+    "AS-55": review_ergonomics_working_memory_lightness,
 }
 
 

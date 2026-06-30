@@ -351,6 +351,22 @@ This repo-agent is fully autonomous and production-ready. It is proven domain
 capability and runs end-to-end autonomous from issue to PR merge.
 EOF
 
+cat > "$TEST_REPO/docs/closure-signal-integrity.md" <<'EOF'
+# Closure signal integrity
+
+work-close exits 0 for this owner-lane closeout.
+post-audit unavailable: the post-audit/scorer leg is missing.
+The retained SCORECARD.json is a PARTIAL scorecard, and score-session printed an
+integer-expression error while grading the closeout.
+EOF
+
+cat > "$TEST_REPO/docs/review-ergonomics-working-memory.md" <<'EOF'
+# Review ergonomics
+
+CURRENT_STATE.md is oversized and creates working-memory overload during review.
+The owner lane needed a review timeout override before the PR could be reviewed.
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -364,8 +380,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 53
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 53
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 55
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 55
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -422,6 +438,8 @@ assert as_ids == {
     "AS-51",
     "AS-52",
     "AS-53",
+    "AS-54",
+    "AS-55",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the
