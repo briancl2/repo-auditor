@@ -89,6 +89,11 @@ provider-policy, GitHub truth, and bounded non-claim fields; it does not close
 issues, retry Hermes, install schedulers, create queues, add controllers, or
 auto-merge.
 
+External closure coupling detector coverage is provided by AS-56 through
+`scripts/detect-as-external-closure-coupling.sh`. It checks default closure
+surfaces for sibling-repo local paths such as `$HOME/repos/...`; reciprocal
+cross-repo audit remains opt-in/advisory rather than default closure truth.
+
 ## Self-Management
 
 - `make check` — shellcheck + inventory + co-evolution + trailer validation

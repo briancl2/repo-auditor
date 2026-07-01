@@ -155,6 +155,7 @@ surfaces only as bounded owner-local tracking when the claim is anchored:
 | `scripts/detect-as-cost-without-token-fields.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-deep-research-source-intelligence-native-corpus-gap.sh` | runtime-loaded deterministic detector | Issue #164 Deep Research/source-intelligence native corpus detector for portable corpus field and bounded non-claim gaps | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-docs-vs-observed-host-drift.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
+| `scripts/detect-as-external-closure-coupling.sh` | runtime-loaded deterministic detector | AS-56 default closure gate external sibling-repo path detector added by issue #182 | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-forbidden-public-customernewsletter-mutation.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-foreground-failure-guidance-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-as-fractured-serial-continuation.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |

@@ -345,6 +345,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T2",
         "script": "detect-as-review-ergonomics-working-memory-lightness.sh",
     },
+    "AS-56": {
+        "name": "external-closure-coupling",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-external-closure-coupling.sh",
+    },
 }
 
 
@@ -7171,6 +7177,24 @@ REVIEW_ERGONOMICS_NEGATION_PATTERN = re.compile(
     r"(?i)\b(no|not|never|without|absent|small|bounded|clean|normal|avoids?|prevent(?:s|ed)?)\b"
 )
 
+CLOSURE_EXTERNAL_COUPLING_CONTEXT_PATTERN = re.compile(
+    r"(?i)\b(work[- ]?close(?:\.sh)?|closeout|closure (?:gate|run|contract|script)|"
+    r"post[- ]audit|audit[- ]post|score[- ]session|scorecard|scorer)\b"
+)
+CLOSURE_EXTERNAL_OPERATION_PATH_PATTERN = re.compile(
+    r"(?i)(^|/)(?:work[-_]close|closeout|closure|score[-_]session|post[-_]audit|audit[-_]post)[^/]*\.(?:sh|py)$"
+)
+CLOSURE_EXTERNAL_REPO_PATH_PATTERN = re.compile(
+    r"(?i)(?:"
+    r"(?:\$HOME|\$\{HOME\}|~)/(?:repos?|src|code|workspaces?)/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*|"
+    r"/(?:Users|home)/[^\s\"'`$()]+/(?:repos?|src|code|workspaces?)/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*"
+    r")"
+)
+CLOSURE_EXTERNAL_COUPLING_NEGATION_PATTERN = re.compile(
+    r"(?i)\b(no|not|never|without|avoid(?:s|ed)?|forbid(?:s|den)?|must not|should not|"
+    r"advisory|opt[- ]in|not required|never required)\b"
+)
+
 
 def _unnegated_line_match_count(
     text: str, pattern: re.Pattern[str], negation_pattern: re.Pattern[str]
@@ -7188,6 +7212,27 @@ def _skip_friction_detector_surface(path: str, text: str) -> bool:
     if not path.endswith(AS_FRICTION_SURFACE_SUFFIXES):
         return True
     return is_work_management_signature_explainer(path, text)
+
+
+def _is_closure_external_coupling_surface(path: str, text: str) -> bool:
+    if path.startswith("detection-signatures/"):
+        return False
+    if is_work_management_signature_explainer(path, text):
+        return False
+    if path.startswith("scripts/"):
+        return bool(CLOSURE_EXTERNAL_OPERATION_PATH_PATTERN.search(path))
+    return bool(
+        CLOSURE_EXTERNAL_OPERATION_PATH_PATTERN.search(path)
+        or CLOSURE_EXTERNAL_COUPLING_CONTEXT_PATTERN.search(text)
+    )
+
+
+def _external_closure_path_reason(line: str) -> str | None:
+    if CLOSURE_EXTERNAL_COUPLING_NEGATION_PATTERN.search(line):
+        return None
+    if CLOSURE_EXTERNAL_REPO_PATH_PATTERN.search(line):
+        return "external_repo_path"
+    return None
 
 
 def closure_signal_integrity(texts: dict[str, str]) -> dict[str, Any]:
@@ -7339,6 +7384,51 @@ def review_ergonomics_working_memory_lightness(texts: dict[str, str]) -> dict[st
     }
 
 
+def external_closure_coupling(texts: dict[str, str]) -> dict[str, Any]:
+    """AS-56: default closure gate reaches into a sibling/local repo path."""
+    offenders: list[str] = []
+    grounded: list[str] = []
+    closure_surfaces = 0
+    external_path_surfaces = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if not _is_closure_external_coupling_surface(path, text):
+            continue
+
+        closure_surfaces += 1
+        reasons = sorted(
+            {
+                reason
+                for line in text.splitlines()
+                if (reason := _external_closure_path_reason(line)) is not None
+            }
+        )
+        if reasons:
+            external_path_surfaces += 1
+            offenders.append(f"{path}=>{';'.join(reasons)}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"external_closure_coupling=>{';'.join(offenders[:4]) or 'none'}",
+        f"external_closure_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "external_closure_coupling_count": len(offenders),
+            "external_repo_path_surface_count": external_path_surfaces,
+            "closure_surface_count": closure_surfaces,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "closure gate hard-depends on an external repo path (should be opt-in / advisory, not in the default closure gate)"
+            if offenders
+            else "default closure surfaces are self-contained, advisory-only, absent, or negated"
+        ),
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -7395,6 +7485,7 @@ EVALUATORS = {
     "AS-53": maturity_boundary_claim_overreach,
     "AS-54": closure_signal_integrity,
     "AS-55": review_ergonomics_working_memory_lightness,
+    "AS-56": external_closure_coupling,
 }
 
 
