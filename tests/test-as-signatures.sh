@@ -367,6 +367,18 @@ CURRENT_STATE.md is oversized and creates working-memory overload during review.
 The owner lane needed a review timeout override before the PR could be reviewed.
 EOF
 
+cat > "$TEST_REPO/scripts/work-close.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORK_DIR="${1:?work dir required}"
+AUDITOR="$HOME/repos/repo-auditor/scripts/repo-auditor.sh"
+mkdir -p "$WORK_DIR/post-audit"
+if [ -f "$AUDITOR" ]; then
+    timeout 300 bash "$AUDITOR" "$PWD" "$WORK_DIR/post-audit" > /dev/null 2>&1 || echo "WARNING: Post-audit failed"
+fi
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -380,8 +392,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 55
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 55
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 56
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 56
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -440,6 +452,7 @@ assert as_ids == {
     "AS-53",
     "AS-54",
     "AS-55",
+    "AS-56",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the

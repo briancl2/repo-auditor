@@ -88,6 +88,7 @@ scripts=(
     "detect-as-maturity-boundary-claim-overreach.sh"
     "detect-as-closure-signal-integrity.sh"
     "detect-as-review-ergonomics-working-memory-lightness.sh"
+    "detect-as-external-closure-coupling.sh"
 )
 
 idx=0

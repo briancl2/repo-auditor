@@ -42,6 +42,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 | `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh` | AS-36 GBrain instruction distribution overclaim detector |
 | `scripts/detect-as-issue164-runtime-drift.sh` | AS-37 Issue #164 runtime launch discipline detector |
 | `scripts/detect-as-self-authored-campaign-pause-authority.sh` | AS-38 self-authored campaign pause authority detector |
+| `scripts/detect-as-external-closure-coupling.sh` | AS-56 external closure coupling detector |
 | `scripts/compare-scorecards.sh` | Pre/post scorecard deltas |
 | `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
 | `scripts/stall-risk-score.sh` | Six-signal stall risk predictor |
