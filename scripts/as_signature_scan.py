@@ -7309,6 +7309,11 @@ def review_ergonomics_working_memory_lightness(texts: dict[str, str]) -> dict[st
         f"review_ergonomics_working_memory_gap=>{';'.join(offenders[:4]) or 'none'}",
         f"review_ergonomics_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
     ]
+    fire_disposition = (
+        "measured_oversize"
+        if oversized_current_state_files
+        else ("corroboration_only" if offenders else "not_fired")
+    )
     return {
         "fired": bool(offenders),
         "signals": {
@@ -7318,6 +7323,7 @@ def review_ergonomics_working_memory_lightness(texts: dict[str, str]) -> dict[st
             "review_timeout_override_surface_count": timeout_override_surfaces,
             "working_memory_overload_surface_count": working_memory_overload_surfaces,
             "current_state_oversize_threshold_chars": CURRENT_STATE_OVERSIZED_CHAR_THRESHOLD,
+            "fire_disposition": fire_disposition,
         },
         "evidence": evidence_join(details),
         "reason": (

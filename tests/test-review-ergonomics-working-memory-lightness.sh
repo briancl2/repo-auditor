@@ -112,6 +112,7 @@ assert inline_gap["signals"]["working_memory_overload_surface_count"] == 1, inli
 # it must fire on the corroborating prose signal, not the (absent) primary
 # measured-size signal.
 assert inline_gap["signals"]["oversized_current_state_file_count"] == 0, inline_gap
+assert inline_gap["signals"]["fire_disposition"] == "corroboration_only", inline_gap
 assert "corroborating prose signal" in inline_gap["reason"], inline_gap
 
 large_state = run(large_state_repo)
@@ -119,6 +120,7 @@ assert large_state["ds_id"] == "AS-55", large_state
 assert large_state["fired"] is True, large_state
 assert large_state["signals"]["current_state_file_count"] == 1, large_state
 assert large_state["signals"]["oversized_current_state_file_count"] == 1, large_state
+assert large_state["signals"]["fire_disposition"] == "measured_oversize", large_state
 # Right-reason: a large CURRENT_STATE.md with no explanatory prose must fire
 # via the primary measured-size signal, not a keyword-proximity corroboration.
 assert large_state["signals"]["working_memory_overload_surface_count"] == 0, large_state
@@ -130,17 +132,20 @@ assert clean["ds_id"] == "AS-55", clean
 assert clean["fired"] is False, clean
 assert clean["signals"]["review_ergonomics_working_memory_lightness_count"] == 0, clean
 assert clean["signals"]["current_state_file_count"] == 0, clean
+assert clean["signals"]["fire_disposition"] == "not_fired", clean
 
 small_state = run(small_state_repo)
 assert small_state["ds_id"] == "AS-55", small_state
 assert small_state["fired"] is False, small_state
 assert small_state["signals"]["current_state_file_count"] == 1, small_state
 assert small_state["signals"]["oversized_current_state_file_count"] == 0, small_state
+assert small_state["signals"]["fire_disposition"] == "not_fired", small_state
 
 negated = run(negated_repo)
 assert negated["ds_id"] == "AS-55", negated
 assert negated["fired"] is False, negated
 assert negated["signals"]["review_ergonomics_working_memory_lightness_count"] == 0, negated
+assert negated["signals"]["fire_disposition"] == "not_fired", negated
 
 glossary_row = run(glossary_row_repo)
 assert glossary_row["ds_id"] == "AS-55", glossary_row
@@ -152,6 +157,7 @@ assert glossary_row["fired"] is False, glossary_row
 assert glossary_row["signals"]["review_ergonomics_working_memory_lightness_count"] == 0, glossary_row
 assert glossary_row["signals"]["working_memory_overload_surface_count"] == 0, glossary_row
 assert glossary_row["signals"]["oversized_current_state_file_count"] == 0, glossary_row
+assert glossary_row["signals"]["fire_disposition"] == "not_fired", glossary_row
 PY
 
 echo "PASS: AS-55 review-ergonomics working-memory lightness detector covered"
