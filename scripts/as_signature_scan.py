@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -359,11 +361,14 @@ INSTRUCTION_FILES = {
 }
 SCAN_LIMIT = 200
 SCAN_ORDER_NOTE = (
-    "AS text scan is bounded to 200 files after prioritizing owner guidance, "
-    "instruction, and closure operation surfaces (root instruction files, "
-    "AGENTS.md, README.md, Makefile, GitHub workflows, closure/timing scripts, "
-    "docs, .github, .agents, scripts, schemas, tests) before the general sorted "
-    "file walk."
+    "AS text scan budgets up to 200 owner-evidence files and up to 200 "
+    "instrumentation/test-noise files separately, after prioritizing owner "
+    "guidance, instruction, and closure operation surfaces (root instruction "
+    "files, AGENTS.md, README.md, Makefile, GitHub workflows, closure/timing "
+    "scripts, docs, .github, .agents, scripts, schemas, tests, tracked work/ "
+    "closure receipts) before the general sorted file walk. Declared "
+    "working-memory/state docs (e.g. CURRENT_STATE.md) are always scanned "
+    "regardless of either budget."
 )
 PRIORITY_ROOT_FILES = {
     "AGENTS.md",
@@ -385,6 +390,13 @@ PRIORITY_DIR_RANKS = {
     "schemas": 50,
     "tests": 60,
     "test": 60,
+    # Tracked work/<timestamp>Z/ closeout receipts are the fleet-wide
+    # repo-star closure-evidence convention (WORK.md, SCORECARD.json, etc.).
+    # Rank them so they compete for scan budget on equal footing with other
+    # recognized evidence directories instead of falling into the unranked,
+    # alphabetically-sorted catch-all tier where a leading lowercase "work"
+    # loses out to upper-case-prefixed paths.
+    "work": 65,
 }
 PRIORITY_OPERATION_PATHS = {
     "scripts/analyze-closure-dedupe.py",
@@ -416,13 +428,49 @@ SKIP_PARTS = {
     "__pycache__",
     "vendor",
     ".eggs",
-    "work",
     "audit_output",
     ".tmp",
 }
+# Fleet-wide repo-star closure receipts (work/<timestamp>Z/) sometimes nest a
+# full copy of this tool's own before/after audit output (e.g.
+# SCORECARD.json, AUDIT_REPORT.md, drift/maturity/stall-risk text, and a
+# pre-scan/ file-inventory dump) under pre-audit/ or post-audit/. That is
+# generated tool output captured as a receipt, not owner-authored prose.
+# Unlike "audit_output" (an unambiguous generated-artifact name), "pre-audit"
+# / "post-audit" / "pre-scan" are generic enough that a repo could plausibly
+# use them for real owner documentation outside a work/ receipt (e.g.
+# docs/pre-audit-checklist.md, or even a coincidentally-named docs/work/
+# subdirectory) -- so these are NOT in the blanket SKIP_PARTS set above. They
+# are only excluded when nested under the root-level work/<timestamp>Z/
+# closure-receipt directory specifically (parts[0] == "work", mirroring the
+# same root-only convention PRIORITY_DIR_RANKS/scan_priority_key already use
+# for "work"), not any "work" segment appearing deeper in the tree. The
+# WORK.md/DELTA.md/SCORECARD.json receipt files one level up (directly under
+# work/<ts>Z/) are unaffected either way.
+NESTED_WORK_RECEIPT_SNAPSHOT_PARTS = {"pre-audit", "post-audit", "pre-scan"}
+
+
+def is_nested_work_receipt_snapshot_path(parts_lower: list[str]) -> bool:
+    if not parts_lower or parts_lower[0] != "work":
+        return False
+    return any(part in NESTED_WORK_RECEIPT_SNAPSHOT_PARTS for part in parts_lower[1:])
+
+
+# "work" is excluded only when the path is NOT git-tracked: every repo-star
+# fleet repo (including this one) uses a gitignored work/<timestamp>Z/ scratch
+# convention for ephemeral session output, but some repos (e.g. tp) also
+# force-add committed closure-evidence files under the same directory name.
+# A blanket SKIP_PARTS match would blind every AS-NN scan to that legitimately
+# tracked evidence; a tracked-vs-untracked check keeps scratch out without
+# hiding real, committed evidence. See is_eligible_text_path / is_git_tracked.
+UNTRACKED_ONLY_SKIP_PARTS = {"work"}
 SYNTHETIC_EVIDENCE_PARTS = {"fixture", "fixtures", "__fixtures__", "testdata", "test-data"}
 SYNTHETIC_EVIDENCE_ROOTS = {"test", "tests"}
 SELF_INSTRUMENTATION_PATHS = {"scripts/as_signature_scan.py"}
+# Declared working-memory/state docs (e.g. CURRENT_STATE.md) are guaranteed a
+# scan slot regardless of SCAN_LIMIT so a test-heavy repo can't starve the one
+# file size-based friction detectors (AS-55) are specifically named to read.
+WORKING_MEMORY_DOC_SUFFIX = "CURRENT_STATE.md"
 
 
 def parse_args() -> tuple[str, Path]:
@@ -437,19 +485,58 @@ class TextScan:
     eligible_files: int
     scan_limit: int = SCAN_LIMIT
     scan_order_note: str = SCAN_ORDER_NOTE
+    # Whether either the owner-evidence or instrumentation-noise budget
+    # actually dropped a file. With the dual-budget split, total
+    # eligible_files can exceed scan_limit while every file still gets read
+    # (e.g. 150 owner-evidence + 100 noise files, each bucket under its own
+    # 200 cap) -- so scan_limited must reflect real omission, not just the
+    # combined eligible-file count vs a single limit.
+    budget_exhausted: bool = False
 
     @property
     def scan_limited(self) -> bool:
-        return self.eligible_files > self.scan_limit
+        return self.budget_exhausted
+
+
+@lru_cache(maxsize=None)
+def _git_tracked_relpaths(repo: Path) -> frozenset[str] | None:
+    """Git-tracked relative paths for repo, or None if repo isn't a usable
+    git checkout (no git binary, not a repo, etc). Callers must treat None as
+    "tracked status unknown" and fall back to the conservative/excluded path
+    so untracked scratch is never accidentally pulled into a scan."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "ls-files", "-z"],
+            capture_output=True,
+            timeout=30,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return None
+    raw = result.stdout.decode("utf-8", errors="replace")
+    return frozenset(entry for entry in raw.split("\0") if entry)
+
+
+def is_git_tracked(repo: Path, rel_str: str) -> bool:
+    tracked = _git_tracked_relpaths(repo)
+    if tracked is None:
+        return False
+    return rel_str in tracked
 
 
 def is_eligible_text_path(repo: Path, path: Path) -> bool:
     if not path.is_file():
         return False
     rel = path.relative_to(repo)
-    if any(part.lower() in SKIP_PARTS for part in rel.parts):
+    parts_lower = [part.lower() for part in rel.parts]
+    if any(part in SKIP_PARTS for part in parts_lower):
+        return False
+    if is_nested_work_receipt_snapshot_path(parts_lower):
         return False
     rel_str = rel.as_posix()
+    if any(part in UNTRACKED_ONLY_SKIP_PARTS for part in parts_lower):
+        if not is_git_tracked(repo, rel_str):
+            return False
     return (
         path.suffix.lower() in TEXT_EXTENSIONS
         or path.name in INSTRUCTION_FILES
@@ -474,21 +561,65 @@ def scan_priority_key(repo: Path, path: Path) -> tuple[int, str]:
     return (100, rel_str)
 
 
+def is_declared_working_memory_doc(rel_str: str) -> bool:
+    return rel_str.endswith(WORKING_MEMORY_DOC_SUFFIX)
+
+
 def load_text_scan(repo: Path) -> TextScan:
     eligible_paths = sorted(
         (path for path in repo.rglob("*") if is_eligible_text_path(repo, path)),
         key=lambda path: scan_priority_key(repo, path),
     )
     texts: dict[str, str] = {}
-    for path in eligible_paths:
-        if len(texts) >= SCAN_LIMIT:
-            break
-        rel = path.relative_to(repo).as_posix()
+
+    def read_into_texts(path: Path, rel_str: str) -> None:
         try:
-            texts[rel] = path.read_text(encoding="utf-8", errors="replace")
+            texts[rel_str] = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
+            return
+
+    # Pass 1: declared working-memory/state docs are guaranteed a scan slot
+    # regardless of either budget below (see WORKING_MEMORY_DOC_SUFFIX).
+    for path in eligible_paths:
+        rel_str = path.relative_to(repo).as_posix()
+        if is_declared_working_memory_doc(rel_str):
+            read_into_texts(path, rel_str)
+
+    # Pass 2: the remaining SCAN_LIMIT budget is tracked separately for
+    # instrumentation/test-noise files vs owner-evidence files. Without this
+    # split, a test-heavy repo's tests/ tier (counted at full priority but
+    # discarded by owner_evidence_texts for most detectors anyway) can
+    # exhaust the entire cap before any owner-evidence file in a lower-ranked
+    # or unranked directory is ever read.
+    owner_evidence_read = 0
+    noise_read = 0
+    owner_evidence_seen = 0
+    noise_seen = 0
+    for path in eligible_paths:
+        rel_str = path.relative_to(repo).as_posix()
+        if rel_str in texts:
             continue
-    return TextScan(texts=texts, eligible_files=len(eligible_paths))
+        if is_instrumentation_noise_path(rel_str):
+            noise_seen += 1
+            if noise_read >= SCAN_LIMIT:
+                continue
+            read_into_texts(path, rel_str)
+            if rel_str in texts:
+                noise_read += 1
+        else:
+            owner_evidence_seen += 1
+            if owner_evidence_read >= SCAN_LIMIT:
+                continue
+            read_into_texts(path, rel_str)
+            if rel_str in texts:
+                owner_evidence_read += 1
+
+    budget_exhausted = owner_evidence_read < owner_evidence_seen or noise_read < noise_seen
+    return TextScan(
+        texts=texts,
+        eligible_files=len(eligible_paths),
+        budget_exhausted=budget_exhausted,
+    )
 
 
 def load_texts(repo: Path) -> dict[str, str]:
@@ -1982,10 +2113,14 @@ def is_work_management_signature_explainer(path: str, text: str) -> bool:
     """Suppress detector docs/templates that define work-management AS checks."""
 
     lowered_path = path.lower()
-    if not WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN.search(text):
-        return False
+    # detection-signatures/ is a reference catalog directory by construction
+    # (DS-* and AS-* signature definitions); any file there documents what a
+    # signature looks for, it does not make an owner claim, regardless of
+    # which signature family (DS or AS) its prose happens to describe.
     if lowered_path.startswith("detection-signatures/"):
         return True
+    if not WORK_MANAGEMENT_SIGNATURE_REFERENCE_PATTERN.search(text):
+        return False
     if "template" in lowered_path and SIGNATURE_DEFINITION_MARKER_PATTERN.search(text):
         return True
     return "signature" in lowered_path and SIGNATURE_DEFINITION_MARKER_PATTERN.search(text)
@@ -6967,11 +7102,20 @@ CLOSURE_SIGNAL_CONTEXT_PATTERN = re.compile(
     r"score[- ]session|post[- ]audit|audit[- ]post|scorecard|scorer)\b"
 )
 CLOSURE_SIGNAL_SUCCESS_PATTERN = re.compile(
-    r"(?i)\b("
-    r"work[- ]?close(?:\.sh)?[^.\n]{0,120}(?:exit(?:ed|s)?|return(?:ed|s)?|status|rc)\s*[:=]?\s*0|"
-    r"(?:exit(?:ed|s)?|return(?:ed|s)?|status|rc)\s*[:=]?\s*0[^.\n]{0,120}work[- ]?close(?:\.sh)?|"
-    r"closure[^.\n]{0,80}(?:exit(?:ed|s)?|return(?:ed|s)?|status)\s*[:=]?\s*0"
-    r")\b"
+    r"(?i)("
+    r"\bwork[- ]?close(?:\.sh)?\b[^.\n]{0,120}\b(?:exit(?:ed|s)?|return(?:ed|s)?|status|rc)\s*[:=]?\s*0\b|"
+    r"\b(?:exit(?:ed|s)?|return(?:ed|s)?|status|rc)\s*[:=]?\s*0\b[^.\n]{0,120}\bwork[- ]?close(?:\.sh)?\b|"
+    r"\bclosure\b[^.\n]{0,80}\b(?:exit(?:ed|s)?|return(?:ed|s)?|status)\s*[:=]?\s*0\b|"
+    # Structural fallback when no literal exit code is logged: a checked
+    # markdown task-list item is a measured (checkbox), not prose, success
+    # marker; a generic completion verb anchored to the established
+    # work-close command name is a small, fixed verb set, not a tp-specific
+    # phrase.
+    r"\[x\][^.\n]{0,40}\bwork[- ]?close(?:\.sh)?\b|"
+    r"\bwork[- ]?close(?:\.sh)?\b[^.\n]{0,40}\[x\]|"
+    r"\bwork[- ]?close(?:\.sh)?\b[^.\n]{0,80}\b(?:completed?|succeeded|finished)\b|"
+    r"\b(?:completed?|succeeded|finished)\b[^.\n]{0,80}\bwork[- ]?close(?:\.sh)?\b"
+    r")"
 )
 CLOSURE_SIGNAL_DEGRADED_PATTERN = re.compile(
     r"(?i)("
@@ -6989,18 +7133,38 @@ CLOSURE_SIGNAL_NEGATION_PATTERN = re.compile(
 )
 
 CURRENT_STATE_OVERSIZED_CHAR_THRESHOLD = 16000
+# Note: "timeout override" is an explicit alternative (not just "review
+# timeout") because REVIEW_TIMEOUT_OVERRIDE_PATTERN below tolerates review and
+# timeout being up to 80 chars apart in either order -- without this anchor a
+# file discussing e.g. "the review needed a timeout override" (the words not
+# immediately adjacent) would match the corroboration pattern but fail this
+# admission gate first, a false negative. The bare "review" token stays
+# excluded (removed deliberately -- see below) since it was the original
+# cause of the glossary/path-map false catch.
 REVIEW_ERGONOMICS_CONTEXT_PATTERN = re.compile(
-    r"(?i)\b(CURRENT_STATE\.md|current state|working[- ]memory|make review|local review|review)\b"
+    r"(?i)\b(CURRENT_STATE\.md|current state|working[- ]memory|make review|local review|"
+    r"review timeout|review ergonomics|timeout override)\b"
 )
 REVIEW_TIMEOUT_OVERRIDE_PATTERN = re.compile(
     r"(?i)\b(review timeout override|review[^.\n]{0,80}\btimeout\b|timeout[^.\n]{0,80}\breview)\b"
 )
+# Branches 1/2 require an actual size/bloat complaint word co-located with
+# CURRENT_STATE.md. "working[- ]memory" is deliberately NOT in that keyword
+# set: it is the neutral name of the file's role (see e.g. a glossary/path-map
+# table row like "| Working memory | `CURRENT_STATE.md` |"), not an assertion
+# that the file is oversized. Branch 3 still requires "working memory" to be
+# paired with a genuine overload/pressure word. Branches 4/5 require the full
+# "timeout override" phrase next to "review", not a bare co-mention. Together
+# these keyword-tightenings are enough on their own to keep a glossary/
+# path-map row (which never contains any of these complaint words) from
+# matching, without needing a separate table-row structural negation.
 REVIEW_WORKING_MEMORY_OVERLOAD_PATTERN = re.compile(
     r"(?i)("
-    r"\bCURRENT_STATE\.md\b[^.\n]{0,120}\b(?:oversized|too large|large|bloated|bloat|timeout|working[- ]memory)\b|"
-    r"\b(?:oversized|too large|large|bloated|bloat|timeout|working[- ]memory)\b[^.\n]{0,120}\bCURRENT_STATE\.md\b|"
-    r"\bworking[- ]memory\b[^.\n]{0,80}\b(?:overload|pressure|drag|friction|bloat|too large)\b|"
-    r"\breview\b[^.\n]{0,80}\b(?:timeout override|working[- ]memory|CURRENT_STATE\.md)\b"
+    r"\bCURRENT_STATE\.md\b[^.\n]{0,120}\b(?:oversized|too large|bloated|bloat|timeout)\b|"
+    r"\b(?:oversized|too large|bloated|bloat|timeout)\b[^.\n]{0,120}\bCURRENT_STATE\.md\b|"
+    r"\bworking[- ]memory\b[^.\n]{0,80}\b(?:overload|pressure|drag|friction|bloat|too large|oversized)\b|"
+    r"\breview\b[^.\n]{0,80}\btimeout override\b|"
+    r"\btimeout override\b[^.\n]{0,80}\breview\b"
     r")"
 )
 REVIEW_ERGONOMICS_NEGATION_PATTERN = re.compile(
@@ -7082,7 +7246,15 @@ def closure_signal_integrity(texts: dict[str, str]) -> dict[str, Any]:
 
 def review_ergonomics_working_memory_lightness(texts: dict[str, str]) -> dict[str, Any]:
     """AS-55: review ergonomics are degraded by oversized CURRENT_STATE.md or
-    review-timeout override pressure on working memory."""
+    review-timeout override pressure on working memory.
+
+    The measured file-size signal (oversized_current_state_file) is the
+    primary, structural basis for firing. Keyword-proximity matches
+    (review_timeout_override, working_memory_overload) are corroboration:
+    they require an actual complaint word (oversized/too large/bloated/
+    overload/pressure/etc.) co-located with CURRENT_STATE.md or "working
+    memory", so a glossary/path-map row that merely names the file next to
+    its label never matches (see REVIEW_WORKING_MEMORY_OVERLOAD_PATTERN)."""
     offenders: list[str] = []
     grounded: list[str] = []
     current_state_files = 0
@@ -7094,7 +7266,7 @@ def review_ergonomics_working_memory_lightness(texts: dict[str, str]) -> dict[st
         if _skip_friction_detector_surface(path, text):
             continue
 
-        is_current_state_file = path.endswith("CURRENT_STATE.md")
+        is_current_state_file = is_declared_working_memory_doc(path)
         if is_current_state_file:
             current_state_files += 1
 
@@ -7117,6 +7289,9 @@ def review_ergonomics_working_memory_lightness(texts: dict[str, str]) -> dict[st
         if overload_count:
             working_memory_overload_surfaces += 1
 
+        # Primary signal first: the measured oversize check is the detector's
+        # structural basis for firing. Keyword matches are appended as
+        # corroboration only.
         reasons: list[str] = []
         if oversized_file:
             reasons.append("oversized_current_state_file")
@@ -7146,9 +7321,14 @@ def review_ergonomics_working_memory_lightness(texts: dict[str, str]) -> dict[st
         },
         "evidence": evidence_join(details),
         "reason": (
-            "review ergonomics show oversized CURRENT_STATE.md, working-memory overload, or review-timeout override pressure"
-            if offenders
-            else "CURRENT_STATE.md/review working-memory pressure is absent, bounded, or negated"
+            "review ergonomics show oversized CURRENT_STATE.md (primary, measured signal)"
+            if oversized_current_state_files
+            else (
+                "review ergonomics show working-memory overload or review-timeout override pressure "
+                "(corroborating prose signal; no oversized CURRENT_STATE.md was measured)"
+                if offenders
+                else "CURRENT_STATE.md/review working-memory pressure is absent, bounded, or negated"
+            )
         ),
     }
 

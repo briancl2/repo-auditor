@@ -13,7 +13,8 @@ LARGE_STATE_REPO="$TMPDIR/review-ergonomics-large-state"
 CLEAN_REPO="$TMPDIR/review-ergonomics-clean"
 SMALL_STATE_REPO="$TMPDIR/review-ergonomics-small-state"
 NEGATED_REPO="$TMPDIR/review-ergonomics-negated"
-mkdir -p "$INLINE_GAP_REPO/docs" "$LARGE_STATE_REPO" "$CLEAN_REPO/docs" "$SMALL_STATE_REPO" "$NEGATED_REPO/docs"
+GLOSSARY_ROW_REPO="$TMPDIR/review-ergonomics-glossary-row"
+mkdir -p "$INLINE_GAP_REPO/docs" "$LARGE_STATE_REPO" "$CLEAN_REPO/docs" "$SMALL_STATE_REPO" "$NEGATED_REPO/docs" "$GLOSSARY_ROW_REPO/docs"
 
 # --- INLINE GAP: documented working-memory pressure and timeout override ---
 cat > "$INLINE_GAP_REPO/docs/review-friction.md" <<'EOF'
@@ -55,13 +56,35 @@ No review timeout override was needed.
 No working-memory overload was observed.
 EOF
 
-python3 - "$REPO_ROOT" "$INLINE_GAP_REPO" "$LARGE_STATE_REPO" "$CLEAN_REPO" "$SMALL_STATE_REPO" "$NEGATED_REPO" <<'PY'
+# --- GLOSSARY ROW: a path-map/glossary table row that merely names the
+# working-memory doc next to its path is not friction prose. No real
+# oversized CURRENT_STATE.md file exists in this fixture, so this must stay
+# fired:false; a keyword-proximity false catch here would be the exact bug
+# this detector was re-weighted to remove.
+cat > "$GLOSSARY_ROW_REPO/docs/glossary.md" <<'EOF'
+# Glossary
+
+| Concept | Path |
+| --- | --- |
+| Working memory / recent changes | `ACTIVE_PROJECTS_DOCS/CURRENT_STATE.md` |
+| Review checklist | `docs/review-checklist.md` |
+EOF
+
+python3 - "$REPO_ROOT" "$INLINE_GAP_REPO" "$LARGE_STATE_REPO" "$CLEAN_REPO" "$SMALL_STATE_REPO" "$NEGATED_REPO" "$GLOSSARY_ROW_REPO" <<'PY'
 import json
 import subprocess
 import sys
 from pathlib import Path
 
-repo_root, inline_gap_repo, large_state_repo, clean_repo, small_state_repo, negated_repo = map(Path, sys.argv[1:])
+(
+    repo_root,
+    inline_gap_repo,
+    large_state_repo,
+    clean_repo,
+    small_state_repo,
+    negated_repo,
+    glossary_row_repo,
+) = map(Path, sys.argv[1:])
 
 
 def run(repo: Path) -> dict:
@@ -85,12 +108,22 @@ assert inline_gap["fired"] is True, inline_gap
 assert inline_gap["signals"]["review_ergonomics_working_memory_lightness_count"] == 1, inline_gap
 assert inline_gap["signals"]["review_timeout_override_surface_count"] == 1, inline_gap
 assert inline_gap["signals"]["working_memory_overload_surface_count"] == 1, inline_gap
+# Right-reason: this fixture has no real oversized CURRENT_STATE.md file, so
+# it must fire on the corroborating prose signal, not the (absent) primary
+# measured-size signal.
+assert inline_gap["signals"]["oversized_current_state_file_count"] == 0, inline_gap
+assert "corroborating prose signal" in inline_gap["reason"], inline_gap
 
 large_state = run(large_state_repo)
 assert large_state["ds_id"] == "AS-55", large_state
 assert large_state["fired"] is True, large_state
 assert large_state["signals"]["current_state_file_count"] == 1, large_state
 assert large_state["signals"]["oversized_current_state_file_count"] == 1, large_state
+# Right-reason: a large CURRENT_STATE.md with no explanatory prose must fire
+# via the primary measured-size signal, not a keyword-proximity corroboration.
+assert large_state["signals"]["working_memory_overload_surface_count"] == 0, large_state
+assert large_state["signals"]["review_timeout_override_surface_count"] == 0, large_state
+assert "primary, measured signal" in large_state["reason"], large_state
 
 clean = run(clean_repo)
 assert clean["ds_id"] == "AS-55", clean
@@ -108,6 +141,17 @@ negated = run(negated_repo)
 assert negated["ds_id"] == "AS-55", negated
 assert negated["fired"] is False, negated
 assert negated["signals"]["review_ergonomics_working_memory_lightness_count"] == 0, negated
+
+glossary_row = run(glossary_row_repo)
+assert glossary_row["ds_id"] == "AS-55", glossary_row
+# Right-reason: a glossary/path-map table row naming CURRENT_STATE.md next to
+# "working memory" is a name->path mapping, not friction prose. This is the
+# exact false-catch class the keyword-proximity branch used to fire on; it
+# must no longer fire here at all (no real oversized file backs this claim).
+assert glossary_row["fired"] is False, glossary_row
+assert glossary_row["signals"]["review_ergonomics_working_memory_lightness_count"] == 0, glossary_row
+assert glossary_row["signals"]["working_memory_overload_surface_count"] == 0, glossary_row
+assert glossary_row["signals"]["oversized_current_state_file_count"] == 0, glossary_row
 PY
 
 echo "PASS: AS-55 review-ergonomics working-memory lightness detector covered"

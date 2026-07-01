@@ -1539,7 +1539,7 @@ assert payload["eligible_files"] == 226, payload
 assert payload["scanned_files"] == 200, payload
 assert payload["scan_limit"] == 200, payload
 assert payload["scan_limited"] is True, payload
-assert "bounded to 200" in payload["scan_order_note"], payload
+assert "200 owner-evidence files" in payload["scan_order_note"], payload
 
 large_grounded = subprocess.run(
     ["bash", script, large_grounded_repo],
