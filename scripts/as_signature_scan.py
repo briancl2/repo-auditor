@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -11,7 +12,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 
 SIGNATURES: dict[str, dict[str, str]] = {
@@ -571,9 +572,31 @@ def is_declared_working_memory_doc(rel_str: str) -> bool:
     return rel_str.endswith(WORKING_MEMORY_DOC_SUFFIX)
 
 
+def iter_eligible_text_paths(repo: Path) -> Iterator[Path]:
+    """Yield eligible text paths under repo, pruning generated/VCS trees during
+    the walk instead of after it.
+
+    ``Path.rglob("*")`` stats every entry in the tree -- including huge
+    ``.git``/``node_modules``/``.venv`` subtrees that ``is_eligible_text_path``
+    only rejects one file at a time -- and can follow symlink cycles. On a
+    large repo that traversal, repeated once per signature process, is what
+    lets the DS-34+ sweep stall. Pruning any directory whose name is an
+    unconditional skip part (``SKIP_PARTS``) mid-walk yields the identical
+    eligible-file set far faster, and ``followlinks=False`` avoids symlink-loop
+    hangs. Conditional skips (untracked ``work/`` scratch, nested work-receipt
+    snapshots) stay in ``is_eligible_text_path`` so semantics are unchanged."""
+    for dirpath, dirnames, filenames in os.walk(repo, topdown=True, followlinks=False):
+        dirnames[:] = [name for name in dirnames if name.lower() not in SKIP_PARTS]
+        base = Path(dirpath)
+        for name in filenames:
+            path = base / name
+            if is_eligible_text_path(repo, path):
+                yield path
+
+
 def load_text_scan(repo: Path) -> TextScan:
     eligible_paths = sorted(
-        (path for path in repo.rglob("*") if is_eligible_text_path(repo, path)),
+        iter_eligible_text_paths(repo),
         key=lambda path: scan_priority_key(repo, path),
     )
     texts: dict[str, str] = {}
