@@ -17,6 +17,7 @@ set -euo pipefail
 
 TARGET="${1:?Usage: operation-guard.sh <target_repo> [--lockdir <dir>]}"
 LOCKDIR=""
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Parse --lockdir flag
 shift
@@ -63,13 +64,40 @@ else
     check "Target directory" "FAIL" "not found: $TARGET"
 fi
 
-# ── Check 2: Target git state clean ──────────────────────────────────
+# ── Check 2: Target git state clean (tolerating known generated/OS noise) ──
+# A tree dirty only with generated/OS scratch (__pycache__/, *.pyc, .DS_Store,
+# work/) is still auditable, so it PASSes with the tolerated noise recorded.
+# Meaningful uncommitted source changes still FAIL. See classify-dirty-noise.py.
 if [ -d "$TARGET/.git" ] || git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
-    DIRTY_COUNT=$(git -C "$TARGET" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
-    if [ "$DIRTY_COUNT" -eq 0 ]; then
-        check "Target git state" "PASS" "clean"
+    MEANINGFUL=""
+    NOISE=""
+    if [ -f "$SCRIPT_DIR/classify-dirty-noise.py" ]; then
+        NOISE_CLASS="$(python3 "$SCRIPT_DIR/classify-dirty-noise.py" "$TARGET" 2>/dev/null || true)"
+        if [ -n "$NOISE_CLASS" ]; then
+            MEANINGFUL="$(printf '%s' "$NOISE_CLASS" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("meaningful_count",""))' 2>/dev/null || true)"
+            NOISE="$(printf '%s' "$NOISE_CLASS" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("tolerated_noise_count",0))' 2>/dev/null || true)"
+        fi
+    fi
+    if [ -z "$MEANINGFUL" ]; then
+        # Classifier unavailable/failed — fall back to strict all-dirty count.
+        DIRTY_COUNT=$(git -C "$TARGET" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$DIRTY_COUNT" -eq 0 ]; then
+            check "Target git state" "PASS" "clean"
+        else
+            check "Target git state" "FAIL" "$DIRTY_COUNT uncommitted files"
+        fi
+    elif [ "$MEANINGFUL" -eq 0 ]; then
+        if [ "${NOISE:-0}" -gt 0 ]; then
+            check "Target git state" "PASS" "clean except $NOISE tolerated noise entries (__pycache__/*.pyc/.DS_Store/work)"
+        else
+            check "Target git state" "PASS" "clean"
+        fi
     else
-        check "Target git state" "FAIL" "$DIRTY_COUNT uncommitted files"
+        DETAIL="$MEANINGFUL uncommitted files"
+        if [ "${NOISE:-0}" -gt 0 ]; then
+            DETAIL="$DETAIL (+$NOISE tolerated noise entries ignored)"
+        fi
+        check "Target git state" "FAIL" "$DETAIL"
     fi
 else
     check "Target git state" "PASS" "not a git repo (skip)"

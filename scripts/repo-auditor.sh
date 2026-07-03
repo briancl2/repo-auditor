@@ -97,6 +97,9 @@ FAILURES=""
 FAIL_COUNT=0
 REPORT_GENERATION_FAILED=0
 REPORT_GENERATION_REASON=""
+# Tolerated dirty noise (bytecode/OS scratch) recorded when the target's git
+# state is dirty only with generated files; empty means none tolerated.
+TOLERATED_DIRTY_NOISE_JSON=""
 
 # Create output structure before any auditable failure so receipts have a home.
 mkdir -p "$OUTPUT_DIR/pre-scan"
@@ -125,6 +128,7 @@ update_scorecard_audit_metadata() {
 
     python3 -c '
 import json
+import os
 import pathlib
 import sys
 
@@ -139,6 +143,14 @@ if reason:
     meta["audit_status_reason"] = reason
 else:
     meta.pop("audit_status_reason", None)
+noise_raw = os.environ.get("TOLERATED_DIRTY_NOISE_JSON", "").strip()
+if noise_raw:
+    try:
+        meta["tolerated_dirty_noise"] = json.loads(noise_raw)
+    except (ValueError, TypeError):
+        pass
+else:
+    meta.pop("tolerated_dirty_noise", None)
 json.dump(data, open(path, "w"), indent=2)
 open(path, "a").write("\n")
 ' "$OUTPUT_DIR/SCORECARD.json" "$status" "$artifact_status" "$missing" "$reason"
@@ -266,6 +278,30 @@ if [ -x "$GUARD_SCRIPT" ]; then
         write_audit_run_receipt "failed" "operation guard failed" 3
         exit 3
     fi
+fi
+
+# ── C4: Record tolerated dirty noise (guard passed) ──────────────────
+# When the guard let a noise-only-dirty target through, capture the tolerated
+# bytecode/OS scratch so the scorecard is transparent about what was ignored.
+CLASSIFY_SCRIPT="$SCRIPT_DIR/classify-dirty-noise.py"
+if [ -f "$CLASSIFY_SCRIPT" ]; then
+    NOISE_CLASS_JSON="$(python3 "$CLASSIFY_SCRIPT" "$REPO" 2>/dev/null || true)"
+    if [ -n "$NOISE_CLASS_JSON" ]; then
+        TOLERATED_DIRTY_NOISE_JSON="$(printf '%s' "$NOISE_CLASS_JSON" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+if d.get("meaningful_count") == 0 and d.get("tolerated_noise_count", 0) > 0:
+    print(json.dumps({
+        "tolerated_noise_count": d.get("tolerated_noise_count", 0),
+        "tolerated_noise_paths": d.get("tolerated_noise_paths", []),
+        "noise_classes": d.get("noise_classes", []),
+    }))
+' 2>/dev/null || true)"
+    fi
+    export TOLERATED_DIRTY_NOISE_JSON
 fi
 
 # ── C4: Acquire operation lock (PID matches this process) ────────────
