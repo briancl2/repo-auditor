@@ -3,3 +3,6 @@ work/
 # Python bytecode cache
 __pycache__/
 *.pyc
+
+# macOS local noise
+.DS_Store
