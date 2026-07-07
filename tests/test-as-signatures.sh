@@ -379,6 +379,16 @@ if [ -f "$AUDITOR" ]; then
 fi
 EOF
 
+cat > "$TEST_REPO/docs/native-evidence-verdict-gap.md" <<'EOF'
+# GBrain adoption readback
+
+Based on reading the upstream README and AGENTS.md, GBrain is production-ready
+and we should adopt it as the default memory backend now.
+The local doctor output is green and the retained validation receipt passed.
+No native GBrain command was executed, and this adoption verdict rests on the
+docs and model summary alone.
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -392,8 +402,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 56
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 56
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 57
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 57
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -453,6 +463,7 @@ assert as_ids == {
     "AS-54",
     "AS-55",
     "AS-56",
+    "AS-57",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the

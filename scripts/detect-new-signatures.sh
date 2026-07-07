@@ -98,6 +98,7 @@ scripts=(
     "detect-as-closure-signal-integrity.sh"
     "detect-as-review-ergonomics-working-memory-lightness.sh"
     "detect-as-external-closure-coupling.sh"
+    "detect-as-native-evidence-before-verdict.sh"
 )
 
 idx=0
