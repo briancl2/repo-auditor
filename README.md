@@ -94,6 +94,15 @@ External closure coupling detector coverage is provided by AS-56 through
 surfaces for sibling-repo local paths such as `$HOME/repos/...`; reciprocal
 cross-repo audit remains opt-in/advisory rather than default closure truth.
 
+Native-evidence-before-verdict detector coverage is provided by AS-57 through
+`scripts/detect-as-native-evidence-before-verdict.sh`. It fires when a
+verdict-bearing surface decides adoption/readiness/fallback/production/GA/
+cutover/architecture from docs-readback or substitute proof (local doctor,
+local tests, retained reports, model summaries, validation receipts, prompt
+contracts) without a native attempt or a concrete owner-surface blocker, per
+repo-agent-core `docs/native-evidence-before-verdict-contract.md`. It does not
+create controllers, schedulers, queues, registries, or auto-issue creators.
+
 ## Self-Management
 
 - `make check` — shellcheck + inventory + co-evolution + trailer validation

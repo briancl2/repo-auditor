@@ -352,6 +352,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-external-closure-coupling.sh",
     },
+    "AS-57": {
+        "name": "native-evidence-before-verdict",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-native-evidence-before-verdict.sh",
+    },
 }
 
 
@@ -7452,6 +7458,167 @@ def external_closure_coupling(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+# AS-57 native-evidence-before-verdict patterns. The detector fires when a
+# verdict-bearing surface decides adoption/readiness/fallback/production/GA/
+# cutover/architecture from docs-readback or substitute proof, without a native
+# attempt or a concrete owner-surface blocker. See repo-agent-core
+# docs/native-evidence-before-verdict-contract.md.
+NATIVE_EVIDENCE_CONTRACT_REF = (
+    "repo-agent-core/docs/native-evidence-before-verdict-contract.md"
+)
+NATIVE_EVIDENCE_CONTEXT_PATTERN = re.compile(
+    r"(?i)\b(upstream|native[- ]evidence[- ]before[- ]verdict|native (?:setup|use|"
+    r"model|command|run|attempt|capability|tool)|adopt\w*|GBrain|Hermes|"
+    r"external (?:system|tool|library|product|dependency|capability)|third[- ]party|"
+    r"install_for_agents|production[- ]readi\w*|readiness (?:verdict|decision)|"
+    r"go[- ]live|cutover)\b"
+)
+NATIVE_EVIDENCE_POSITIVE_VERDICT_PATTERN = re.compile(
+    r"(?i)\b(production[- ]ready|ready for production|production readiness|"
+    r"adopt(?:ed|ion|able|s)?|adoption[- ]ready|safe to adopt|"
+    r"generally available|\bGA\b|cutover|go[- ]live|greenlight|green[- ]light|"
+    r"ready to (?:adopt|ship|roll ?out|productionize))\b"
+)
+NATIVE_EVIDENCE_NEGATIVE_VERDICT_PATTERN = re.compile(
+    r"(?i)\b(not production[- ]ready|not ready for production|not[- ]GA|not GA\b|"
+    r"not generally available|fallback (?:required|is required|needed|route|only)|"
+    r"hybrid fallback|adoption (?:blocked|is blocked)|blocked adoption|"
+    r"not safe to adopt|not adoptable|adoption[- ]blocked)\b"
+)
+# A "no verdict / no decision" disclaimer means the surface explicitly declines
+# to decide; it is orientation, not a verdict. This is intentionally narrow so
+# that a negative verdict such as "not production-ready" is still a verdict.
+NATIVE_EVIDENCE_VERDICT_DISCLAIMER_PATTERN = re.compile(
+    r"(?i)("
+    r"\b(?:no|not|without|never)\s+(?:\w+[\s,]+){0,4}?(?:verdict|decision|"
+    r"judg?ment|call|conclusion)\b|"
+    r"\bmakes?\s+no\b|\bdo(?:es)?\s+not\s+(?:make|decide|conclude|judge|claim)\b|"
+    r"\bdefer(?:s|red|ring)?\b|\bsupport but do(?:es)? not decide\b|"
+    r"\bonly to support\b|\bnecessary but not sufficient\b)"
+)
+NATIVE_EVIDENCE_SUBSTITUTE_PROOF_PATTERN = re.compile(
+    r"(?i)\b(read(?:ing)? (?:the )?(?:docs|documentation|readme|agents|manual)|"
+    r"docs? readback|based on (?:the )?(?:docs|documentation|readme)|"
+    r"per the (?:docs|readme|documentation)|the docs are clear|README|AGENTS\.md|"
+    r"install_for_agents|local doctor|doctor output|local tests?|"
+    r"retained (?:report|validation|receipt|evidence)|model summary|"
+    r"prompt contract|validation receipt|documentation (?:says|shows|confirms)|"
+    r"rests on the docs)\b"
+)
+# Affirmative native execution / real result evidence. Counted per-line and
+# suppressed by negation so "did not run"/"no native command was executed" does
+# not count as an attempt.
+NATIVE_EVIDENCE_NATIVE_ATTEMPT_PATTERN = re.compile(
+    r"(?i)\b(ran|executed|invoked|installed and ran|successfully ran|actually ran|"
+    r"native run (?:succeeded|passed|completed|shows)|"
+    r"working native (?:run|attempt)|real command output|command output:|"
+    r"output (?:was|shows|showed|confirms)|reproduced (?:it )?(?:with|via|by running)|"
+    r"smoke (?:passed|ran)|native attempt (?:succeeded|passed|completed)|"
+    r"verified by running)\b"
+)
+# Affirmative owner-surface blocker that stops before unsafe/unauthorized native
+# execution and routes the next step to the owner. Counted per-line and
+# suppressed by negation so "no owner-surface blocker" does not count.
+NATIVE_EVIDENCE_OWNER_BLOCKER_PATTERN = re.compile(
+    r"(?i)\b(owner[- ]surface blocker|blocker (?:routed|filed|raised|was filed)|"
+    r"routed to (?:the )?owner|filed (?:an? )?(?:issue|blocker) to|owner (?:issue|repo|surface)|"
+    r"blocked by|cannot (?:run|execute)|could not (?:safely )?run|"
+    r"unsafe to (?:run|execute)|unauthorized (?:production|native)|"
+    r"requires? (?:approval|credentials|permission)|permission denied|"
+    r"stopped before (?:the )?native|before unsafe (?:native )?execution|"
+    r"upstream (?:bug|issue)|awaiting owner|needs owner)\b"
+)
+NATIVE_EVIDENCE_NEGATION_PATTERN = re.compile(
+    r"(?i)\b(no|not|never|without|did not|didn't|does not|doesn't|do not|don't|"
+    r"have not|haven't|has not|hasn't|unable to|could not|couldn't|"
+    r"cannot|can't|won't|skipped|nor)\b"
+)
+
+
+def _native_evidence_verdict_line_count(text: str) -> int:
+    """Affirmative verdict lines: positive/negative verdict claims that are not
+    part of an explicit no-verdict/no-decision disclaimer."""
+    count = 0
+    for line in text.splitlines():
+        if NATIVE_EVIDENCE_VERDICT_DISCLAIMER_PATTERN.search(line):
+            continue
+        if NATIVE_EVIDENCE_POSITIVE_VERDICT_PATTERN.search(
+            line
+        ) or NATIVE_EVIDENCE_NEGATIVE_VERDICT_PATTERN.search(line):
+            count += 1
+    return count
+
+
+def native_evidence_before_verdict(texts: dict[str, str]) -> dict[str, Any]:
+    """AS-57: a verdict-bearing surface decides adoption/readiness/fallback/
+    production/GA/cutover/architecture from docs-readback or substitute proof,
+    without a native attempt or a concrete owner-surface blocker."""
+    offenders: list[str] = []
+    grounded: list[str] = []
+    verdict_surfaces = 0
+    substitute_proof_surfaces = 0
+    native_or_blocker_surfaces = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if _skip_friction_detector_surface(path, text):
+            continue
+        if not NATIVE_EVIDENCE_CONTEXT_PATTERN.search(text):
+            continue
+
+        verdict_count = _native_evidence_verdict_line_count(text)
+        if not verdict_count:
+            continue
+        verdict_surfaces += 1
+
+        has_substitute_proof = bool(
+            NATIVE_EVIDENCE_SUBSTITUTE_PROOF_PATTERN.search(text)
+        )
+        if has_substitute_proof:
+            substitute_proof_surfaces += 1
+
+        native_attempt_count = _unnegated_line_match_count(
+            text, NATIVE_EVIDENCE_NATIVE_ATTEMPT_PATTERN, NATIVE_EVIDENCE_NEGATION_PATTERN
+        )
+        owner_blocker_count = _unnegated_line_match_count(
+            text, NATIVE_EVIDENCE_OWNER_BLOCKER_PATTERN, NATIVE_EVIDENCE_NEGATION_PATTERN
+        )
+        has_native_or_blocker = bool(native_attempt_count or owner_blocker_count)
+        if has_native_or_blocker:
+            native_or_blocker_surfaces += 1
+
+        if has_substitute_proof and not has_native_or_blocker:
+            offenders.append(f"{path}=>docs_readback_only_verdict")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"native_evidence_before_verdict=>{';'.join(offenders[:4]) or 'none'}",
+        f"native_evidence_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+        f"contract_ref=>{NATIVE_EVIDENCE_CONTRACT_REF}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "native_evidence_before_verdict_count": len(offenders),
+            "verdict_surface_count": verdict_surfaces,
+            "substitute_proof_surface_count": substitute_proof_surfaces,
+            "native_attempt_or_blocker_surface_count": native_or_blocker_surfaces,
+            "contract_ref": NATIVE_EVIDENCE_CONTRACT_REF,
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "verdict-bearing surface decides adoption/readiness/fallback from "
+            "docs-readback or substitute proof without a native attempt or a "
+            "concrete owner-surface blocker; require a native attempt or route "
+            "the blocker to the owner surface per "
+            f"{NATIVE_EVIDENCE_CONTRACT_REF}"
+            if offenders
+            else "verdict surfaces carry a native attempt or owner-surface "
+            "blocker, make no adoption/readiness/fallback verdict, or are absent"
+        ),
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -7509,6 +7676,7 @@ EVALUATORS = {
     "AS-54": closure_signal_integrity,
     "AS-55": review_ergonomics_working_memory_lightness,
     "AS-56": external_closure_coupling,
+    "AS-57": native_evidence_before_verdict,
 }
 
 
