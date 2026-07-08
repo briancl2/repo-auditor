@@ -358,6 +358,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-native-evidence-before-verdict.sh",
     },
+    "AS-58": {
+        "name": "instruction-contradiction",
+        "severity": "MEDIUM",
+        "prevention_tier": "T2",
+        "script": "detect-as-instruction-contradiction.sh",
+    },
 }
 
 
@@ -7619,6 +7625,209 @@ def native_evidence_before_verdict(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+# AS-58 instruction-contradiction patterns. The detector fires when a repo's
+# instruction surfaces carry contradictory or self-invalidating guidance:
+#   (Class B, cross-surface) a shared named reference surface/artifact is cited
+#     as LIVE/canonical in one instruction surface while another surface marks
+#     that same reference DEAD/DORMANT/archived/deprecated -- the "cited live
+#     while dead/dormant" class (e.g. a skill citing a ledger that a status doc
+#     records as dead); and
+#   (Class A, within-surface) the same command/flag/reference token is both
+#     absolutely mandated (always/must) and absolutely forbidden (never/must
+#     not) inside a single instruction surface.
+# The detector is lexical and read-only; it makes no change to the target.
+INSTRUCTION_CONTRADICTION_SURFACE_SUFFIXES = (".md", ".markdown")
+# Distinctive named reference tokens: ALL-CAPS underscore identifiers (>=2
+# segments) such as PRINCIPLE_LEDGER or CURRENT_STATE, optionally with a .md
+# suffix. Single all-caps words (README, AGENTS) are intentionally excluded so
+# ubiquitous surface names do not create noisy cross-surface pairs.
+INSTRUCTION_REFERENCE_TOKEN_PATTERN = re.compile(
+    r"\b([A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+)(?:\.md)?\b"
+)
+# A surface currently treats the token as authoritative/live and to be used.
+INSTRUCTION_LIVE_CUE_PATTERN = re.compile(
+    r"(?i)\b(live|current(?:ly)?|canonical|authoritative|source of truth|"
+    r"single source|active|up[- ]to[- ]date|still (?:the|our|maintained|live)|"
+    r"cite|consult|refer to|read from|use)\b"
+)
+# A surface declares the token dead/dormant/retired -- not the current authority.
+INSTRUCTION_DEAD_CUE_PATTERN = re.compile(
+    r"(?i)\b(dead|dormant|archived?|deprecated|retired|frozen|obsolete|"
+    r"superseded|sunset|decommissioned|abandoned|defunct|stale|"
+    r"no longer (?:maintained|used|updated|live|current|the|authoritative|canonical)|"
+    r"not (?:maintained|updated|live|current))\b"
+)
+# Past-tense/transition wording means a live-cue line is describing a former
+# state, not a current authority claim; it must not count as a LIVE citation.
+INSTRUCTION_TRANSITION_PATTERN = re.compile(
+    r"(?i)\b(was|were|used to (?:be|serve)|formerly|previously|once (?:the|was)|"
+    r"no longer|until recently|has been replaced|replaced by|superseded by)\b"
+)
+# Absolute mandate / absolute prohibition cues for the within-surface class.
+INSTRUCTION_MANDATE_CUE_PATTERN = re.compile(
+    r"(?i)\b(always|must always|must|shall|required to|is required|are required|"
+    r"you must|need to always)\b"
+)
+INSTRUCTION_FORBID_CUE_PATTERN = re.compile(
+    r"(?i)\b(never|must not|must never|may not|do not ever|don't ever|"
+    r"shall not|forbidden|prohibited|is not permitted|never permitted)\b"
+)
+# Within-surface tokens: backtick-quoted commands/paths, long option flags, and
+# ALL-CAPS underscore references. These are the concrete "same action" anchors
+# that a single surface can both mandate and forbid.
+INSTRUCTION_ACTION_TOKEN_PATTERNS = (
+    re.compile(r"`([^`\n]{2,60})`"),
+    re.compile(r"(?<![\w-])(--[a-z0-9][a-z0-9-]{1,40})\b"),
+    re.compile(r"\b([A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+)(?:\.md)?\b"),
+)
+
+
+def _is_instruction_contradiction_surface(path: str) -> bool:
+    if path.startswith("scripts/") or path.startswith("detection-signatures/"):
+        return False
+    lowered = path.lower()
+    if not lowered.endswith(INSTRUCTION_CONTRADICTION_SURFACE_SUFFIXES):
+        return False
+    name = path.rsplit("/", 1)[-1]
+    if name in INSTRUCTION_FILES or path in INSTRUCTION_FILES:
+        return True
+    if name in ("copilot-instructions.md", "SKILL.md"):
+        return True
+    first = path.split("/", 1)[0]
+    return first in ("docs", ".agents", ".github", ".specify")
+
+
+def _instruction_token_liveness(text: str) -> dict[str, str]:
+    """Map each distinctive reference token in a surface to 'dead', 'live', or
+    'mixed'. Analysis is per clause (splitting each line on ';', sentence
+    boundaries, and dashes) so a dead/live cue only colors tokens in its own
+    clause -- e.g. "OLD_LEDGER is dead; NEW_LEDGER replaced it" does not mark
+    NEW_LEDGER dead. Dead cues dominate within a clause; transition wording
+    ("was", "formerly", "no longer") suppresses a clause's live citation so a
+    described former-state is not read as a current authority claim."""
+    liveness: dict[str, str] = {}
+    for line in text.splitlines():
+        for clause in re.split(r"(?:;|—|–|\s--\s|\.\s)", line):
+            tokens = {
+                m.group(1) for m in INSTRUCTION_REFERENCE_TOKEN_PATTERN.finditer(clause)
+            }
+            if not tokens:
+                continue
+            has_dead = bool(INSTRUCTION_DEAD_CUE_PATTERN.search(clause))
+            has_live = bool(INSTRUCTION_LIVE_CUE_PATTERN.search(clause)) and not (
+                has_dead or INSTRUCTION_TRANSITION_PATTERN.search(clause)
+            )
+            for token in tokens:
+                if has_dead:
+                    polarity = "dead"
+                elif has_live:
+                    polarity = "live"
+                else:
+                    continue
+                current = liveness.get(token)
+                if current is None or current == polarity:
+                    liveness[token] = polarity
+                else:
+                    liveness[token] = "mixed"
+    return liveness
+
+
+def _instruction_mandate_forbid_tokens(text: str) -> list[str]:
+    """Tokens that are both absolutely mandated and absolutely forbidden within
+    a single surface (self-invalidating mandate/forbid on the same action)."""
+    mandated: set[str] = set()
+    forbidden: set[str] = set()
+    for line in text.splitlines():
+        is_mandate = bool(INSTRUCTION_MANDATE_CUE_PATTERN.search(line))
+        is_forbid = bool(INSTRUCTION_FORBID_CUE_PATTERN.search(line))
+        if not (is_mandate or is_forbid):
+            continue
+        tokens: set[str] = set()
+        for pattern in INSTRUCTION_ACTION_TOKEN_PATTERNS:
+            tokens.update(m.group(1).strip() for m in pattern.finditer(line))
+        tokens = {token for token in tokens if token}
+        if is_forbid:
+            # A negated mandate ("must not", "never must") is a prohibition, not
+            # a mandate, so classify the line as forbid when both cues appear.
+            forbidden.update(tokens)
+        elif is_mandate:
+            mandated.update(tokens)
+    return sorted(mandated & forbidden)
+
+
+def instruction_contradiction(texts: dict[str, str]) -> dict[str, Any]:
+    """AS-58: instruction surfaces carry contradictory or self-invalidating
+    guidance -- a reference cited LIVE in one surface while marked DEAD in
+    another (cross-surface), or the same action both mandated and forbidden
+    within one surface."""
+    surfaces: dict[str, dict[str, str]] = {}
+    within_offenders: list[str] = []
+
+    for path, text in owner_evidence_texts(texts).items():
+        if not _is_instruction_contradiction_surface(path):
+            continue
+        if is_work_management_signature_explainer(path, text):
+            continue
+        surfaces[path] = _instruction_token_liveness(text)
+
+        mandate_forbid = _instruction_mandate_forbid_tokens(text)
+        if mandate_forbid:
+            within_offenders.append(
+                f"{path}=>mandate_and_forbid:{','.join(mandate_forbid[:3])}"
+            )
+
+    # Cross-surface cited-live-while-dead: a token cited live in >=1 surface and
+    # marked dead in a *different* surface.
+    live_sources: dict[str, list[str]] = defaultdict(list)
+    dead_sources: dict[str, list[str]] = defaultdict(list)
+    for path, liveness in surfaces.items():
+        for token, polarity in liveness.items():
+            if polarity in ("live", "mixed"):
+                live_sources[token].append(path)
+            if polarity in ("dead", "mixed"):
+                dead_sources[token].append(path)
+
+    cross_offenders: list[str] = []
+    for token in sorted(set(live_sources) & set(dead_sources)):
+        live_paths = sorted(set(live_sources[token]))
+        dead_paths = sorted(set(dead_sources[token]))
+        if set(live_paths) == set(dead_paths) and len(live_paths) == 1:
+            # Same single surface only -- a within-surface temporal description,
+            # not a cross-surface live/dead contradiction.
+            continue
+        cited_live = next((p for p in live_paths if p not in dead_paths), live_paths[0])
+        marked_dead = next((p for p in dead_paths if p not in live_paths), dead_paths[0])
+        cross_offenders.append(
+            f"{token}=>cited_live_in:{cited_live};marked_dead_in:{marked_dead}"
+        )
+
+    offenders = cross_offenders + within_offenders
+    details = [
+        f"cited_live_while_dead=>{';'.join(cross_offenders[:4]) or 'none'}",
+        f"mandate_and_forbid=>{';'.join(within_offenders[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "instruction_contradiction_count": len(offenders),
+            "cited_live_while_dead_count": len(cross_offenders),
+            "mandate_and_forbid_count": len(within_offenders),
+            "instruction_surface_count": len(surfaces),
+        },
+        "evidence": evidence_join(details),
+        "reason": (
+            "instruction surfaces contradict each other or themselves: a "
+            "reference is cited live while another surface marks it dead/"
+            "dormant, or the same action is both mandated and forbidden; "
+            "reconcile the surfaces so live/dead status and mandate/forbid "
+            "guidance are consistent"
+            if offenders
+            else "instruction surfaces present consistent live/dead status and "
+            "no action is both mandated and forbidden, or such surfaces are absent"
+        ),
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -7677,6 +7886,7 @@ EVALUATORS = {
     "AS-55": review_ergonomics_working_memory_lightness,
     "AS-56": external_closure_coupling,
     "AS-57": native_evidence_before_verdict,
+    "AS-58": instruction_contradiction,
 }
 
 

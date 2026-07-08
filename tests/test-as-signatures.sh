@@ -389,6 +389,24 @@ No native GBrain command was executed, and this adoption verdict rests on the
 docs and model summary alone.
 EOF
 
+# AS-58 instruction-contradiction: a skill cites PRINCIPLE_LEDGER as the live,
+# canonical source of truth while a status surface records that same ledger as
+# dead/dormant -- the cross-surface "cited live while dead" class.
+mkdir -p "$TEST_REPO/.agents/skills/memory"
+cat > "$TEST_REPO/.agents/skills/memory/SKILL.md" <<'EOF'
+# Memory skill
+
+Always consult the PRINCIPLE_LEDGER before acting; it is the canonical source of
+truth and remains the live authority for governing principles in this repo.
+EOF
+
+cat > "$TEST_REPO/docs/surface-status.md" <<'EOF'
+# Surface status
+
+PRINCIPLE_LEDGER is dead and has been dormant for roughly 8 weeks. It is archived
+and no longer maintained.
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -402,8 +420,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 57
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 57
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 58
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 58
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -464,6 +482,7 @@ assert as_ids == {
     "AS-55",
     "AS-56",
     "AS-57",
+    "AS-58",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the

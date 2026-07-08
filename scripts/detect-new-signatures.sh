@@ -99,6 +99,7 @@ scripts=(
     "detect-as-review-ergonomics-working-memory-lightness.sh"
     "detect-as-external-closure-coupling.sh"
     "detect-as-native-evidence-before-verdict.sh"
+    "detect-as-instruction-contradiction.sh"
 )
 
 idx=0

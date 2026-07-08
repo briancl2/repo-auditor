@@ -103,6 +103,17 @@ contracts) without a native attempt or a concrete owner-surface blocker, per
 repo-agent-core `docs/native-evidence-before-verdict-contract.md`. It does not
 create controllers, schedulers, queues, registries, or auto-issue creators.
 
+Instruction-contradiction detector coverage is provided by AS-58 through
+`scripts/detect-as-instruction-contradiction.sh`. It fires when a repo's
+instruction surfaces (`AGENTS.md`, `.github/copilot-instructions.md`,
+`.agents/skills/**/SKILL.md`, `docs/**`) carry contradictory or self-invalidating
+guidance: a named reference is cited live/canonical in one surface while another
+surface marks that same reference dead/dormant/archived/deprecated (the "cited
+live while dead" class), or the same action token is both absolutely mandated
+and absolutely forbidden within one surface. It is lexical and read-only; it
+does not create controllers, schedulers, queues, registries, auto-issue
+creators, or any target-repo mutation.
+
 ## Self-Management
 
 - `make check` — shellcheck + inventory + co-evolution + trailer validation
