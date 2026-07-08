@@ -23,7 +23,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 |---|---|
 | reviewing-code-locally | Pre-commit code review through Copilot CLI |
 | pre-scanning | Deterministic inventory and AI-surface scan |
-| detection-signatures | DS-34 through DS-48 plus AS-* signature runner |
+| detection-signatures | DS-34 through DS-49 plus AS-* signature runner |
 | scoring | Five-dimension scoring, stall risk, and maturity classification |
 
 ## Core Pipeline Scripts

@@ -114,6 +114,23 @@ and absolutely forbidden within one surface. It is lexical and read-only; it
 does not create controllers, schedulers, queues, registries, auto-issue
 creators, or any target-repo mutation.
 
+Re-work recurrence detector coverage is provided by DS-49 through
+`scripts/detect-rework-recurrence.sh`. It is a git-history-observable,
+read-only detector that fires when a substantive file (code, tests, schemas,
+specs, config) that a finalize/closeout/issue-close commit touched is
+re-modified shortly afterward by a corrective (fix/revert/redo/regress) commit —
+the git-visible fingerprint of declared-done work that recurred. Finalize is
+classified from the finalize act (subject-initial closeout verb, "mark as
+done", "work complete", "closeout the {work,issue,task}", or
+`(close|fix|resolve) #N`), not topic mentions; ceremony/doc/tracking files are
+excluded from finalized areas. Because it reads real commit history it is
+**live-checkout only** — it structurally no-ops on snapshot-mode inputs, which
+collapse to a single synthetic clean-HEAD commit (an accepted DS-29-precedent
+limitation). It is the detector complement to the method-dimension proposal in
+`briancl2/repo-agent-core#103`, and is a MEDIUM/T2 n=1 keep-candidate (both the
+severity/tier and graduation are operator-gated). It does not create
+controllers, schedulers, queues, registries, or any target-repo mutation.
+
 ## Self-Management
 
 - `make check` — shellcheck + inventory + co-evolution + trailer validation

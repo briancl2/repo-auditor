@@ -42,6 +42,7 @@ scripts=(
     "detect-llm-validation-gap.sh"
     "detect-summary-source-parity-gap.sh"
     "detect-github-actions-concurrency-gap.sh"
+    "detect-rework-recurrence.sh"
     "detect-as-instruction-root-drift.sh"
     "detect-as-docs-vs-observed-host-drift.sh"
     "detect-as-missing-runtime-heartbeat.sh"
