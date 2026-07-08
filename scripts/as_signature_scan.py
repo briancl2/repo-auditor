@@ -7680,12 +7680,40 @@ INSTRUCTION_ACTION_TOKEN_PATTERNS = (
     re.compile(r"(?<![\w-])(--[a-z0-9][a-z0-9-]{1,40})\b"),
     re.compile(r"\b([A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+)(?:\.md)?\b"),
 )
+INSTRUCTION_CLAUSE_SPLIT_PATTERN = re.compile(r"(?:;|—|–|\s--\s|\.\s)")
+INSTRUCTION_NON_SUBSTANTIVE_ACTION_WORDS = {
+    "a",
+    "an",
+    "and",
+    "but",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "nor",
+    "of",
+    "on",
+    "or",
+    "the",
+    "then",
+    "to",
+    "with",
+    "without",
+}
+INSTRUCTION_NEGATED_OMISSION_CUE_PATTERN = re.compile(
+    r"(?i)\b(?:must\s+not|must\s+never|never|do\s+not|don't|shall\s+not|may\s+not)\s+"
+    r"(?:omit|skip|forget|drop|remove|exclude|delete)\b"
+)
+HISTORICAL_LEARNING_ROW_PATTERN = re.compile(r"^\|\s*L[0-9]+\s*\|")
 
 
 def _is_instruction_contradiction_surface(path: str) -> bool:
     if path.startswith("scripts/") or path.startswith("detection-signatures/"):
         return False
     lowered = path.lower()
+    if lowered.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+        return False
     if not lowered.endswith(INSTRUCTION_CONTRADICTION_SURFACE_SUFFIXES):
         return False
     name = path.rsplit("/", 1)[-1]
@@ -7707,7 +7735,7 @@ def _instruction_token_liveness(text: str) -> dict[str, str]:
     described former-state is not read as a current authority claim."""
     liveness: dict[str, str] = {}
     for line in text.splitlines():
-        for clause in re.split(r"(?:;|—|–|\s--\s|\.\s)", line):
+        for clause in INSTRUCTION_CLAUSE_SPLIT_PATTERN.split(line):
             tokens = {
                 m.group(1) for m in INSTRUCTION_REFERENCE_TOKEN_PATTERN.finditer(clause)
             }
@@ -7732,26 +7760,78 @@ def _instruction_token_liveness(text: str) -> dict[str, str]:
     return liveness
 
 
-def _instruction_mandate_forbid_tokens(text: str) -> list[str]:
+def _normalize_instruction_action_token(token: str) -> str:
+    token = token.strip()
+    token = re.sub(r"\s+", " ", token)
+    return token.strip(" \t\r\n'\".,;:()[]{}")
+
+
+def _is_substantive_instruction_action_token(token: str) -> bool:
+    if not token:
+        return False
+    if re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", token):
+        return False
+    if not re.search(r"[A-Za-z0-9]", token):
+        return False
+    words = re.findall(r"[A-Za-z0-9]+", token.lower())
+    if not words:
+        return False
+    return any(word not in INSTRUCTION_NON_SUBSTANTIVE_ACTION_WORDS for word in words)
+
+
+def _instruction_action_tokens(clause: str) -> set[str]:
+    tokens: set[str] = set()
+    backtick_spans: list[tuple[int, int]] = []
+    for match in INSTRUCTION_ACTION_TOKEN_PATTERNS[0].finditer(clause):
+        backtick_spans.append(match.span())
+        token = _normalize_instruction_action_token(match.group(1))
+        if _is_substantive_instruction_action_token(token):
+            tokens.add(token)
+
+    # Do not also count bare long-option fragments inside a quoted command such
+    # as `git apply --check`; the quoted command is the actionable token.
+    masked_clause = list(clause)
+    for start, end in backtick_spans:
+        masked_clause[start:end] = " " * (end - start)
+    unquoted_clause = "".join(masked_clause)
+
+    for pattern in INSTRUCTION_ACTION_TOKEN_PATTERNS[1:]:
+        for match in pattern.finditer(unquoted_clause):
+            token = _normalize_instruction_action_token(match.group(1))
+            if _is_substantive_instruction_action_token(token):
+                tokens.add(token)
+    return tokens
+
+
+def _is_historical_learning_row(path: str, line: str) -> bool:
+    return path == "LEARNINGS.md" and HISTORICAL_LEARNING_ROW_PATTERN.match(line) is not None
+
+
+def _instruction_mandate_forbid_tokens(path: str, text: str) -> list[str]:
     """Tokens that are both absolutely mandated and absolutely forbidden within
     a single surface (self-invalidating mandate/forbid on the same action)."""
     mandated: set[str] = set()
     forbidden: set[str] = set()
     for line in text.splitlines():
-        is_mandate = bool(INSTRUCTION_MANDATE_CUE_PATTERN.search(line))
-        is_forbid = bool(INSTRUCTION_FORBID_CUE_PATTERN.search(line))
-        if not (is_mandate or is_forbid):
+        if _is_historical_learning_row(path, line):
             continue
-        tokens: set[str] = set()
-        for pattern in INSTRUCTION_ACTION_TOKEN_PATTERNS:
-            tokens.update(m.group(1).strip() for m in pattern.finditer(line))
-        tokens = {token for token in tokens if token}
-        if is_forbid:
-            # A negated mandate ("must not", "never must") is a prohibition, not
-            # a mandate, so classify the line as forbid when both cues appear.
-            forbidden.update(tokens)
-        elif is_mandate:
-            mandated.update(tokens)
+        for clause in INSTRUCTION_CLAUSE_SPLIT_PATTERN.split(line):
+            is_mandate = bool(INSTRUCTION_MANDATE_CUE_PATTERN.search(clause))
+            is_forbid = bool(INSTRUCTION_FORBID_CUE_PATTERN.search(clause))
+            if not (is_mandate or is_forbid):
+                continue
+            tokens = _instruction_action_tokens(clause)
+            if not tokens:
+                continue
+            if is_forbid and INSTRUCTION_NEGATED_OMISSION_CUE_PATTERN.search(clause):
+                mandated.update(tokens)
+            elif is_forbid:
+                # A negated mandate ("must not", "never must") is a prohibition,
+                # not a mandate, so classify the clause as forbid when both cues
+                # appear.
+                forbidden.update(tokens)
+            elif is_mandate:
+                mandated.update(tokens)
     return sorted(mandated & forbidden)
 
 
@@ -7770,7 +7850,7 @@ def instruction_contradiction(texts: dict[str, str]) -> dict[str, Any]:
             continue
         surfaces[path] = _instruction_token_liveness(text)
 
-        mandate_forbid = _instruction_mandate_forbid_tokens(text)
+        mandate_forbid = _instruction_mandate_forbid_tokens(path, text)
         if mandate_forbid:
             within_offenders.append(
                 f"{path}=>mandate_and_forbid:{','.join(mandate_forbid[:3])}"
