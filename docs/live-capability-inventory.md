@@ -210,6 +210,7 @@ surfaces only as bounded owner-local tracking when the claim is anchored:
 | `scripts/detect-measurement-disconnect.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-new-signatures.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-readme-drift.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
+| `scripts/detect-rework-recurrence.sh` | runtime-loaded deterministic detector (DS-49) | git-observable re-work recurrence detector added by this PR | Keep tracked; live-checkout only, MEDIUM/T2 n=1 keep-candidate (severity/tier + graduation operator-gated). Complements `briancl2/repo-agent-core#103`. |
 | `scripts/detect-silent-errors.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-stale-todos.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
 | `scripts/detect-summary-source-parity-gap.sh` | runtime-loaded deterministic detector | tracking-surface gap closed by this PR | Keep tracked as an existing deterministic detector. |
