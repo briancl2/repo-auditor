@@ -21,6 +21,11 @@ NEG_CONSISTENT="$TMPDIR/neg-consistent"
 NEG_TRANSITION="$TMPDIR/neg-transition"
 NEG_DISTINCT_TOKENS="$TMPDIR/neg-distinct-tokens"
 NEG_CONDITIONAL="$TMPDIR/neg-conditional"
+NEG_ARCHIVE_SURFACE="$TMPDIR/neg-archive-surface"
+NEG_CLAUSE_SCOPED="$TMPDIR/neg-clause-scoped"
+NEG_RECOMMENDED_NOT_GATED="$TMPDIR/neg-recommended-not-gated"
+NEG_GARBAGE_TOKEN="$TMPDIR/neg-garbage-token"
+NEG_HISTORICAL_LEARNING_ROW="$TMPDIR/neg-historical-learning-row"
 
 mkdir -p \
     "$POS_CITED_LIVE_DEAD/.agents/skills/memory" "$POS_CITED_LIVE_DEAD/docs" \
@@ -28,7 +33,13 @@ mkdir -p \
     "$NEG_CONSISTENT/.agents/skills/memory" "$NEG_CONSISTENT/docs" \
     "$NEG_TRANSITION/docs" \
     "$NEG_DISTINCT_TOKENS/.agents/skills/memory" "$NEG_DISTINCT_TOKENS/docs" \
-    "$NEG_CONDITIONAL"
+    "$NEG_CONDITIONAL" \
+    "$NEG_ARCHIVE_SURFACE/docs/archive/principle-ledger" \
+    "$NEG_ARCHIVE_SURFACE/docs" \
+    "$NEG_CLAUSE_SCOPED" \
+    "$NEG_RECOMMENDED_NOT_GATED/.specify/memory" \
+    "$NEG_GARBAGE_TOKEN" \
+    "$NEG_HISTORICAL_LEARNING_ROW"
 
 # Positive: a skill cites PRINCIPLE_LEDGER as the live/canonical source of truth
 # while a status doc records it as dead/dormant (the real BMA-shaped class).
@@ -95,9 +106,63 @@ Run `make check` before every commit. Avoid `--no-verify` unless the operator
 explicitly approves it for a documented exception.
 EOF
 
+# Negative: historical/archive surfaces are receipts, not live instruction
+# surfaces, so an archived live citation must not contradict a live deprecation.
+cat > "$NEG_ARCHIVE_SURFACE/LEARNINGS.md" <<'EOF'
+# Learnings
+
+PRINCIPLE_LEDGER is dead and no longer maintained after the archive migration.
+EOF
+cat > "$NEG_ARCHIVE_SURFACE/docs/archive/principle-ledger/README.md" <<'EOF'
+# Archived principle ledger
+
+PRINCIPLE_LEDGER remains the canonical source of truth inside this frozen archive.
+EOF
+
+# Negative: mandate/forbid cues in separate clauses on the same physical line
+# must not color every token in the line.
+cat > "$NEG_CLAUSE_SCOPED/AGENTS.md" <<'EOF'
+# AGENTS
+
+If launch is approved, name the expected shape (`full-wave`, `compact-wave`);
+an inspect-only heartbeat must not write, route, retry, dispatch, poll, or mutate.
+Unless default proof exists, do not omit explicit `--provider`.
+EOF
+
+# Negative: recommended, not gated guidance is intentionally non-absolute.
+cat > "$NEG_RECOMMENDED_NOT_GATED/.specify/memory/constitution.md" <<'EOF'
+# Constitution
+
+`make review` should run before significant commits. `--no-verify` is NEVER
+permitted.
+
+> Note: `make review` is recommended, not gated. It does not block commits.
+The 3 hard gates are: `make work`, `make check`, and `make work-close`.
+EOF
+
+# Negative: punctuation/stop-word fragments are not actionable mandate tokens.
+cat > "$NEG_GARBAGE_TOKEN/AGENTS.md" <<'EOF'
+# AGENTS
+
+You must always record `,,, and` in the prose separator field.
+Never record `,,, and`; use a real action token instead.
+EOF
+
+# Negative: LEARNINGS table rows are historical log evidence, not current
+# instruction mandates; dotted stage IDs are also not action tokens.
+cat > "$NEG_HISTORICAL_LEARNING_ROW/LEARNINGS.md" <<'EOF'
+# Learnings
+
+| # | Learning | Source |
+|---|---|---|
+| L999 | **Stage `14.2.1` must validate runtime claims separately; it never tested runtime equivalence.** With --max-autopilot-continues 5, the advisor consumed context and never reached synthesis. | Historical RCA only. |
+EOF
+
 python3 - "$REPO_ROOT" \
     "$POS_CITED_LIVE_DEAD" "$POS_MANDATE_FORBID" \
-    "$NEG_CONSISTENT" "$NEG_TRANSITION" "$NEG_DISTINCT_TOKENS" "$NEG_CONDITIONAL" <<'PY'
+    "$NEG_CONSISTENT" "$NEG_TRANSITION" "$NEG_DISTINCT_TOKENS" "$NEG_CONDITIONAL" \
+    "$NEG_ARCHIVE_SURFACE" "$NEG_CLAUSE_SCOPED" "$NEG_RECOMMENDED_NOT_GATED" \
+    "$NEG_GARBAGE_TOKEN" "$NEG_HISTORICAL_LEARNING_ROW" <<'PY'
 import json
 import subprocess
 import sys
@@ -111,7 +176,12 @@ repo_root = Path(sys.argv[1])
     neg_transition,
     neg_distinct_tokens,
     neg_conditional,
-) = map(Path, sys.argv[2:8])
+    neg_archive_surface,
+    neg_clause_scoped,
+    neg_recommended_not_gated,
+    neg_garbage_token,
+    neg_historical_learning_row,
+) = map(Path, sys.argv[2:13])
 
 
 def run(repo: Path) -> dict:
@@ -155,6 +225,11 @@ for repo in (
     neg_transition,
     neg_distinct_tokens,
     neg_conditional,
+    neg_archive_surface,
+    neg_clause_scoped,
+    neg_recommended_not_gated,
+    neg_garbage_token,
+    neg_historical_learning_row,
 ):
     result = run(repo)
     assert_shape(result)
