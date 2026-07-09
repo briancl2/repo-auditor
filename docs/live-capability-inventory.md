@@ -104,6 +104,10 @@ surfaces only as bounded owner-local tracking when the claim is anchored:
 
 ## Live Paths
 
+> Graduation status of the graduation-tracked detectors (AS-51..AS-59, DS-49) —
+> and the retire rule that makes this append-only inventory prunable — is
+> recorded in `docs/detector-graduation-ledger.md`.
+
 | Path | Classification | Tracking status | Owner decision |
 |---|---|---|---|
 | `.agents/audit-synthesis.agent.md` | owner-owned agent surface | tracking-surface gap closed by this PR | Keep tracked as an owner-owned agent or skill surface. |

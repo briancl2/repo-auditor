@@ -91,3 +91,4 @@ make install-hooks
 - Agent operations inventory: `docs/agent-operations.md`
 - Constitution: `.specify/memory/constitution.md`
 - Repo-health retrospective (self-serve, foreground, on-demand): run one against this repo's own evidence per `repo-agent-core` `docs/repo-health-retrospective-method-contract.md`; latest run `docs/repo-health-retrospective-2026-07-09.md`.
+- Detector graduation ledger (graduation/retire status of graduation-tracked detectors; makes the append-only inventory prunable): `docs/detector-graduation-ledger.md`.
