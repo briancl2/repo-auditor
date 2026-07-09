@@ -364,6 +364,12 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T2",
         "script": "detect-as-instruction-contradiction.sh",
     },
+    "AS-59": {
+        "name": "assimilation-github-work-management-gap",
+        "severity": "HIGH",
+        "prevention_tier": "T1",
+        "script": "detect-as-assimilation-github-work-management-gap.sh",
+    },
 }
 
 
@@ -7908,6 +7914,332 @@ def instruction_contradiction(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
+ASSIMILATION_WORK_MGMT_EXPLAINER_PATTERN = re.compile(
+    r"\b(AS-59|Assimilation GitHub Work Management Gap)\b"
+    r".{0,180}\b(detects|detector|signature|triggers?|fires)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+ASSIMILATION_WORK_MGMT_DECLARATION_PATTERN = re.compile(
+    r"\b(ASSIMILATION_GITHUB_WORK_MANAGEMENT_V1|"
+    r"assimilation[-_ ]github[-_ ]work[-_ ]management)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_WORK_MGMT_FIELD_TOKEN_PATTERN = re.compile(
+    r"\b(github_closure_reconciliation|required_ci_and_reviewer_model|"
+    r"shared_fact_control|autonomous_merge_eligibility_candidate)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_WORK_MGMT_ABSENCE_LINE_PATTERN = re.compile(
+    r"\b(no|not|without)\b.{0,90}"
+    r"\b(ASSIMILATION_GITHUB_WORK_MANAGEMENT_V1|"
+    r"assimilation[-_ ]github[-_ ]work[-_ ]management)\b.{0,80}"
+    r"\b(material|surface|content|claim|receipt)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_WORK_MGMT_VAGUE_VALUE_PATTERN = re.compile(
+    r"[:=]\s*(?:\"?\s*)?(?:(?:tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b|"
+    r"(?:missing|absent|omitted)\s*\.?\s*$)",
+    re.IGNORECASE,
+)
+ASSIMILATION_WORK_MGMT_NEGATIVE_FIELD_PATTERN = re.compile(
+    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_WORK_MGMT_NEGATION_PATTERN = re.compile(
+    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|"
+    r"non[- ]claim|pre[_ -]?check[_ -]?only|not closure truth|"
+    r"not cross[- ]PR authority|candidate[_ -]?only|access/readback state|"
+    r"not a repo[- ]quality gap|not scored as|route(?:d|s)? to owner)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_WORK_MGMT_FIELD_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "missing_github_closure_reconciliation",
+        re.compile(
+            r"\b(github_closure_reconciliation|github closure reconciliation|"
+            r"github_pr_list_readback|cross_pr_consistency_checked|"
+            r"superset_subset_disposition|open_review_threads|"
+            r"closing_issue_references|issue_state_reconciliation|closure_disposition)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "missing_required_ci_and_reviewer_model",
+        re.compile(
+            r"\b(required_ci_and_reviewer_model|required CI and reviewer model|"
+            r"repo_native_gate|required_checks|required_reviewer_model|"
+            r"local_review_role|required_review_threshold|review_truth_source)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "missing_shared_fact_control",
+        re.compile(
+            r"\b(shared_fact_control|shared fact control|fact_name|owning_source|"
+            r"consuming_artifacts|drift_check|duplicate_copy_disposition)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "missing_autonomous_merge_eligibility_candidate",
+        re.compile(
+            r"\b(autonomous_merge_eligibility_candidate|autonomous merge eligibility candidate|"
+            r"candidate_state|repo_native_gate_green|"
+            r"spec_id_or_spec_exempt_commit_discipline|"
+            r"required_review_findings_resolved|merge_conflicts_resolved_and_verified|"
+            r"human_approval_role|autonomous_merge_authority)\b",
+            re.IGNORECASE,
+        ),
+    ),
+)
+ASSIMILATION_WORK_MGMT_CONTRACT_PATH_HINTS = (
+    "assimilation-github-work-management-v1-contract.md",
+    "templates/assimilation-github-work-management-v1.md",
+    "detect-as-assimilation-github-work-management-gap.sh",
+    "test-assimilation-github-work-management-gap.sh",
+)
+ASSIMILATION_PERMISSION_INSUFFICIENT_PATTERN = re.compile(
+    r"\b(permission_insufficient|permission insufficient)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_PERMISSION_FALSE_PATTERN = re.compile(
+    r"\bpermission_insufficient\b.{0,160}\bstatus\s*[:=]\s*false\b|"
+    r"\bpermission_insufficient\s*[:=]\s*false\b",
+    re.IGNORECASE | re.DOTALL,
+)
+ASSIMILATION_PERMISSION_ROUTING_PATTERN = re.compile(
+    r"\b(owner_action|owner action|owner_routing|owner routing|"
+    r"permission_insufficient_route|access repair|request/read access|"
+    r"request access|GitHub-visible blocker|owner-surface repair)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_PERMISSION_BLOCKED_EVIDENCE_PATTERN = re.compile(
+    r"\b(blocked_fields|blocked fields|surface|evidence|prs|checks|reviews|"
+    r"branch_ruleset|parsed_closure)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_LOCAL_REVIEW_CLOSURE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(local staged[- ]diff review|local review|make review|work-close|"
+    r"score-session|completion manifest|local closeout)\b.{0,140}"
+    r"\b(GitHub closure truth|closure truth|authoritative closure|"
+    r"proves? closure|closes? (?:the )?issue|cross[- ]PR authority)\b|"
+    r"\b(GitHub closure truth|closure truth|authoritative closure|"
+    r"proves? closure|closes? (?:the )?issue|cross[- ]PR authority)\b.{0,140}"
+    r"\b(local staged[- ]diff review|local review|make review|work-close|"
+    r"score-session|completion manifest|local closeout)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_AUTO_MERGE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(auto[- ]?merge|automatic merge|background merge loop|background merge|"
+    r"autonomous_merge_authority\s*[:=]\s*(?!candidate_only\b)[A-Za-z0-9_-]+|"
+    r"autonomous merge authority\s*[:=]\s*(?!candidate only\b)[A-Za-z0-9 _-]+)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_CONTROL_PLANE_OVERCLAIM_PATTERN = re.compile(
+    r"\b(controller|scheduler|queue|daemon|registry|dashboard|watcher|"
+    r"retry loop|background poller|review bot|hidden control plane)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_AUTOMATIC_GITHUB_OVERCLAIM_PATTERN = re.compile(
+    r"\b(automatic issue creation|automatic PR creation|automatic pull request creation|"
+    r"automatic GitHub mutation|creates? GitHub issues? automatically|"
+    r"opens? PRs? automatically|automatic issue/PR loop)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_DOWNSTREAM_MUTATION_OVERCLAIM_PATTERN = re.compile(
+    r"\b(downstream mutation|mutate downstream|target[- ]repo mutation|"
+    r"mutate target repos?|repo-optimizer mutation|repo-upgrade-advisor mutation|"
+    r"core-five mutation)\b",
+    re.IGNORECASE,
+)
+ASSIMILATION_PERMISSION_QUALITY_FAILURE_PATTERN = re.compile(
+    r"\b(permission_insufficient|permission insufficient|permission denied|"
+    r"cannot read PRs|cannot read checks|cannot read reviews)\b.{0,140}"
+    r"\b(repo[- ]quality gap|quality failure|quality gap|audit failure|"
+    r"score(?:d)? (?:as )?deficient|deficient repo|failing repo)\b|"
+    r"\b(repo[- ]quality gap|quality failure|quality gap|audit failure|"
+    r"score(?:d)? (?:as )?deficient|deficient repo|failing repo)\b.{0,140}"
+    r"\b(permission_insufficient|permission insufficient|permission denied|"
+    r"cannot read PRs|cannot read checks|cannot read reviews)\b",
+    re.IGNORECASE,
+)
+
+
+def is_assimilation_work_management_explainer(path: str, text: str) -> bool:
+    lowered = path.lower()
+    if any(hint in lowered for hint in ASSIMILATION_WORK_MGMT_CONTRACT_PATH_HINTS):
+        return True
+    return ASSIMILATION_WORK_MGMT_EXPLAINER_PATTERN.search(text) is not None
+
+
+def has_assimilation_work_management_surface(text: str) -> bool:
+    field_tokens: set[str] = set()
+    for line in text.splitlines():
+        if ASSIMILATION_WORK_MGMT_DECLARATION_PATTERN.search(line) is not None:
+            if ASSIMILATION_WORK_MGMT_ABSENCE_LINE_PATTERN.search(line):
+                continue
+            return True
+        field_tokens.update(
+            match.group(1).lower()
+            for match in ASSIMILATION_WORK_MGMT_FIELD_TOKEN_PATTERN.finditer(line)
+        )
+    return len(field_tokens) >= 2
+
+
+def assimilation_work_management_field_missing_or_vague(
+    text: str, pattern: re.Pattern[str]
+) -> tuple[bool, bool]:
+    positive_lines = []
+    for line in text.splitlines():
+        match = pattern.search(line)
+        if not match:
+            continue
+        prefix = line[max(0, match.start() - 90):match.start()]
+        if ASSIMILATION_WORK_MGMT_NEGATIVE_FIELD_PATTERN.search(prefix):
+            continue
+        positive_lines.append(line)
+    if not positive_lines:
+        return True, False
+    if all(ASSIMILATION_WORK_MGMT_VAGUE_VALUE_PATTERN.search(line) for line in positive_lines):
+        return False, True
+    return False, False
+
+
+def assimilation_permission_insufficient_cleanly_routed(text: str) -> bool:
+    if ASSIMILATION_PERMISSION_INSUFFICIENT_PATTERN.search(text) is None:
+        return False
+    if ASSIMILATION_PERMISSION_FALSE_PATTERN.search(text):
+        return False
+    return (
+        ASSIMILATION_PERMISSION_ROUTING_PATTERN.search(text) is not None
+        and ASSIMILATION_PERMISSION_BLOCKED_EVIDENCE_PATTERN.search(text) is not None
+    )
+
+
+def assimilation_work_management_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
+    prohibition_context = 0
+    for line in text.splitlines():
+        boundary_match = re.search(
+            r"\b(bounded_non_claims|bounded non-claims|bounded nonclaims|"
+            r"forbidden mode|non_claims|non-claims|boundary)\b",
+            line,
+            re.IGNORECASE,
+        )
+        if boundary_match:
+            is_boundary_header = re.search(
+                r"^\s*(?:#{1,6}\s*)?(?:boundary|bounded[_ -]non[_ -]?claims|"
+                r"bounded nonclaims|non[_ -]claims)\s*:?\s*$",
+                line,
+                re.IGNORECASE,
+            )
+            has_negation = ASSIMILATION_WORK_MGMT_NEGATION_PATTERN.search(line) is not None
+            is_vague = ASSIMILATION_WORK_MGMT_VAGUE_VALUE_PATTERN.search(line) is not None
+            if not is_vague and (has_negation or is_boundary_header):
+                prohibition_context = 12
+        if not pattern.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        if prohibition_context or ASSIMILATION_WORK_MGMT_NEGATION_PATTERN.search(line):
+            if prohibition_context and line.strip():
+                prohibition_context -= 1
+            continue
+        return True
+    return False
+
+
+def assimilation_github_work_management_gap(texts: dict[str, str]) -> dict[str, Any]:
+    offenders: list[str] = []
+    grounded: list[str] = []
+    reason_counts: Counter[str] = Counter()
+    historical_evidence_skipped = 0
+
+    for path, text in owner_evidence_texts(texts).items():
+        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
+            historical_evidence_skipped += 1
+            continue
+        if is_work_management_signature_explainer(path, text):
+            grounded.append(path)
+            continue
+        if is_assimilation_work_management_explainer(path, text):
+            grounded.append(path)
+            continue
+        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
+            continue
+        if not has_assimilation_work_management_surface(text):
+            continue
+
+        reasons: list[str] = []
+        permission_cleanly_routed = assimilation_permission_insufficient_cleanly_routed(text)
+        if permission_cleanly_routed:
+            reason_counts["permission_insufficient_routed"] += 1
+        else:
+            for reason, pattern in ASSIMILATION_WORK_MGMT_FIELD_PATTERNS:
+                missing, vague = assimilation_work_management_field_missing_or_vague(text, pattern)
+                if missing:
+                    reasons.append(reason)
+                    reason_counts[reason] += 1
+                elif vague:
+                    reasons.append(f"vague_{reason.removeprefix('missing_')}")
+                    reason_counts["vague_field"] += 1
+            if (
+                ASSIMILATION_PERMISSION_INSUFFICIENT_PATTERN.search(text)
+                and not ASSIMILATION_PERMISSION_FALSE_PATTERN.search(text)
+            ):
+                reasons.append("missing_permission_insufficient_routing")
+                reason_counts["missing_permission_insufficient_routing"] += 1
+
+        overclaim_patterns: tuple[tuple[str, re.Pattern[str]], ...] = (
+            ("local_review_closure_truth_overclaim_count", ASSIMILATION_LOCAL_REVIEW_CLOSURE_OVERCLAIM_PATTERN),
+            ("auto_merge_overclaim_count", ASSIMILATION_AUTO_MERGE_OVERCLAIM_PATTERN),
+            ("control_plane_overclaim_count", ASSIMILATION_CONTROL_PLANE_OVERCLAIM_PATTERN),
+            ("automatic_github_overclaim_count", ASSIMILATION_AUTOMATIC_GITHUB_OVERCLAIM_PATTERN),
+            ("downstream_mutation_overclaim_count", ASSIMILATION_DOWNSTREAM_MUTATION_OVERCLAIM_PATTERN),
+            ("permission_quality_failure_count", ASSIMILATION_PERMISSION_QUALITY_FAILURE_PATTERN),
+        )
+        for reason, pattern in overclaim_patterns:
+            if assimilation_work_management_line_overclaim(text, pattern):
+                reasons.append(reason.removesuffix("_count"))
+                reason_counts[reason] += 1
+
+        if reasons:
+            offenders.append(f"{path}=>{';'.join(reasons[:7])}")
+        else:
+            grounded.append(path)
+
+    details = [
+        f"assimilation_github_work_management_gap=>{';'.join(offenders[:4]) or 'none'}",
+        f"assimilation_github_work_management_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
+    ]
+    return {
+        "fired": bool(offenders),
+        "signals": {
+            "assimilation_github_work_management_gap_count": len(offenders),
+            "assimilation_github_work_management_grounded_count": len(set(grounded)),
+            "missing_github_closure_reconciliation_count": reason_counts["missing_github_closure_reconciliation"],
+            "missing_required_ci_and_reviewer_model_count": reason_counts["missing_required_ci_and_reviewer_model"],
+            "missing_shared_fact_control_count": reason_counts["missing_shared_fact_control"],
+            "missing_autonomous_merge_eligibility_candidate_count": reason_counts["missing_autonomous_merge_eligibility_candidate"],
+            "missing_permission_insufficient_routing_count": reason_counts["missing_permission_insufficient_routing"],
+            "permission_insufficient_routed_count": reason_counts["permission_insufficient_routed"],
+            "vague_field_count": reason_counts["vague_field"],
+            "local_review_closure_truth_overclaim_count": reason_counts["local_review_closure_truth_overclaim_count"],
+            "auto_merge_overclaim_count": reason_counts["auto_merge_overclaim_count"],
+            "control_plane_overclaim_count": reason_counts["control_plane_overclaim_count"],
+            "automatic_github_overclaim_count": reason_counts["automatic_github_overclaim_count"],
+            "downstream_mutation_overclaim_count": reason_counts["downstream_mutation_overclaim_count"],
+            "permission_quality_failure_count": reason_counts["permission_quality_failure_count"],
+            "historical_evidence_skipped_count": historical_evidence_skipped,
+        },
+        "evidence": evidence_join(details, limit=2),
+        "reason": (
+            "Assimilation GitHub work-management material lacks V1 evidence fields or overclaims closure/automation/mutation authority"
+            if offenders
+            else "Assimilation GitHub work-management evidence is complete, cleanly permission-routed, or absent"
+        ),
+    }
+
+
 EVALUATORS = {
     "AS-01": instruction_root_drift,
     "AS-02": docs_vs_observed_host_drift,
@@ -7967,6 +8299,7 @@ EVALUATORS = {
     "AS-56": external_closure_coupling,
     "AS-57": native_evidence_before_verdict,
     "AS-58": instruction_contradiction,
+    "AS-59": assimilation_github_work_management_gap,
 }
 
 

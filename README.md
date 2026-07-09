@@ -114,6 +114,16 @@ and absolutely forbidden within one surface. It is lexical and read-only; it
 does not create controllers, schedulers, queues, registries, auto-issue
 creators, or any target-repo mutation.
 
+Assimilation GitHub work-management detector coverage is provided by AS-59
+through `scripts/detect-as-assimilation-github-work-management-gap.sh`. It
+fires when `ASSIMILATION_GITHUB_WORK_MANAGEMENT_V1` material lacks one of the
+four required V1 evidence fields (`github_closure_reconciliation`,
+`required_ci_and_reviewer_model`, `shared_fact_control`, or
+`autonomous_merge_eligibility_candidate`) or overclaims closure, merge,
+automation, issue/PR creation, permission, or downstream mutation authority.
+It treats `permission_insufficient` as an access/readback state when routed to
+an owner action, not as a repo-quality gap.
+
 Re-work recurrence detector coverage is provided by DS-49 through
 `scripts/detect-rework-recurrence.sh`. It is a git-history-observable,
 read-only detector that fires when a substantive file (code, tests, schemas,
