@@ -16,9 +16,11 @@ PERMISSION_REPO="$TMPDIR/assimilation-work-management-permission"
 NEUTRAL_REPO="$TMPDIR/assimilation-work-management-neutral"
 CONTRACT_REPO="$TMPDIR/assimilation-work-management-contract"
 HISTORICAL_REPO="$TMPDIR/assimilation-work-management-historical"
+EXPLAINER_INDEX_REPO="$TMPDIR/assimilation-work-management-explainer-index"
 mkdir -p "$GAP_REPO/docs" "$OVERCLAIM_REPO/docs" "$CLEAN_REPO/docs"
 mkdir -p "$PERMISSION_REPO/docs" "$NEUTRAL_REPO/docs" "$CONTRACT_REPO/docs"
 mkdir -p "$HISTORICAL_REPO/docs/completions"
+mkdir -p "$EXPLAINER_INDEX_REPO"
 
 cat > "$GAP_REPO/docs/assimilation.md" <<'EOF'
 # Assimilation GitHub Work Management
@@ -155,7 +157,34 @@ cat > "$HISTORICAL_REPO/docs/completions/assimilation.md" <<'EOF'
 ASSIMILATION_GITHUB_WORK_MANAGEMENT_V1 lacks shared_fact_control.
 EOF
 
-python3 - "$REPO_ROOT" "$GAP_REPO" "$OVERCLAIM_REPO" "$CLEAN_REPO" "$PERMISSION_REPO" "$NEUTRAL_REPO" "$CONTRACT_REPO" "$HISTORICAL_REPO" <<'PY'
+cat > "$EXPLAINER_INDEX_REPO/AGENTS.md" <<'EOF'
+# AGENTS.md
+
+## Key Conventions
+
+- The Issue #164 assimilation GitHub work-management V1 contract lives in
+  `docs/assimilation-github-work-management-v1-contract.md` and
+  `templates/assimilation-github-work-management-v1.md`; consume it by
+  copy-sync or citation only, not by runtime dependency, GitHub client, review
+  bot, controller, scheduler, queue, daemon, registry, dashboard, automatic
+  issue/PR loop, auto-merge path, retained closeout package, or downstream
+  mutation. Repo-auditor AS-59 detector detects gaps and overclaims in
+  receipt/material surfaces; this `AGENTS.md` convention is an index/explainer
+  plus owner-boundary note, not a receipt. Generated AS-59 patch packs remain
+  advisory until an owner PR applies or remediates them.
+EOF
+
+cat > "$EXPLAINER_INDEX_REPO/README.md" <<'EOF'
+# Assimilation GitHub Work Management V1 Contract
+
+The assimilation GitHub work-management V1 contract defines the shared
+`ASSIMILATION_GITHUB_WORK_MANAGEMENT_V1` receipt for repo-star carriers.
+Repo-auditor AS-59 detector detects gaps and overclaims in receipt/material
+surfaces; this README section is an index/explainer surface, not a receipt.
+GitHub issue/PR/check/review/merge truth remains authoritative.
+EOF
+
+python3 - "$REPO_ROOT" "$GAP_REPO" "$OVERCLAIM_REPO" "$CLEAN_REPO" "$PERMISSION_REPO" "$NEUTRAL_REPO" "$CONTRACT_REPO" "$HISTORICAL_REPO" "$EXPLAINER_INDEX_REPO" <<'PY'
 import json
 import subprocess
 import sys
@@ -170,6 +199,7 @@ from pathlib import Path
     neutral_repo,
     contract_repo,
     historical_repo,
+    explainer_index_repo,
 ) = map(Path, sys.argv[1:])
 
 
@@ -204,11 +234,14 @@ assert overclaim["signals"]["automatic_github_overclaim_count"] == 1, overclaim
 assert overclaim["signals"]["downstream_mutation_overclaim_count"] == 1, overclaim
 assert overclaim["signals"]["permission_quality_failure_count"] == 1, overclaim
 
-for repo in (clean_repo, neutral_repo, contract_repo):
+for repo in (clean_repo, neutral_repo, contract_repo, explainer_index_repo):
     payload = run(repo)
     assert payload["ds_id"] == "AS-59", payload
     assert payload["fired"] is False, payload
     assert payload["signals"]["assimilation_github_work_management_gap_count"] == 0, payload
+
+explainer = run(explainer_index_repo)
+assert explainer["signals"]["assimilation_github_work_management_grounded_count"] == 2, explainer
 
 permission = run(permission_repo)
 assert permission["ds_id"] == "AS-59", permission
