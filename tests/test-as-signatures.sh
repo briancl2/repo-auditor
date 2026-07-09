@@ -407,6 +407,14 @@ PRINCIPLE_LEDGER is dead and has been dormant for roughly 8 weeks. It is archive
 and no longer maintained.
 EOF
 
+cat > "$TEST_REPO/docs/assimilation-work-management-gap.md" <<'EOF'
+# Assimilation GitHub Work Management
+
+ASSIMILATION_GITHUB_WORK_MANAGEMENT_V1
+github_closure_reconciliation: TBD.
+Local review is GitHub closure truth for this owner issue.
+EOF
+
 OUTPUT_DIR="$TMPDIR/output"
 mkdir -p "$OUTPUT_DIR"
 
@@ -420,8 +428,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 58
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 58
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 59
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 59
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -483,6 +491,7 @@ assert as_ids == {
     "AS-56",
     "AS-57",
     "AS-58",
+    "AS-59",
 }
 
 # This fixture is intentionally engineered to trip every AS detector once so the

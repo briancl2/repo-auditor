@@ -45,6 +45,7 @@ This document holds the operational inventory that used to live in `AGENTS.md`.
 | `scripts/detect-as-external-closure-coupling.sh` | AS-56 external closure coupling detector |
 | `scripts/detect-as-native-evidence-before-verdict.sh` | AS-57 native-evidence-before-verdict detector |
 | `scripts/detect-as-instruction-contradiction.sh` | AS-58 instruction-contradiction detector |
+| `scripts/detect-as-assimilation-github-work-management-gap.sh` | AS-59 assimilation GitHub work-management detector |
 | `scripts/compare-scorecards.sh` | Pre/post scorecard deltas |
 | `scripts/classify-repo-maturity.sh` | AI maturity phase classifier |
 | `scripts/stall-risk-score.sh` | Six-signal stall risk predictor |

@@ -101,6 +101,7 @@ scripts=(
     "detect-as-external-closure-coupling.sh"
     "detect-as-native-evidence-before-verdict.sh"
     "detect-as-instruction-contradiction.sh"
+    "detect-as-assimilation-github-work-management-gap.sh"
 )
 
 idx=0
