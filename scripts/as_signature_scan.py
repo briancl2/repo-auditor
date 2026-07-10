@@ -931,9 +931,86 @@ def unused_platform_surface(texts: dict[str, str]) -> dict[str, Any]:
 
 EXTERNAL_CRITIQUE_CONTRACT_SOURCE = (
     "repo-agent-core/docs/external-critique-capability-contract.md"
-    "@d31c7017a8c01a7aa798ac2102f91eb1199e36d1"
+    "@8ea9f753bf1b1f9a8ad5a28730ec8bf11f315a50"
 )
-EXTERNAL_CRITIQUE_CONTRACT_VERSION = "1.1"
+EXTERNAL_CRITIQUE_CONTRACT_VERSION = "1.2"
+EXTERNAL_CRITIQUE_PROFILE_POINTER = "external-critique-profile"
+EXTERNAL_CRITIQUE_CANONICAL_MODEL_EFFORT_PAIRS = frozenset(
+    {
+        ("claude-opus-4.8", "max"),
+        ("gemini-3.1-pro-preview", "high"),
+        ("gpt-5.6-sol", "max"),
+    }
+)
+EXTERNAL_CRITIQUE_CONFIGURED_MODEL_PATTERN = re.compile(
+    r"\b(?:claude-(?:opus|sonnet|haiku)-[0-9]+(?:\.[0-9]+)*|"
+    r"gemini-[0-9]+(?:\.[0-9]+)*(?:-[a-z0-9]+)*|"
+    r"gpt-[0-9]+(?:\.[0-9]+)*(?:-[a-z0-9]+)*)\b",
+    re.IGNORECASE,
+)
+EXTERNAL_CRITIQUE_EFFORT_PATTERN = (
+    r"(none|low|medium|high|xhigh|max)(?![A-Za-z0-9_-])"
+)
+EXTERNAL_CRITIQUE_MODEL_ASSIGNMENT_PATTERN = re.compile(
+    rf"(?im)^\s*(?:(?:export|readonly|local)\s+)?"
+    rf"([A-Z0-9_]*MODEL[A-Z0-9_]*)\s*=\s*[\"']?"
+    rf"({EXTERNAL_CRITIQUE_CONFIGURED_MODEL_PATTERN.pattern})[\"']?"
+)
+EXTERNAL_CRITIQUE_EFFORT_ASSIGNMENT_PATTERN = re.compile(
+    rf"(?im)^\s*(?:(?:export|readonly|local)\s+)?"
+    rf"([A-Z0-9_]*(?:EFFORT|REASONING)[A-Z0-9_]*)\s*=\s*[\"']?"
+    rf"{EXTERNAL_CRITIQUE_EFFORT_PATTERN}[\"']?"
+)
+EXTERNAL_CRITIQUE_APPEND_RUN_PATTERN = re.compile(
+    rf"\bappend_run\s+[\"']?({EXTERNAL_CRITIQUE_CONFIGURED_MODEL_PATTERN.pattern})[\"']?"
+    rf"\s+[\"']?{EXTERNAL_CRITIQUE_EFFORT_PATTERN}[\"']?",
+    re.IGNORECASE,
+)
+EXTERNAL_CRITIQUE_PIPE_PAIR_PATTERN = re.compile(
+    rf"({EXTERNAL_CRITIQUE_CONFIGURED_MODEL_PATTERN.pattern})\s*\|\s*"
+    rf"{EXTERNAL_CRITIQUE_EFFORT_PATTERN}",
+    re.IGNORECASE,
+)
+EXTERNAL_CRITIQUE_PROFILE_DECLARATION_PATTERN = re.compile(
+    r"\b(profile|configured|configuration|default|shipped|slot|matrix|runs?|contains?)\b",
+    re.IGNORECASE,
+)
+EXTERNAL_CRITIQUE_MODEL_SELECTOR_PATTERN = re.compile(
+    r"(?ms)^\s*(?:select[A-Za-z0-9_]*model[A-Za-z0-9_]*|"
+    r"[A-Za-z_][A-Za-z0-9_]*select[A-Za-z0-9_]*model[A-Za-z0-9_]*)\(\)\s*\{"
+    r"(.*?)^\s*\}"
+)
+EXTERNAL_CRITIQUE_MECHANISM_PATH_PATTERN = re.compile(
+    r"(?:^|/)(?:[^/]*(?:external[-_]critique|seeking-external-critique)[^/]*)(?:/|$)",
+    re.IGNORECASE,
+)
+EXTERNAL_CRITIQUE_NONLIVE_PROFILE_PARTS = frozenset(
+    {
+        "archive",
+        "archived",
+        "example",
+        "examples",
+        "evidence",
+        "fixture",
+        "fixtures",
+        "history",
+        "historical",
+        "receipt",
+        "receipts",
+        "report",
+        "reports",
+        "test",
+        "tests",
+        "testdata",
+        "test-data",
+        "work",
+    }
+)
+EXTERNAL_CRITIQUE_NONLIVE_PROFILE_NAME_PATTERN = re.compile(
+    r"(?:^|[-_.])(archive|history|historical|receipt|report|sample|output)(?:[-_.]|$)",
+    re.IGNORECASE,
+)
+EXTERNAL_CRITIQUE_MECHANISM_FILE_LIMIT = 30
 EXTERNAL_CRITIQUE_TOKEN_PATTERN = re.compile(
     r"\b(EXTERNAL_CRITIQUE_CAPABILITY|CRITIQUE_RESULT)\b",
     re.IGNORECASE,
@@ -1157,6 +1234,95 @@ def external_critique_model_runtime_hits(text: str) -> set[str]:
     }
 
 
+def is_live_external_critique_profile_path(path: str) -> bool:
+    parts = tuple(part.lower() for part in path.split("/"))
+    if any(part in EXTERNAL_CRITIQUE_NONLIVE_PROFILE_PARTS for part in parts):
+        return False
+    return not EXTERNAL_CRITIQUE_NONLIVE_PROFILE_NAME_PATTERN.search(Path(path).name)
+
+
+def add_external_critique_mechanism_texts(
+    repo: Path, texts: dict[str, str]
+) -> dict[str, str]:
+    augmented = dict(texts)
+    candidates = sorted(
+        (
+            path
+            for path in iter_eligible_text_paths(repo)
+            if EXTERNAL_CRITIQUE_MECHANISM_PATH_PATTERN.search(
+                path.relative_to(repo).as_posix()
+            )
+            and external_critique_role(path.relative_to(repo).as_posix()) != "docs"
+            and is_live_external_critique_profile_path(
+                path.relative_to(repo).as_posix()
+            )
+        ),
+        key=lambda path: scan_priority_key(repo, path),
+    )
+    for path in candidates[:EXTERNAL_CRITIQUE_MECHANISM_FILE_LIMIT]:
+        rel_str = path.relative_to(repo).as_posix()
+        if rel_str in augmented:
+            continue
+        try:
+            augmented[rel_str] = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+    return augmented
+
+
+def external_critique_slot_key(variable: str) -> str:
+    return "_".join(
+        part
+        for part in variable.split("_")
+        if part not in {"MODEL", "EFFORT", "REASONING"}
+    )
+
+
+def external_critique_configured_slots(
+    path: str, text: str
+) -> set[tuple[str, str | None]]:
+    slots: set[tuple[str, str | None]] = set()
+    profile_text = text
+    if path.lower().endswith(".sh"):
+        profile_text = "\n".join(
+            line for line in text.splitlines() if not line.lstrip().startswith("#")
+        )
+
+    if path.lower().endswith((".sh", ".py", ".json", ".yml", ".yaml", ".toml")):
+        effort_assignments = {
+            external_critique_slot_key(match.group(1)): match.group(2).lower()
+            for match in EXTERNAL_CRITIQUE_EFFORT_ASSIGNMENT_PATTERN.finditer(
+                profile_text
+            )
+        }
+        for match in EXTERNAL_CRITIQUE_MODEL_ASSIGNMENT_PATTERN.finditer(
+            profile_text
+        ):
+            key = external_critique_slot_key(match.group(1))
+            slots.add((match.group(2).lower(), effort_assignments.get(key)))
+
+        for match in EXTERNAL_CRITIQUE_APPEND_RUN_PATTERN.finditer(profile_text):
+            slots.add((match.group(1).lower(), match.group(2).lower()))
+
+        for selector_match in EXTERNAL_CRITIQUE_MODEL_SELECTOR_PATTERN.finditer(
+            profile_text
+        ):
+            for model_match in EXTERNAL_CRITIQUE_CONFIGURED_MODEL_PATTERN.finditer(
+                selector_match.group(1)
+            ):
+                slots.add((model_match.group(0).lower(), None))
+
+    profile_context_lines = 0
+    for line in profile_text.splitlines():
+        if EXTERNAL_CRITIQUE_PROFILE_DECLARATION_PATTERN.search(line):
+            profile_context_lines = 4
+        if profile_context_lines:
+            for match in EXTERNAL_CRITIQUE_PIPE_PAIR_PATTERN.finditer(line):
+                slots.add((match.group(1).lower(), match.group(2).lower()))
+            profile_context_lines -= 1
+    return slots
+
+
 def external_critique_has_authority_overclaim(text: str) -> bool:
     for line in text.splitlines():
         if not AUTHORITY_OVERCLAIM_PATTERN.search(line):
@@ -1211,6 +1377,70 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
         for path, text in evidence_texts.items()
         if is_external_critique_capability_surface(path, text)
     }
+    live_profile_surfaces = {
+        path: text
+        for path, text in evidence_texts.items()
+        if is_live_external_critique_profile_path(path)
+        and (
+            path in capability_surfaces
+            or EXTERNAL_CRITIQUE_TOKEN_PATTERN.search(text)
+            or (
+                external_critique_role(path) != "docs"
+                and EXTERNAL_CRITIQUE_MECHANISM_PATH_PATTERN.search(path)
+            )
+        )
+    }
+    configured_slots_by_path = {
+        path: slots
+        for path, text in live_profile_surfaces.items()
+        if (slots := external_critique_configured_slots(path, text))
+    }
+    stale_slots_by_path = {
+        path: {
+            (model, effort)
+            for model, effort in slots
+            if effort is None
+            or (model, effort) not in EXTERNAL_CRITIQUE_CANONICAL_MODEL_EFFORT_PAIRS
+        }
+        for path, slots in configured_slots_by_path.items()
+    }
+    stale_slots_by_path = {
+        path: slots for path, slots in stale_slots_by_path.items() if slots
+    }
+    legacy_gpt_slots_by_path = {
+        path: {(model, effort) for model, effort in slots if model == "gpt-5.5"}
+        for path, slots in configured_slots_by_path.items()
+    }
+    legacy_gpt_slots_by_path = {
+        path: slots for path, slots in legacy_gpt_slots_by_path.items() if slots
+    }
+    missing_effort_slots_by_path = {
+        path: {(model, effort) for model, effort in slots if effort is None}
+        for path, slots in configured_slots_by_path.items()
+    }
+    missing_effort_slots_by_path = {
+        path: slots for path, slots in missing_effort_slots_by_path.items() if slots
+    }
+    detected_model_effort_pairs = sorted(
+        f"{path}=>{model}|{effort or 'implicit'}"
+        for path, slots in configured_slots_by_path.items()
+        for model, effort in slots
+    )
+    stale_critique_profile_evidence = sorted(
+        f"{path}=>{model}|{effort or 'implicit'}"
+        for path, slots in stale_slots_by_path.items()
+        for model, effort in slots
+    )
+    legacy_gpt_critique_slot_evidence = sorted(
+        f"{path}=>{model}|{effort or 'implicit'}"
+        for path, slots in legacy_gpt_slots_by_path.items()
+        for model, effort in slots
+    )
+    missing_explicit_critique_effort_evidence = sorted(
+        f"{path}=>{model}|implicit"
+        for path, slots in missing_effort_slots_by_path.items()
+        for model, _ in slots
+    )
     skill_or_capability_convention_paths = sorted(
         path
         for path, text in evidence_texts.items()
@@ -1271,6 +1501,9 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
         "no_loop_cap": 0,
         "no_local_authority_refs": 0,
         "privacy_boundary_missing": 0,
+        "stale_critique_profile": len(stale_slots_by_path),
+        "legacy_gpt_critique_slot": len(legacy_gpt_slots_by_path),
+        "missing_explicit_critique_effort": len(missing_effort_slots_by_path),
     }
     extra_drift_counts: dict[str, int] = {
         "blocker_advisory_missing": 0,
@@ -1282,6 +1515,17 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
     semantic_support_counts = Counter()
     class_evidence: list[str] = []
     local_version_records: list[str] = []
+
+    class_evidence.extend(
+        f"stale_critique_profile=>{record}" for record in stale_critique_profile_evidence
+    )
+    class_evidence.extend(
+        f"legacy_gpt_critique_slot=>{record}" for record in legacy_gpt_critique_slot_evidence
+    )
+    class_evidence.extend(
+        f"missing_explicit_critique_effort=>{record}"
+        for record in missing_explicit_critique_effort_evidence
+    )
 
     if not capability_surfaces:
         evidence_class_counts["missing_capability"] = 1
@@ -1379,12 +1623,14 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
         f"bounded_calibration=>{','.join(bounded_calibration_files[:4]) or 'none'}",
         f"validation=>{','.join(validation_files[:4]) or 'none'}",
         f"capability_roles=>{';'.join(role_details) or 'missing'}",
+        f"live_profile_mechanisms=>{','.join(sorted(live_profile_surfaces)[:6]) or 'none'}",
+        f"configured_profile_slots=>{';'.join(detected_model_effort_pairs[:8]) or 'none'}",
         f"evidence_classes=>{';'.join(class_evidence[:8]) or 'none'}",
     ]
     if evidence_class_counts["missing_capability"]:
         reason = "external critique capability surface is missing"
     elif active_evidence_classes:
-        reason = "external critique capability surfaces have localization, admission, or authority drift"
+        reason = "external critique capability surfaces have profile, localization, admission, or authority drift"
     elif legacy_health_fired:
         reason = "repo exposes two or more critique-health evidence classes with validation support"
     else:
@@ -1400,6 +1646,35 @@ def external_critique_health(texts: dict[str, str]) -> dict[str, Any]:
             "validation_file_count": len(validation_files),
             "contract_semantics_source": EXTERNAL_CRITIQUE_CONTRACT_SOURCE,
             "contract_source_version": EXTERNAL_CRITIQUE_CONTRACT_VERSION,
+            "external_critique_profile_pointer": EXTERNAL_CRITIQUE_PROFILE_POINTER,
+            "canonical_model_effort_pairs": sorted(
+                f"{model}|{effort}"
+                for model, effort in EXTERNAL_CRITIQUE_CANONICAL_MODEL_EFFORT_PAIRS
+            ),
+            "live_external_critique_mechanism_count": len(live_profile_surfaces),
+            "live_external_critique_mechanism_paths": sorted(live_profile_surfaces),
+            "live_external_critique_mechanism_paths_by_role": {
+                role: sorted(
+                    path
+                    for path in live_profile_surfaces
+                    if external_critique_role(path) == role
+                )
+                for role in sorted(
+                    {external_critique_role(path) for path in live_profile_surfaces}
+                )
+            },
+            "detected_model_effort_pair_count": len(detected_model_effort_pairs),
+            "detected_model_effort_pairs": detected_model_effort_pairs,
+            "stale_critique_profile_paths": sorted(stale_slots_by_path),
+            "stale_critique_profile_evidence": stale_critique_profile_evidence,
+            "legacy_gpt_critique_slot_paths": sorted(legacy_gpt_slots_by_path),
+            "legacy_gpt_critique_slot_evidence": legacy_gpt_critique_slot_evidence,
+            "missing_explicit_critique_effort_paths": sorted(
+                missing_effort_slots_by_path
+            ),
+            "missing_explicit_critique_effort_evidence": (
+                missing_explicit_critique_effort_evidence
+            ),
             "external_critique_capability_present": bool(capability_surfaces),
             "external_critique_mechanism_count": len(capability_surfaces),
             "mechanism_roles": [role for role, paths in paths_by_role.items() if paths],
@@ -8316,6 +8591,8 @@ def main() -> int:
 
     text_scan = load_text_scan(repo)
     texts = text_scan.texts
+    if signature_id == "AS-08":
+        texts = add_external_critique_mechanism_texts(repo, texts)
     result = evaluator(texts)
     payload = {
         "ds_id": signature_id,

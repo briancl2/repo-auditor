@@ -13,12 +13,26 @@ DRIFT_REPO="$TMPDIR/drift-capability"
 ROLE_REPO="$TMPDIR/role-capability"
 PROMPT_ONLY_DRIFT_REPO="$TMPDIR/prompt-only-drift"
 MODEL_RUNTIME_REPO="$TMPDIR/model-runtime-evidence"
+CURRENT_PROFILE_REPO="$TMPDIR/current-profile"
+BMA_LEGACY_PROFILE_REPO="$TMPDIR/bma-legacy-profile"
+VAULT_LEGACY_PROFILE_REPO="$TMPDIR/vault-legacy-profile"
+UNRELATED_XHIGH_REPO="$TMPDIR/unrelated-xhigh"
+HISTORICAL_PROFILE_REPO="$TMPDIR/historical-profile"
+UNRELATED_GPT_REPO="$TMPDIR/unrelated-gpt"
+PROFILE_PROSE_REPO="$TMPDIR/profile-prose"
 
 mkdir -p "$MISSING_REPO/docs"
 mkdir -p "$CLEAN_REPO/.github/prompts"
 mkdir -p "$DRIFT_REPO/docs"
 mkdir -p "$PROMPT_ONLY_DRIFT_REPO/.github/prompts" "$PROMPT_ONLY_DRIFT_REPO/.agents/skills/owner-review"
 mkdir -p "$MODEL_RUNTIME_REPO/docs" "$MODEL_RUNTIME_REPO/.agents/skills/external-critique"
+mkdir -p "$CURRENT_PROFILE_REPO/.agents/skills/external-critique"
+mkdir -p "$BMA_LEGACY_PROFILE_REPO/.agents/skills/external-critique/scripts"
+mkdir -p "$VAULT_LEGACY_PROFILE_REPO/.github/skills/seeking-external-critique/scripts"
+mkdir -p "$UNRELATED_XHIGH_REPO/.agents/skills/external-critique"
+mkdir -p "$HISTORICAL_PROFILE_REPO/.agents/skills/external-critique" "$HISTORICAL_PROFILE_REPO/docs/history"
+mkdir -p "$UNRELATED_GPT_REPO/.agents/skills/external-critique" "$UNRELATED_GPT_REPO/.agents/skills/hermes" "$UNRELATED_GPT_REPO/docs" "$UNRELATED_GPT_REPO/scripts"
+mkdir -p "$PROFILE_PROSE_REPO/.agents/skills/external-critique" "$PROFILE_PROSE_REPO/docs"
 mkdir -p \
   "$ROLE_REPO/scripts" \
   "$ROLE_REPO/.github/prompts" \
@@ -37,7 +51,7 @@ EOF
 cat > "$CLEAN_REPO/.github/prompts/external-critique.prompt.md" <<'EOF'
 # External Critique Capability
 
-Version: 1.1
+Version: 1.2
 artifact: EXTERNAL_CRITIQUE_CAPABILITY
 
 Use one critic by default when context support shows a bounded external risk
@@ -86,7 +100,7 @@ EOF
 cat > "$PROMPT_ONLY_DRIFT_REPO/.github/prompts/external-critique.prompt.md" <<'EOF'
 # External Critique Capability
 
-Version: 1.1
+Version: 1.2
 artifact: EXTERNAL_CRITIQUE_CAPABILITY
 
 Use one critic by default when context support shows a bounded external risk
@@ -116,7 +130,7 @@ EOF
 cat > "$MODEL_RUNTIME_REPO/.agents/skills/external-critique/SKILL.md" <<'EOF'
 # External Critique Skill
 
-EXTERNAL_CRITIQUE_CAPABILITY Version: 1.1 context support; panel/latest-panel
+EXTERNAL_CRITIQUE_CAPABILITY Version: 1.2 context support; panel/latest-panel
 requires named high-stakes context before invocation; finding quota: none;
 no-finding results are valid; blocker findings and advisory findings are
 separated; pass budget one initial pass plus one follow-up pass with a stopping
@@ -136,7 +150,85 @@ actual_responding_model: gpt-5.5
 unavailable_disposition: requested model unavailable; used available foreground model recorded by receipt.
 EOF
 
-role_rule='EXTERNAL_CRITIQUE_CAPABILITY Version: 1.1 context support; panel/latest-panel requires named high-stakes context before invocation; finding quota: none; no-finding results are valid; blocker findings and advisory findings are separated; pass budget one initial pass plus one follow-up pass with a stopping condition; authority refs AGENTS.md and GitHub issue/PR/check/merge truth; privacy/redaction boundaries; fleet findings advisory until owner evidence exists; receipt_output runtime truth records requested_path, requested_model, actual_responding_path, actual_responding_model when known, and unavailable_disposition without a model probe program.'
+role_rule='EXTERNAL_CRITIQUE_CAPABILITY Version: 1.2 context support; panel/latest-panel requires named high-stakes context before invocation; finding quota: none; no-finding results are valid; blocker findings and advisory findings are separated; pass budget one initial pass plus one follow-up pass with a stopping condition; authority refs AGENTS.md and GitHub issue/PR/check/merge truth; privacy/redaction boundaries; fleet findings advisory until owner evidence exists; receipt_output runtime truth records requested_path, requested_model, actual_responding_path, actual_responding_model when known, and unavailable_disposition without a model probe program.'
+
+write_current_profile() {
+  local repo="$1"
+  mkdir -p "$repo/.agents/skills/external-critique"
+  cat > "$repo/.agents/skills/external-critique/SKILL.md" <<EOF
+# External Critique Skill
+
+$role_rule
+
+The external-critique-profile default configured slot is claude-opus-4.8|max.
+The latest-panel configured profile runs:
+- claude-opus-4.8|max
+- gemini-3.1-pro-preview|high
+- gpt-5.6-sol|max
+EOF
+}
+
+write_current_profile "$CURRENT_PROFILE_REPO"
+write_current_profile "$UNRELATED_XHIGH_REPO"
+write_current_profile "$HISTORICAL_PROFILE_REPO"
+write_current_profile "$UNRELATED_GPT_REPO"
+write_current_profile "$PROFILE_PROSE_REPO"
+
+cat > "$BMA_LEGACY_PROFILE_REPO/.agents/skills/external-critique/scripts/external_critique.sh" <<EOF
+#!/usr/bin/env bash
+# $role_rule
+append_run "claude-opus-4.8" "max"
+append_run "gemini-3.1-pro-preview" "high"
+append_run "gpt-5.5" "xhigh"
+EOF
+
+cat > "$VAULT_LEGACY_PROFILE_REPO/.github/skills/seeking-external-critique/scripts/external_critique.sh" <<EOF
+#!/usr/bin/env bash
+# $role_rule
+select_cross_model() {
+  echo "gpt-5.5"
+}
+CROSS_MODEL=\$(select_cross_model)
+EOF
+
+cat >> "$UNRELATED_XHIGH_REPO/.agents/skills/external-critique/SKILL.md" <<'EOF'
+
+Review depth may use xhigh when separately approved.
+EOF
+cat > "$UNRELATED_XHIGH_REPO/.agents/skills/external-critique/commented-example.sh" <<'EOF'
+#!/usr/bin/env bash
+# Compatibility example only:
+# append_run "gpt-5.5" "xhigh"
+EOF
+
+cat > "$HISTORICAL_PROFILE_REPO/docs/history/external-critique-receipt.json" <<'EOF'
+{
+  "artifact": "EXTERNAL_CRITIQUE_CAPABILITY",
+  "requested_model": "gpt-5.5",
+  "requested_effort": "xhigh",
+  "runtime_state": "success"
+}
+EOF
+
+cat > "$UNRELATED_GPT_REPO/scripts/review.sh" <<'EOF'
+REVIEW_MODEL="gpt-5.5"
+REVIEW_EFFORT="xhigh"
+EOF
+cat > "$UNRELATED_GPT_REPO/.agents/skills/hermes/SKILL.md" <<'EOF'
+# Hermes
+The foreground Hermes model is gpt-5.5|high.
+EOF
+cat > "$UNRELATED_GPT_REPO/docs/P11.md" <<'EOF'
+# P11
+The P11 judge may use gpt-5.5|xhigh.
+EOF
+
+cat > "$PROFILE_PROSE_REPO/docs/model-policy.md" <<'EOF'
+# Model Policy
+
+Historical prose says the external critique profile once used gpt-5.5|xhigh.
+This file is not a mechanism and carries no capability token.
+EOF
 
 cat > "$ROLE_REPO/scripts/external-critique.sh" <<EOF
 #!/usr/bin/env bash
@@ -183,12 +275,27 @@ cat > "$ROLE_REPO/.github/agents/external-critic.agent.md" <<EOF
 $role_rule
 EOF
 
-python3 - "$REPO_ROOT" "$MISSING_REPO" "$CLEAN_REPO" "$DRIFT_REPO" "$ROLE_REPO" "$PROMPT_ONLY_DRIFT_REPO" "$MODEL_RUNTIME_REPO" <<'PY'
+python3 - "$REPO_ROOT" "$MISSING_REPO" "$CLEAN_REPO" "$DRIFT_REPO" "$ROLE_REPO" "$PROMPT_ONLY_DRIFT_REPO" "$MODEL_RUNTIME_REPO" "$CURRENT_PROFILE_REPO" "$BMA_LEGACY_PROFILE_REPO" "$VAULT_LEGACY_PROFILE_REPO" "$UNRELATED_XHIGH_REPO" "$HISTORICAL_PROFILE_REPO" "$UNRELATED_GPT_REPO" "$PROFILE_PROSE_REPO" <<'PY'
 import json
 import subprocess
 import sys
 
-repo_root, missing_repo, clean_repo, drift_repo, role_repo, prompt_only_drift_repo, model_runtime_repo = sys.argv[1:8]
+(
+    repo_root,
+    missing_repo,
+    clean_repo,
+    drift_repo,
+    role_repo,
+    prompt_only_drift_repo,
+    model_runtime_repo,
+    current_profile_repo,
+    bma_legacy_profile_repo,
+    vault_legacy_profile_repo,
+    unrelated_xhigh_repo,
+    historical_profile_repo,
+    unrelated_gpt_repo,
+    profile_prose_repo,
+) = sys.argv[1:15]
 
 
 def run(repo):
@@ -213,7 +320,7 @@ assert clean["fired"] is False, clean
 assert clean["signals"]["contract_semantics_source"].startswith(
     "repo-agent-core/docs/external-critique-capability-contract.md@"
 ), clean
-assert clean["signals"]["contract_source_version"] == "1.1", clean
+assert clean["signals"]["contract_source_version"] == "1.2", clean
 assert clean["signals"]["external_critique_capability_present"] is True, clean
 assert clean["signals"]["external_critique_mechanism_count"] == 1, clean
 assert clean["signals"]["mechanism_roles"] == ["prompt"], clean
@@ -305,6 +412,63 @@ for role, expected_path in {
     "agent_instruction": ".github/agents/external-critic.agent.md",
 }.items():
     assert expected_path in roles["signals"]["mechanism_paths_by_role"][role], (role, roles)
+
+current_profile = run(current_profile_repo)
+assert current_profile["fired"] is False, current_profile
+assert current_profile["signals"]["external_critique_profile_pointer"] == "external-critique-profile", current_profile
+assert current_profile["signals"]["canonical_model_effort_pairs"] == [
+    "claude-opus-4.8|max",
+    "gemini-3.1-pro-preview|high",
+    "gpt-5.6-sol|max",
+], current_profile
+assert current_profile["signals"]["detected_model_effort_pairs"] == [
+    ".agents/skills/external-critique/SKILL.md=>claude-opus-4.8|max",
+    ".agents/skills/external-critique/SKILL.md=>gemini-3.1-pro-preview|high",
+    ".agents/skills/external-critique/SKILL.md=>gpt-5.6-sol|max",
+], current_profile
+assert current_profile["signals"]["evidence_class_counts"]["stale_critique_profile"] == 0, current_profile
+
+bma_legacy = run(bma_legacy_profile_repo)
+bma_counts = bma_legacy["signals"]["evidence_class_counts"]
+assert bma_legacy["fired"] is True, bma_legacy
+assert bma_counts["stale_critique_profile"] == 1, bma_legacy
+assert bma_counts["legacy_gpt_critique_slot"] == 1, bma_legacy
+assert bma_counts["missing_explicit_critique_effort"] == 0, bma_legacy
+assert bma_legacy["signals"]["legacy_gpt_critique_slot_evidence"] == [
+    ".agents/skills/external-critique/scripts/external_critique.sh=>gpt-5.5|xhigh"
+], bma_legacy
+
+vault_legacy = run(vault_legacy_profile_repo)
+vault_counts = vault_legacy["signals"]["evidence_class_counts"]
+assert vault_legacy["fired"] is True, vault_legacy
+assert vault_counts["stale_critique_profile"] == 1, vault_legacy
+assert vault_counts["legacy_gpt_critique_slot"] == 1, vault_legacy
+assert vault_counts["missing_explicit_critique_effort"] == 1, vault_legacy
+assert vault_legacy["signals"]["legacy_gpt_critique_slot_evidence"] == [
+    ".github/skills/seeking-external-critique/scripts/external_critique.sh=>gpt-5.5|implicit"
+], vault_legacy
+assert vault_legacy["signals"]["missing_explicit_critique_effort_evidence"] == [
+    ".github/skills/seeking-external-critique/scripts/external_critique.sh=>gpt-5.5|implicit"
+], vault_legacy
+
+unrelated_xhigh = run(unrelated_xhigh_repo)
+assert unrelated_xhigh["fired"] is False, unrelated_xhigh
+assert unrelated_xhigh["signals"]["evidence_class_counts"]["stale_critique_profile"] == 0, unrelated_xhigh
+
+historical = run(historical_profile_repo)
+assert historical["signals"]["evidence_class_counts"]["legacy_gpt_critique_slot"] == 0, historical
+assert not any("gpt-5.5" in pair for pair in historical["signals"]["detected_model_effort_pairs"]), historical
+assert "docs/history/external-critique-receipt.json" not in historical["signals"]["live_external_critique_mechanism_paths"], historical
+
+unrelated_gpt = run(unrelated_gpt_repo)
+assert unrelated_gpt["fired"] is False, unrelated_gpt
+assert unrelated_gpt["signals"]["evidence_class_counts"]["legacy_gpt_critique_slot"] == 0, unrelated_gpt
+assert not any("gpt-5.5" in pair for pair in unrelated_gpt["signals"]["detected_model_effort_pairs"]), unrelated_gpt
+
+profile_prose = run(profile_prose_repo)
+assert profile_prose["fired"] is False, profile_prose
+assert profile_prose["signals"]["evidence_class_counts"]["legacy_gpt_critique_slot"] == 0, profile_prose
+assert "docs/model-policy.md" not in profile_prose["signals"]["live_external_critique_mechanism_paths"], profile_prose
 
 print("External critique health detector semantics passed.")
 PY
