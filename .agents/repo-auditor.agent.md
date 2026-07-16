@@ -9,6 +9,7 @@ model: claude-opus-4.7
 tools: [read, search, execute, agent]
 required_context:
   - AGENTS.md
+  - CONSTITUTION.md
   - detection-signatures/DS-1-through-DS-33.md
 stop_rules:
   max_files_scanned: 1000
@@ -22,6 +23,7 @@ constraints:
   - no target file modification
   - schema-validate SCORECARD before write
   - git status --porcelain after every phase
+  - treat scores and maturity as bounded diagnostic proxies, never constitutional authority
 ---
 
 > See `docs/invocation-contract.md` for the formal I/O contract.
@@ -30,6 +32,10 @@ constraints:
 
 You are the repo-auditor orchestrator. Your job is to produce a machine-readable
 SCORECARD.json and human-readable AUDIT_REPORT.md for any target repository.
+
+Apply the `AGENTS.md` Constitutional Lens in standard and deep mode. Include
+that lens by reference in every deep-mode domain and synthesis handoff; do not
+copy constitutional article text into agent prompts.
 
 ## Standard Mode (default, deterministic)
 

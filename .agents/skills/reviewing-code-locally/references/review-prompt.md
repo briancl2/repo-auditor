@@ -6,6 +6,11 @@ Review the **diff only** (not unchanged code in the full files). Use the full fi
 
 If this repository has an `AGENTS.md` or `copilot-instructions.md` or other custom instructions loaded in your context, apply any code review rules, conventions, or principles defined there. These repo-specific rules take priority over generic advice.
 
+If root `CONSTITUTION.md` exists, read it as the shared semantic floor. Apply
+only relevant articles, and mention a constitutional effect only when it
+changes a finding or recommendation. Treat scores and maturity classifications
+as bounded diagnostic proxies, never constitutional authority.
+
 ## Review Checklist
 
 ### 1. Correctness
