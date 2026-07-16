@@ -29,6 +29,10 @@ mkdir -p "$FIXTURE_REPO" "$TEST_ROOT/runtime"
 write_lines "$FAKE_COPILOT" \
     '#!/usr/bin/env bash' \
     'set -euo pipefail' \
+    'case "$*" in' \
+    '    *CONSTITUTION.md*) ;;' \
+    '    *) echo "FAIL: review prompt omitted constitutional lens" >&2; exit 74 ;;' \
+    'esac' \
     'if IFS= read -r -t 1 inherited_stdin; then' \
     '    echo "FAIL: fake copilot inherited readable stdin: ${inherited_stdin}" >&2' \
     '    exit 73' \

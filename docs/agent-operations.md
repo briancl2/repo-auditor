@@ -247,6 +247,7 @@ closeout truth, or downstream mutation.
 
 - `AGENTS.md` is the canonical startup surface.
 - `LEARNINGS.md` is append-only operational memory.
-- `.specify/memory/constitution.md` carries governance principles.
+- Root `CONSTITUTION.md` is the shared semantic floor;
+  `.specify/memory/constitution.md` is a Spec Kit pointer only.
 - Scan caps, timeouts, and target-read-only boundaries are safety controls, not
   suggestions.

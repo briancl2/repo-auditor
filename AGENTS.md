@@ -11,6 +11,24 @@ and optional governed receipts. Keep this file as the live bootloader; detailed
 agent, skill, script, output, and token-budget inventories live in
 `docs/agent-operations.md`.
 
+Every active harness MUST read root `CONSTITUTION.md` immediately after this
+file. It is the shared semantic floor. The repo-local rules below preserve
+owner specialization and may be stricter, but may not weaken that floor;
+unresolved conflicts stop for explicit resolution.
+
+## Constitutional Lens
+
+- Standard and deep audits, their synthesis, `make review`, and the linked
+  repo-health retrospective use relevant constitutional articles for forward
+  decisions or backward analysis. Mention a constitutional effect only when it
+  changes a finding, recommendation, scope decision, or audit conclusion.
+- `SCORECARD.json`, composite scores, dimension scores, and maturity phases are
+  bounded diagnostic proxies. They are never constitutional authority,
+  constitutional compliance scores, or substitutes for owner evidence.
+- Audit, review, and retrospective evidence creates no target-repository write
+  authority. The read-only target boundary and the applicable owner surface
+  continue to control mutation and closure.
+
 ## Operating Rules
 
 - Standard mode is default and deterministic. Deep mode is opt-in through
@@ -89,6 +107,7 @@ make install-hooks
 - Invocation contract: `docs/invocation-contract.md`
 - Current program status: `docs/current-program-status.md`
 - Agent operations inventory: `docs/agent-operations.md`
-- Constitution: `.specify/memory/constitution.md`
+- Shared constitution: `CONSTITUTION.md` (`.specify/memory/constitution.md` is
+  a Spec Kit pointer only)
 - Repo-health retrospective (self-serve, foreground, on-demand): run one against this repo's own evidence per `repo-agent-core` `docs/repo-health-retrospective-method-contract.md`; latest run `docs/repo-health-retrospective-2026-07-09.md`.
 - Detector graduation ledger (graduation/retire status of graduation-tracked detectors; makes the append-only inventory prunable): `docs/detector-graduation-ledger.md`.
