@@ -23,11 +23,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+      - name: Check out frozen compatible core baseline
+        uses: actions/checkout@v4
+        with:
+          repository: briancl2/repo-agent-core
+          ref: a93abeece9d237a2a642f96926b4590dc1a373c9
+          path: .core-baseline
       - name: Run shellcheck + inventory + trailer validation
         env:
           CLOSURE_PHASE: check
           PARENT_COMMAND: make check
           CLOSURE_IDENTITY_RECEIPT_PATH: ${{ runner.temp }}/closure-identity-check.json
+          CORE_REPO: ${{ github.workspace }}/.core-baseline
         run: make check
 
   test:
