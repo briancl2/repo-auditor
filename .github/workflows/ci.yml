@@ -22,7 +22,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      # Gate 5B is frozen to issue #215's owner base. A successor owner
+      # migration must deliberately re-pin this invariant and its delta receipt.
+      - name: Verify frozen owner base
+        env:
+          EVENT_OWNER_BASE: ${{ github.event.pull_request.base.sha || '174fc769c029060270eca7d405decb08c9b7919b' }}
+          EXPECTED_OWNER_BASE: 174fc769c029060270eca7d405decb08c9b7919b
+        run: test "$EVENT_OWNER_BASE" = "$EXPECTED_OWNER_BASE"
       - name: Check out frozen compatible core baseline
         uses: actions/checkout@v4
         with:
@@ -48,6 +56,9 @@ jobs:
       GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Run all tests
         env:
           CLOSURE_PHASE: test
@@ -66,6 +77,9 @@ jobs:
       GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Validate JSON schemas
         env:
           CLOSURE_PHASE: validate
