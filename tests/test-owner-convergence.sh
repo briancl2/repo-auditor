@@ -35,7 +35,7 @@ for expected in \
     '"deleted_paths": 244' \
     '"rollback_paths": 244' \
     '"changed_retained_paths": 9' \
-    '"new_paths": 3' \
+    '"new_paths": 5' \
     '"core_export_rows": 6' \
     '"core_caller_checks": 6' \
     '"orphan_active_exports": 0' \
