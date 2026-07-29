@@ -24,12 +24,12 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      # Gate 5B is frozen to issue #215's owner base. A successor owner
-      # migration must deliberately re-pin this invariant and its delta receipt.
+      # Gate 5B post-main repair is frozen to issue #215's settled main. A
+      # successor owner migration must deliberately re-pin this PR-base invariant.
       - name: Verify frozen owner base
         env:
-          EVENT_OWNER_BASE: ${{ github.event.pull_request.base.sha || '174fc769c029060270eca7d405decb08c9b7919b' }}
-          EXPECTED_OWNER_BASE: 174fc769c029060270eca7d405decb08c9b7919b
+          EVENT_OWNER_BASE: ${{ github.event.pull_request.base.sha || 'ecfab18ca1b05f4ba71f7aa6907374313cadbfbc' }}
+          EXPECTED_OWNER_BASE: ecfab18ca1b05f4ba71f7aa6907374313cadbfbc
         run: test "$EVENT_OWNER_BASE" = "$EXPECTED_OWNER_BASE"
       - name: Check out frozen compatible core baseline
         uses: actions/checkout@v4

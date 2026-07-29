@@ -31,11 +31,22 @@ else
     fail "actual cached candidate passes"
 fi
 
+CI_BASE_COUNT=$(
+    git -C "$ROOT" show :.github/workflows/ci.yml \
+        | grep -c 'ecfab18ca1b05f4ba71f7aa6907374313cadbfbc' \
+        || true
+)
+if [ "$CI_BASE_COUNT" -eq 2 ]; then
+    pass "CI PR-base invariant is pinned to settled main"
+else
+    fail "CI PR-base invariant is pinned to settled main"
+fi
+
 for expected in \
     '"deleted_paths": 244' \
     '"rollback_paths": 244' \
     '"changed_retained_paths": 9' \
-    '"new_paths": 3' \
+    '"new_paths": 5' \
     '"core_export_rows": 6' \
     '"core_caller_checks": 6' \
     '"orphan_active_exports": 0' \
