@@ -5,7 +5,7 @@ graduation-tracked detectors, so the append-only detector inventory
 (`docs/live-capability-inventory.md`) becomes **prunable**.
 
 This is a git-observable ledger, **not** a runtime dashboard (the
-`docs/repo-health-retrospective-2026-07-09.md` R-A1 "do-not-build" counterpart).
+the historical R-A1 "do-not-build" owner decision).
 It is maintained by hand during each n=2 graduation hunt and the standing
 repo-health retrospective; `tests/test-detector-graduation-ledger.sh` guards its
 internal integrity so the retire arithmetic cannot silently drift.

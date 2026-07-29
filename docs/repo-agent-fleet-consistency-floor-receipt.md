@@ -1,5 +1,11 @@
 # Repo-Agent Fleet Consistency Floor Receipt — repo-auditor
 
+> Historical snapshot: this receipt records the repository shape observed for
+> Issue #187 and is retained as evidence only. Its local work/closeout paths
+> were removed by the later owner-convergence change; current authority is
+> `CONSTITUTION.md`, `AGENTS.md`, the owner issue/PR, required checks, review,
+> merge, and live readback. Do not use the snapshot below as current policy.
+
 > Artifact: `REPO_AGENT_FLEET_CONSISTENCY_FLOOR` (schema_version 1)
 > Consuming repo: `briancl2/repo-auditor`
 > Generated: 2026-07-04T02:20:47Z

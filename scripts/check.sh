@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/check.sh — Gate 2 pre-commit check for repo-auditor
 #
-# Runs: shellcheck, inventory match, co-evolution guard, trailer check.
+# Runs: shellcheck, inventory match, co-evolution, convergence, trailer check.
 # Deterministic. macOS bash 3.2 compatible.
 #
 # Usage: bash scripts/check.sh
@@ -42,7 +42,7 @@ fi
 
 # ── Inventory match ───────────────────────────────────────────────────
 echo "── inventory ──"
-EXPECTED=101  # shell scripts only; current scripts/ also has 15 Python helpers
+EXPECTED=98  # shell scripts only; owner convergence removed three local lifecycle scripts
 COUNTED=$(find scripts -maxdepth 1 -name '*.sh' -type f | wc -l | tr -d ' ')
 if [ "$COUNTED" != "$EXPECTED" ]; then
     echo "  FAIL: expected $EXPECTED scripts, found $COUNTED"
@@ -54,6 +54,20 @@ fi
 # ── Co-evolution guard ──────────────────────────────────────────────────
 echo "── co-evolution ──"
 if ! bash scripts/check-coevolution.sh; then
+    FAIL=1
+fi
+
+# ── Owner convergence ─────────────────────────────────────────────────
+echo "── owner convergence ──"
+CONVERGENCE_ARGS=(
+    --repo .
+    --base-ref "${OWNER_CONVERGENCE_BASE_REF:-174fc769c029060270eca7d405decb08c9b7919b}"
+    --core-ref "${CORE_BASELINE_REF:-a93abeece9d237a2a642f96926b4590dc1a373c9}"
+)
+if [ -n "${CORE_REPO:-}" ]; then
+    CONVERGENCE_ARGS+=(--core-repo "$CORE_REPO")
+fi
+if ! python3 scripts/validate_owner_convergence.py "${CONVERGENCE_ARGS[@]}"; then
     FAIL=1
 fi
 

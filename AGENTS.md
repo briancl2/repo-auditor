@@ -1,69 +1,65 @@
 # AGENTS.md — repo-auditor
 
-> Machine-readable repository health scorer. Standard mode is deterministic;
-> deep mode adds LLM domain auditors. Target repositories are never modified.
+Read root `CONSTITUTION.md` first. It is the exact shared semantic floor. This
+bootloader is subordinate repo-auditor policy and cannot change constitutional
+meaning.
 
-## Purpose
+## Product boundary
 
-`repo-auditor` evaluates a repository's AI-native maturity across five
-dimensions and emits `SCORECARD.json`, `AUDIT_REPORT.md`, pre-scan artifacts,
-and optional governed receipts. Keep this file as the live bootloader; detailed
-agent, skill, script, output, and token-budget inventories live in
-`docs/agent-operations.md`.
+`repo-auditor` is a read-only repository audit product. Standard mode is
+deterministic; deep mode is opt-in. It emits bounded findings, scorecards,
+pre-scan evidence, and human-readable reports. Scores and maturity labels are
+diagnostic proxies, never constitutional authority or target mutation
+authority.
 
-Every active harness MUST read root `CONSTITUTION.md` immediately after this
-file. It is the shared semantic floor. The repo-local rules below preserve
-owner specialization and may be stricter, but may not weaken that floor;
-unresolved conflicts stop for explicit resolution.
+- Never edit, format, commit, clean, or otherwise mutate a target repository.
+- Preserve deterministic detection signatures, finding/schema semantics,
+  privacy-safe receipts, bounded scans, and fail-closed audit behavior.
+- Do not infer exhaustive target truth from scan-limited, snapshot-only, failed,
+  or partial evidence.
+- The core-five repositories may be reciprocal read-only proving grounds. Each
+  repository still changes only through its own owner issue, branch, pull
+  request, checks, review, and merge.
 
-## Constitutional Lens
+## Owner route
 
-- Standard and deep audits, their synthesis, `make review`, and the linked
-  repo-health retrospective use relevant constitutional articles for forward
-  decisions or backward analysis. Mention a constitutional effect only when it
-  changes a finding, recommendation, scope decision, or audit conclusion.
-- `SCORECARD.json`, composite scores, dimension scores, and maturity phases are
-  bounded diagnostic proxies. They are never constitutional authority,
-  constitutional compliance scores, or substitutes for owner evidence.
-- Audit, review, and retrospective evidence creates no target-repository write
-  authority. The read-only target boundary and the applicable owner surface
-  continue to control mutation and closure.
+`.agents/skills/repo-auditor-owner-settlement/SKILL.md` is the one lifecycle
+route for an authorized change to this repository. Current cached Git bytes and
+live GitHub issue, pull request, check, review, merge, and readback evidence
+outrank retained plans, reports, memory, and prior sessions.
 
-## Operating Rules
+For every owner change:
 
-- Standard mode is default and deterministic. Deep mode is opt-in through
-  `make audit-deep`.
-- Target repos are read-only. Do not edit, format, commit, or clean targets.
-- The core-five repos are reciprocal proving grounds for ordinary validation:
-  build-meta-analysis, repo-agent-core, repo-auditor, repo-upgrade-advisor, and
-  repo-optimizer may validate against each other as read-only targets. This
-  validation is not downstream adoption or write authority; each core-five repo
-  changes only through its own owner issue, branch, PR, checks, and merge.
-- `--no-verify` is never permitted.
-- `make check` runs before every commit; `make review` is recommended for
-  larger or governed changes.
-- Raw command output stays in receipts/logs. Governed artifacts summarize
-  command, outcome, and retained path instead of copying transcripts.
-- `score-session.sh` remains the default local closeout scorer. For explicit
-  GitHub issue/PR-backed work, use `scripts/work-close.sh
-  --github-native-closeout` so GitHub closure truth is not re-graded as local
-  session ceremony.
-- Advisory GBrain distribution into repo-local instructions consumes
-  repo-agent-core `docs/gbrain-repo-local-instruction-distribution-contract.md`
-  and `templates/gbrain-repo-local-instruction-distribution.md` by copy-sync or
-  citation only. GBrain remains advisory: use records only with
-  source/citation/provenance or GitHub surface references, never as canonical
-  truth, and never to override operator intent, GitHub issue/PR/check/merge
-  truth, target/repo evidence, or repo-local instructions. Route stale,
-  missing, uncited, or overclaiming guidance to the owner surface. Do not use
-  GBrain bulk import, sync/watch, cron, autopilot, dream, jobs worker, MCP
-  serving, minions, daemons, schedulers, queues, hidden registries, or
-  background memory behavior.
-- Governed surface edits under `.agents/`, `.github/agents/`,
-  `scripts/detect-*.sh`, or `schemas/*.json` require paired `tests/` or
-  `fixtures/` changes in the same change set.
+1. Name one owner issue and exact base.
+2. Use one branch, one preserved worktree, and one pull request.
+3. Inspect direct callers before mutation and delete obsolete machinery instead
+   of adding compatibility scaffolding.
+4. Run the smallest focused checks, then `make check`, `make test`, and
+   `make validate`.
+5. Run `make review` on the whole staged diff. Resolve CRITICAL and HIGH
+   findings; disposition lower-severity advice without widening scope.
+6. Require the applicable GitHub checks and review on the exact head.
+7. Merge only with owner authority, then verify issue, pull request, merge,
+   default-branch, and immutable behavior readback.
 
-## Commands
+Never use `--no-verify`. Do not add a controller, registry, dashboard, roadmap,
+execution ledger, updater, scheduler, queue, daemon, background process,
+automatic target mutation, or auto-merge route.
+
+## Shared-core boundary
+
+The compatible repo-agent-core baseline and every retained direct caller/export
+are recorded in `docs/live-capability-inventory.md`.
+`scripts/validate_owner_convergence.py` validates that inventory from the exact
+cached index and blobs. Copy-synced tools and owner-extended schemas remain
+independently runnable here; convergence work must not redesign their semantics.
+
+Advisory GBrain records require source/citation provenance and never override
+operator intent, GitHub truth, repository evidence, or these instructions.
+Authentication failures follow the owning credential boundary; they do not
+authorize browser, cookie, scraping, or alternate-account fallbacks.
+
+## Native commands
 
 ```bash
 make audit TARGET=~/repos/some-repo
@@ -75,39 +71,23 @@ make token-efficiency-measure OUTPUT_DIR=<dir>
 make check
 make test
 make validate
+make validate-owner-convergence
 make review
-make work DESC="..."
-make work-close WORK=work/<dir>
-bash scripts/work-close.sh work/<dir> --github-native-closeout "rationale"
 make install-hooks
 ```
 
-## Key Outputs
+## Output and scan limits
 
-- `SCORECARD.json`: five-dimension scorecard, composite score, T1/T2 checks,
-  and maturity phase.
-- `AUDIT_REPORT.md`: human-readable findings and recommendations.
-- `PRE_SCAN.md`: file inventory and AI-surface analysis.
-- `DS-34-plus-results.json`: extended deterministic signature bundle.
-- `TARGET_NATIVE_QUALITY_GATES.json`: additive target-local quality-gate
-  classification for retained gates, no retained gate, or partial-run states.
-
-## Stop Rules
-
-- Max 1000 target files scanned by default; higher caps require an explicit
+- Primary outputs: `SCORECARD.json`, `AUDIT_REPORT.md`, `PRE_SCAN.md`,
+  `DS-34-plus-results.json`, and `TARGET_NATIVE_QUALITY_GATES.json`.
+- Default target cap: 1000 files. A higher cap requires an explicit
   trusted-local override.
-- Deep-mode domain subagents inspect at most 30 files each.
-- Max 900 seconds per run.
+- Deep-mode domain auditors inspect at most 30 files each.
+- Maximum audit run: 900 seconds.
 - Halt on pre-scan failure.
-- Do not infer exhaustive target truth from scan-limited or snapshot-only
-  evidence.
 
-## References
-
-- Invocation contract: `docs/invocation-contract.md`
-- Current program status: `docs/current-program-status.md`
-- Agent operations inventory: `docs/agent-operations.md`
-- Shared constitution: `CONSTITUTION.md` (`.specify/memory/constitution.md` is
-  a Spec Kit pointer only)
-- Repo-health retrospective (self-serve, foreground, on-demand): run one against this repo's own evidence per `repo-agent-core` `docs/repo-health-retrospective-method-contract.md`; latest run `docs/repo-health-retrospective-2026-07-09.md`.
-- Detector graduation ledger (graduation/retire status of graduation-tracked detectors; makes the append-only inventory prunable): `docs/detector-graduation-ledger.md`.
+Detailed runtime inventory is in `docs/agent-operations.md`; invocation and
+output semantics are in `docs/invocation-contract.md`; detector lifecycle
+decisions are in `docs/detector-graduation-ledger.md`. `README.md` is the user
+entrypoint, `docs/core-five-owner-surface-contract.md` bounds reciprocal
+read-only use, and stable historical learning remains in `LEARNINGS.md`.
