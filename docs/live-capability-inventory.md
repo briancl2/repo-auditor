@@ -74,7 +74,7 @@ Every new path must also be named here.
 | `docs/live-capability-inventory.md` | owner manifest |
 | `docs/repo-agent-fleet-consistency-floor-receipt.md` | demote prior conformance snapshot to historical evidence |
 | `scripts/check.sh` | required cached-index convergence gate |
-| `scripts/validate-commit-provenance.sh` | narrow commit-provenance guard |
+| `scripts/validate-commit-provenance.sh` | explicit-trailer/merge-parent provenance guard |
 | `.agents/skills/repo-auditor-owner-settlement/SKILL.md` | new compact owner route |
 | `scripts/validate_owner_convergence.py` | new cached-index guard |
 | `tests/test-commit-provenance.sh` | new focused provenance guard tests |

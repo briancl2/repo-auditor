@@ -62,12 +62,12 @@ SECOND_PARENT=$(commit_tree $'Reviewed head\n\nSpec-Exempt: reviewed branch prov
 MERGE=$(commit_tree "Merge without trailer" -p "$FIRST_PARENT" -p "$SECOND_PARENT")
 assert_pass "merge-parent trailer fallback passes" "$MERGE"
 
-AUTHENTIC_SQUASH=$(
+SPOOFED_GITHUB_SQUASH=$(
     GIT_COMMITTER_NAME="GitHub" \
     GIT_COMMITTER_EMAIL="noreply@github.com" \
-    commit_tree "Authentic modeled settlement (#216)" -p "$ARBITRARY"
+    commit_tree "Self-asserted GitHub settlement (#216)" -p "$ARBITRARY"
 )
-assert_pass "modeled GitHub squash metadata passes" "$AUTHENTIC_SQUASH"
+assert_fail "self-asserted GitHub squash metadata fails" "$SPOOFED_GITHUB_SQUASH"
 
 GITHUB_NO_SUFFIX=$(
     GIT_COMMITTER_NAME="GitHub" \
