@@ -15,9 +15,9 @@ from pathlib import Path
 
 INVENTORY_PATH = "docs/live-capability-inventory.md"
 CORE_INVENTORY_PATH = "docs/live-capability-inventory.md"
-EXPECTED_BASE = "174fc769c029060270eca7d405decb08c9b7919b"
-EXPECTED_CORE = "a93abeece9d237a2a642f96926b4590dc1a373c9"
-EXPECTED_CORE_INVENTORY_BLOB = "957887e8b80fac0f9bb015528eb71ffae7a2aaa0"
+EXPECTED_BASE = "e8b42763eb3e323d0e0238e84fe81c4c87898627"
+EXPECTED_CORE = "9da7b41b83a10b9fd71ad24b0529a50425a8d373"
+EXPECTED_CORE_INVENTORY_BLOB = "03bbce3d717eaa0e9d58426e4b4e1ccf127c858f"
 OWNER_ROUTE = ".agents/skills/repo-auditor-owner-settlement/SKILL.md"
 ACTIVE_AUTHORITY = ("AGENTS.md", "README.md")
 RETIRED_ACTIVE_TOKENS = (

@@ -4,11 +4,11 @@ This is the single owner-designated tracked inventory for repo-auditor. The
 validator reads the exact cached Git index and blobs. An unstaged working-tree
 edit therefore cannot hide a staged failure.
 
-- Owner rollback base: `174fc769c029060270eca7d405decb08c9b7919b`
+- Owner rollback base: `e8b42763eb3e323d0e0238e84fe81c4c87898627`
 - Compatible repo-agent-core baseline:
-  `a93abeece9d237a2a642f96926b4590dc1a373c9`
+  `9da7b41b83a10b9fd71ad24b0529a50425a8d373`
 - Core inventory blob:
-  `957887e8b80fac0f9bb015528eb71ffae7a2aaa0`
+  `03bbce3d717eaa0e9d58426e4b4e1ccf127c858f`
 
 ## Retained tracked classification
 
@@ -65,20 +65,23 @@ Every new path must also be named here.
 
 | Path | Change class |
 |---|---|
-| `AGENTS.md` | compact bootloader |
-| `README.md` | compact user entrypoint |
-| `Makefile` | native owner-convergence command and retired local lifecycle targets |
-| `.github/workflows/ci.yml` | exact core-baseline checkout for required convergence check |
-| `docs/agent-operations.md` | retained runtime description |
-| `docs/detector-graduation-ledger.md` | remove one deleted retrospective pointer |
+| `.github/workflows/ci.yml` | exact owner/core base pins |
+| `AGENTS.md` | compact ordinary-task contract |
+| `Makefile` | owner/core convergence defaults |
+| `detection-signatures/DS-43-plus.md` | retired and narrowed AS documentation |
+| `docs/agent-operations.md` | current runtime and fixture scope |
 | `docs/live-capability-inventory.md` | owner manifest |
-| `docs/repo-agent-fleet-consistency-floor-receipt.md` | demote prior conformance snapshot to historical evidence |
-| `scripts/check.sh` | required cached-index convergence gate |
-| `scripts/validate-commit-provenance.sh` | explicit-trailer/merge-parent provenance guard |
-| `.agents/skills/repo-auditor-owner-settlement/SKILL.md` | new compact owner route |
-| `scripts/validate_owner_convergence.py` | new cached-index guard |
-| `tests/test-commit-provenance.sh` | new focused provenance guard tests |
-| `tests/test-owner-convergence.sh` | new focused guard tests |
+| `scripts/as_signature_scan.py` | retired registry/evaluators and narrowed AS-43 |
+| `scripts/check.sh` | current script count and convergence defaults |
+| `scripts/detect-new-signatures.sh` | retired runner entries |
+| `scripts/replay-work-management-signatures.py` | retained work-management runner entries |
+| `scripts/validate_owner_convergence.py` | current owner/core identities |
+| `tests/test-as-signatures.sh` | active family registry and smoke fixtures |
+| `tests/test-capability-placement-gap.sh` | narrowed AS-43 behavior fixtures |
+| `tests/test-compact-ordinary-task-signatures.sh` | compact ordinary-task and retained-risk fixtures |
+| `tests/test-owner-convergence.sh` | current convergence receipts |
+| `tests/test-work-management-replay.sh` | retained work-management replay fixtures |
+
 
 ## Removed-name successor and rollback map
 
@@ -87,21 +90,10 @@ recoverable Git operations; they are not an active rollback control plane.
 
 | Removed pattern | Successor | Rollback |
 |---|---|---|
-| `.agents/speckit.*.agent.md` | `.agents/skills/repo-auditor-owner-settlement/SKILL.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- .agents/speckit.*.agent.md` |
-| `.github/prompts/speckit.*.prompt.md` | `.agents/skills/repo-auditor-owner-settlement/SKILL.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- .github/prompts/speckit.*.prompt.md` |
-| `.specify/**` | `AGENTS.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- .specify` |
-| `.vscode/settings.json` | `README.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- .vscode/settings.json` |
-| `specs/**` | `.agents/skills/repo-auditor-owner-settlement/SKILL.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- specs` |
-| `work/**` | `.agents/skills/repo-auditor-owner-settlement/SKILL.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- work` |
-| `docs/current-program-status.md` | `docs/live-capability-inventory.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- docs/current-program-status.md` |
-| `docs/repo-health-retrospective-2026-07-09.md` | `docs/detector-graduation-ledger.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- docs/repo-health-retrospective-2026-07-09.md` |
-| `scripts/work-init.sh` | `.agents/skills/repo-auditor-owner-settlement/SKILL.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- scripts/work-init.sh` |
-| `scripts/work-close.sh` | `.agents/skills/repo-auditor-owner-settlement/SKILL.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- scripts/work-close.sh` |
-| `scripts/score-session.sh` | `.agents/skills/scoring/SKILL.md` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- scripts/score-session.sh` |
-| `schemas/OPERATING_MODEL_SCORECARD.schema.json` | `schemas/SCORECARD.schema.json` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- schemas/OPERATING_MODEL_SCORECARD.schema.json` |
-| `tests/fixtures/golden-work-dir/**` | `tests/test-owner-convergence.sh` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- tests/fixtures/golden-work-dir` |
-| `tests/test-grader-golden.sh` | `tests/test-owner-convergence.sh` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- tests/test-grader-golden.sh` |
-| `tests/test-work-close-github-native.sh` | `tests/test-owner-convergence.sh` | `git restore --source 174fc769c029060270eca7d405decb08c9b7919b -- tests/test-work-close-github-native.sh` |
+| `scripts/detect-as-issue164-runtime-drift.sh` | `scripts/detect-as-goal-runtime-evidence-gap.sh` | `git restore --source e8b42763eb3e323d0e0238e84fe81c4c87898627 -- scripts/detect-as-issue164-runtime-drift.sh` |
+| `scripts/detect-as-codex-native-runtime-readiness-evidence-gap.sh` | `scripts/detect-as-goal-runtime-evidence-gap.sh` | `git restore --source e8b42763eb3e323d0e0238e84fe81c4c87898627 -- scripts/detect-as-codex-native-runtime-readiness-evidence-gap.sh` |
+| `tests/test-issue164-runtime-drift.sh` | `tests/test-compact-ordinary-task-signatures.sh` | `git restore --source e8b42763eb3e323d0e0238e84fe81c4c87898627 -- tests/test-issue164-runtime-drift.sh` |
+| `tests/test-codex-native-runtime-readiness-evidence-gap.sh` | `tests/test-compact-ordinary-task-signatures.sh` | `git restore --source e8b42763eb3e323d0e0238e84fe81c4c87898627 -- tests/test-codex-native-runtime-readiness-evidence-gap.sh` |
 
 ## Boundaries
 
@@ -116,6 +108,10 @@ recoverable Git operations; they are not an active rollback control plane.
   authority.
 - Installed skill, custom-agent, instruction, and prompt discovery is reported
   separately by count only. Private names and contents are never emitted.
+- The floor receipt, exact-copy validator, and conformance test remain because
+  core `9da7b41b83a10b9fd71ad24b0529a50425a8d373` still declares Auditor's
+  `scripts/validate-floor-receipt.sh` caller. This compatibility residual is
+  not a second cleanup issue.
 - Issue #204 remains deferred. This inventory neither implements nor resolves
   it.
 - This package creates no controller, registry, dashboard, roadmap, execution

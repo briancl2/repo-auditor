@@ -22,8 +22,8 @@ fail() {
 
 if python3 "$VALIDATOR" \
     --repo "$ROOT" \
-    --base-ref 174fc769c029060270eca7d405decb08c9b7919b \
-    --core-ref a93abeece9d237a2a642f96926b4590dc1a373c9 \
+    --base-ref e8b42763eb3e323d0e0238e84fe81c4c87898627 \
+    --core-ref 9da7b41b83a10b9fd71ad24b0529a50425a8d373 \
     > "$TMP_ROOT/actual.json"
 then
     pass "actual cached candidate passes"
@@ -33,7 +33,7 @@ fi
 
 CI_BASE_COUNT=$(
     git -C "$ROOT" show :.github/workflows/ci.yml \
-        | grep -c '4618b4ba195d2fa6fe6e04b5e63f416526c98ddf' \
+        | grep -c 'e8b42763eb3e323d0e0238e84fe81c4c87898627' \
         || true
 )
 if [ "$CI_BASE_COUNT" -eq 2 ]; then
@@ -43,10 +43,10 @@ else
 fi
 
 for expected in \
-    '"deleted_paths": 244' \
-    '"rollback_paths": 244' \
-    '"changed_retained_paths": 9' \
-    '"new_paths": 5' \
+    '"deleted_paths": 4' \
+    '"rollback_paths": 4' \
+    '"changed_retained_paths": 15' \
+    '"new_paths": 1' \
     '"core_export_rows": 6' \
     '"core_caller_checks": 6' \
     '"orphan_active_exports": 0' \
@@ -174,11 +174,13 @@ do
 done
 
 CORE_REPO="${CORE_REPO:-/Users/briancl/repos/repo-agent-core}"
-if [ -d "$CORE_REPO" ]; then
+if [ -d "$CORE_REPO" ] && git -C "$CORE_REPO" cat-file -e \
+    9da7b41b83a10b9fd71ad24b0529a50425a8d373^{commit} 2>/dev/null
+then
     if python3 "$VALIDATOR" \
         --repo "$ROOT" \
-        --base-ref 174fc769c029060270eca7d405decb08c9b7919b \
-        --core-ref a93abeece9d237a2a642f96926b4590dc1a373c9 \
+        --base-ref e8b42763eb3e323d0e0238e84fe81c4c87898627 \
+        --core-ref 9da7b41b83a10b9fd71ad24b0529a50425a8d373 \
         --core-repo "$CORE_REPO" \
         > "$TMP_ROOT/core-live.json"
     then

@@ -24,18 +24,18 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      # Gate 5B provenance hardening is frozen to issue #215's latest settled
-      # main. A successor owner change must deliberately re-pin this invariant.
+      # Owner convergence is frozen to issue #219's exact starting main. A
+      # successor owner change must deliberately re-pin this invariant.
       - name: Verify frozen owner base
         env:
-          EVENT_OWNER_BASE: ${{ github.event.pull_request.base.sha || '4618b4ba195d2fa6fe6e04b5e63f416526c98ddf' }}
-          EXPECTED_OWNER_BASE: 4618b4ba195d2fa6fe6e04b5e63f416526c98ddf
+          EVENT_OWNER_BASE: ${{ github.event.pull_request.base.sha || 'e8b42763eb3e323d0e0238e84fe81c4c87898627' }}
+          EXPECTED_OWNER_BASE: e8b42763eb3e323d0e0238e84fe81c4c87898627
         run: test "$EVENT_OWNER_BASE" = "$EXPECTED_OWNER_BASE"
       - name: Check out frozen compatible core baseline
         uses: actions/checkout@v4
         with:
           repository: briancl2/repo-agent-core
-          ref: a93abeece9d237a2a642f96926b4590dc1a373c9
+          ref: 9da7b41b83a10b9fd71ad24b0529a50425a8d373
           path: .core-baseline
       - name: Run shellcheck + inventory + trailer validation
         env:

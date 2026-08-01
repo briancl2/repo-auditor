@@ -46,6 +46,19 @@ Never use `--no-verify`. Do not add a controller, registry, dashboard, roadmap,
 execution ledger, updater, scheduler, queue, daemon, background process,
 automatic target mutation, or auto-merge route.
 
+## Ordinary task contract
+
+Keep operator-facing task context proportional. A material update states
+`Delta` and `Next`; a terminal report states `Outcome`, `Residual`, and `Next`.
+A coordinator return also states `Zoom-out`, relating the owner result to its
+governing parent without claiming parent completion.
+
+On a sparse continuation such as `continue` or pasted recommendations, reload
+the governing parent and current owner surface, then resume the largest
+unclosed outcome. Ordinary tasks do not require campaign-runtime carrier
+fields; add evidence fields only when the task actually makes the claim they
+support.
+
 ## Shared-core boundary
 
 The compatible repo-agent-core baseline and every retained direct caller/export
