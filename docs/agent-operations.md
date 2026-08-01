@@ -43,7 +43,7 @@ The retained skills are:
 ## Shared-core consumers
 
 The exact compatible repo-agent-core baseline is
-`a93abeece9d237a2a642f96926b4590dc1a373c9`. The retained direct exports and
+`9da7b41b83a10b9fd71ad24b0529a50425a8d373`. The retained direct exports and
 caller tokens are frozen in `docs/live-capability-inventory.md`.
 
 - `scripts/validate-floor-receipt.sh` and
@@ -62,6 +62,12 @@ caller tokens are frozen in `docs/live-capability-inventory.md`.
 audit fixtures, not active owner state. Fixture references to plans, work
 directories, closeout artifacts, Spec Kit paths, or Issue #164 vocabulary are
 detector inputs only; they do not reactivate those local lifecycle families.
+
+Ordinary-task fixtures use the compact update, terminal, coordinator, and
+sparse-continuation behavior in `AGENTS.md`. They intentionally carry no
+campaign-runtime payload. AS-25 remains scoped to runtime-improvement claims,
+AS-26 to failures diverted from direct owner repair, and AS-43 to capability
+placement or authority-overclaim material.
 
 `config/policy.yaml` is a target-native quality-gate classification input.
 `.gitignore` excludes generated audit/work noise. Installed harness discovery

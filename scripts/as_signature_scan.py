@@ -232,12 +232,6 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "prevention_tier": "T1",
         "script": "detect-as-gbrain-instruction-distribution-overclaim.sh",
     },
-    "AS-37": {
-        "name": "Issue 164 runtime drift",
-        "severity": "HIGH",
-        "prevention_tier": "T1",
-        "script": "detect-as-issue164-runtime-drift.sh",
-    },
     "AS-38": {
         "name": "Self-authored campaign pause authority",
         "severity": "HIGH",
@@ -279,12 +273,6 @@ SIGNATURES: dict[str, dict[str, str]] = {
         "severity": "HIGH",
         "prevention_tier": "T1",
         "script": "detect-as-hermes-foreground-reliability-evidence-gap.sh",
-    },
-    "AS-45": {
-        "name": "Codex native runtime readiness evidence gap",
-        "severity": "HIGH",
-        "prevention_tier": "T1",
-        "script": "detect-as-codex-native-runtime-readiness-evidence-gap.sh",
     },
     "AS-46": {
         "name": "Deep Research source-intelligence native corpus evidence gap",
@@ -3028,244 +3016,6 @@ def github_native_closure_regrowth(texts: dict[str, str]) -> dict[str, Any]:
     }
 
 
-ISSUE164_RUNTIME_SURFACE_PATTERN = re.compile(
-    r"\b(issue\s*#?164|issue164)\b.{0,240}"
-    r"\b(fresh coordinator|transfer mode|goal[- ]?null|goal state|run root|"
-    r"progress[- ]ledger|heartbeat|ci polling|green[- ]clean|merge-or-blocker|"
-    r"next owner action|next action)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-ISSUE164_RUNTIME_LAUNCH_CONTEXT_PATTERN = re.compile(
-    r"\b(issue\s*#?164 runtime launch|fresh coordinator|transfer mode|ci polling|"
-    r"green[- ]clean|merge-or-blocker)\b",
-    re.IGNORECASE,
-)
-ISSUE164_TRANSFER_MODE_PATTERN = re.compile(
-    r"\b(transfer mode:\s*(?:fresh coordinator thread|fresh thread)|fresh coordinator thread|fresh thread)\b",
-    re.IGNORECASE,
-)
-ISSUE164_LIVE_TRUTH_PATTERN = re.compile(
-    r"\b(live truth|re-?check(?:ed)?|gh issue view|gh pr list|git status|"
-    r"open pr|active child|updatedAt|rev-parse)\b",
-    re.IGNORECASE,
-)
-ISSUE164_GOAL_PATTERN = re.compile(
-    r"\b(goal[- ]?null fallback|goal state|goal object|codex goal|goal mode|"
-    r"goal active|goal unavailable)\b",
-    re.IGNORECASE,
-)
-ISSUE164_RUN_ROOT_PATTERN = re.compile(
-    r"/tmp/issue164-[\w./-]+",
-    re.IGNORECASE,
-)
-ISSUE164_PROGRESS_LEDGER_PATTERN = re.compile(r"\bprogress[-_ ]ledger(?:\.jsonl)?\b", re.IGNORECASE)
-ISSUE164_HEARTBEAT_AFTER_PATTERN = re.compile(
-    r"\bheartbeat\b.{0,120}\b(after|only after|once)\b.{0,120}\b(child issue|child)\b.{0,120}\b(run root|progress[-_ ]ledger)\b|"
-    r"\b(after|only after|once)\b.{0,120}\b(child issue|child)\b.{0,120}\b(run root|progress[-_ ]ledger)\b.{0,120}\bheartbeat\b",
-    re.IGNORECASE | re.DOTALL,
-)
-ISSUE164_HEARTBEAT_BEFORE_PATTERN = re.compile(
-    r"\bheartbeat\b.{0,80}\bbefore\b.{0,120}\b(child issue|child|run root|progress[-_ ]ledger)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-ISSUE164_CI_MERGE_PATTERN = re.compile(
-    r"\b(ci polling|poll(?:ing)? (?:pr )?checks?|github checks?|green[- ]clean|"
-    r"merge-or-blocker|merge if green|checks and merge|pr/check/merge truth|"
-    r"check failure requiring human decision)\b",
-    re.IGNORECASE,
-)
-ISSUE164_CONCRETE_NEXT_PATTERN = re.compile(
-    r"\b(next_owner_action|next owner action|exact next owner[- ]surface action|"
-    r"first deliverable|first owner pr|owner pr|"
-    r"github issue routing|owner action)\b",
-    re.IGNORECASE,
-)
-COORDINATOR_ACCEPTANCE_SURFACE_PATTERN = re.compile(
-    r"\b(coordinator autonomy acceptance|autonomy acceptance|"
-    r"acceptance[_ -]verdict|acceptance verdict|acceptance rubric)\b",
-    re.IGNORECASE,
-)
-COORDINATOR_ACCEPTANCE_EVIDENCE_VERDICT_PATTERN = re.compile(
-    r"\b(?:coordinator autonomy acceptance|autonomy acceptance|acceptance[_ -]verdict|"
-    r"acceptance verdict|verdict)\b.{0,120}\b(accepted|partial|rejected)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-COORDINATOR_ACCEPTANCE_NOT_APPLICABLE_PATTERN = re.compile(
-    r"\b(?:coordinator autonomy acceptance|autonomy acceptance|acceptance[_ -]verdict|"
-    r"acceptance verdict|verdict)\b.{0,120}\bnot[_ -]applicable\b",
-    re.IGNORECASE | re.DOTALL,
-)
-COORDINATOR_ACCEPTANCE_GITHUB_TRUTH_PATTERN = re.compile(
-    r"\b(github issue/pr/check/merge truth|github issue/pr truth|"
-    r"issue/pr/check/merge truth|pr/check/merge truth|github issue|github pr|"
-    r"pull request|check run|ci/check|ci / check|merge commit|merged pr|"
-    r"closed issue|https://github\.com/[^/\s]+/[^/\s]+/(?:issues|pull)/[0-9]+)\b",
-    re.IGNORECASE,
-)
-COORDINATOR_ACCEPTANCE_RAW_RUNTIME_PATTERN = re.compile(
-    r"\b(raw runtime evidence|raw_evidence|session logs?|command transcripts?|"
-    r"ci/check runs?|check runs?|runtime ledgers?|goal metadata|goal receipts?|"
-    r"progress[-_ ]ledger(?:\.jsonl)?|run-root ledger|run root ledger)\b",
-    re.IGNORECASE,
-)
-COORDINATOR_ACCEPTANCE_HEARTBEAT_DISPOSITION_PATTERN = re.compile(
-    r"\bheartbeat\b.{0,120}\b(capture|captured|status|active|deleted|archive|"
-    r"archived|disposition|lifecycle|created|receipt)\b|"
-    r"\b(capture|captured|status|active|deleted|archive|archived|disposition|"
-    r"lifecycle|created|receipt)\b.{0,120}\bheartbeat\b",
-    re.IGNORECASE | re.DOTALL,
-)
-COORDINATOR_ACCEPTANCE_MISSING_HEARTBEAT_PATTERN = re.compile(
-    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,80}\bheartbeat\b.{0,80}"
-    r"\b(capture|captured|status|active|deleted|archive|archived|disposition|"
-    r"lifecycle|created|receipt)\b|"
-    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,80}\b(capture|captured|"
-    r"status|active|deleted|archive|archived|disposition|lifecycle|created|"
-    r"receipt)\b.{0,80}\bheartbeat\b",
-    re.IGNORECASE | re.DOTALL,
-)
-COORDINATOR_ACCEPTANCE_BOUNDED_NONCLAIM_PATTERN = re.compile(
-    r"\b(bounded non[- ]claims?|bounded_non_claims|does not authorize|"
-    r"does not prove|no background autonomy|foreground[- ]only|non[- ]claim)\b",
-    re.IGNORECASE,
-)
-COORDINATOR_ACCEPTANCE_MISSING_BOUNDED_NONCLAIM_PATTERN = re.compile(
-    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,60}\bbounded non[- ]claims?\b|"
-    r"\bbounded non[- ]claims?\b.{0,60}\b(missing|none|n/a|null|absent)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-ISSUE164_FIELD_NEGATION_PATTERN = re.compile(
-    r"\b(omit(?:s|ted)?|missing|lacks?|without|absent|not include|"
-    r"does not include|do not include|not recorded|not required|no)\b",
-    re.IGNORECASE,
-)
-
-
-def issue164_has_positive_field(text: str, pattern: re.Pattern[str]) -> bool:
-    for match in pattern.finditer(text):
-        start, end = match.span()
-        sentence_start = max(text.rfind(".", 0, start), text.rfind(";", 0, start)) + 1
-        next_bounds = [idx for idx in (text.find(".", end), text.find(";", end)) if idx != -1]
-        sentence_end = min(next_bounds) if next_bounds else len(text)
-        context = text[sentence_start:sentence_end]
-        if ISSUE164_FIELD_NEGATION_PATTERN.search(context):
-            continue
-        return True
-    return False
-
-
-def issue164_runtime_missing_fields(text: str) -> list[str]:
-    missing: list[str] = []
-    if not issue164_has_positive_field(text, ISSUE164_TRANSFER_MODE_PATTERN):
-        missing.append("transfer_mode")
-    if not issue164_has_positive_field(text, ISSUE164_LIVE_TRUTH_PATTERN):
-        missing.append("live_truth")
-    if not issue164_has_positive_field(text, ISSUE164_GOAL_PATTERN):
-        missing.append("goal_or_goal_null")
-    if not (
-        issue164_has_positive_field(text, ISSUE164_RUN_ROOT_PATTERN)
-        and issue164_has_positive_field(text, ISSUE164_PROGRESS_LEDGER_PATTERN)
-    ):
-        missing.append("run_root_progress_ledger")
-    if ISSUE164_HEARTBEAT_BEFORE_PATTERN.search(text) or not ISSUE164_HEARTBEAT_AFTER_PATTERN.search(text):
-        missing.append("heartbeat_after_child_run_root")
-    if not issue164_has_positive_field(text, ISSUE164_CI_MERGE_PATTERN):
-        missing.append("ci_polling_merge_or_blocker")
-    has_selection_handback = (
-        SELECTION_HANDBACK_PATTERN.search(text) is not None
-        and SELECTION_HANDBACK_NEGATION_PATTERN.search(text) is None
-    )
-    if has_selection_handback or not issue164_has_positive_field(text, ISSUE164_CONCRETE_NEXT_PATTERN):
-        missing.append("concrete_next_action")
-    return missing
-
-
-def coordinator_acceptance_runtime_missing_fields(text: str) -> list[str]:
-    if not COORDINATOR_ACCEPTANCE_EVIDENCE_VERDICT_PATTERN.search(text):
-        return []
-    if COORDINATOR_ACCEPTANCE_NOT_APPLICABLE_PATTERN.search(text):
-        return []
-
-    missing: list[str] = []
-    if not issue164_has_positive_field(text, COORDINATOR_ACCEPTANCE_GITHUB_TRUTH_PATTERN):
-        missing.append("github_issue_pr_check_merge_truth")
-    if not issue164_has_positive_field(text, COORDINATOR_ACCEPTANCE_RAW_RUNTIME_PATTERN):
-        missing.append("raw_runtime_evidence")
-    if not issue164_has_positive_field(text, ISSUE164_GOAL_PATTERN):
-        missing.append("goal_or_goal_null")
-    if not (
-        issue164_has_positive_field(text, ISSUE164_RUN_ROOT_PATTERN)
-        and issue164_has_positive_field(text, ISSUE164_PROGRESS_LEDGER_PATTERN)
-    ):
-        missing.append("run_root_progress_ledger")
-    has_heartbeat_disposition = (
-        COORDINATOR_ACCEPTANCE_HEARTBEAT_DISPOSITION_PATTERN.search(text) is not None
-        and COORDINATOR_ACCEPTANCE_MISSING_HEARTBEAT_PATTERN.search(text) is None
-    )
-    if not has_heartbeat_disposition:
-        missing.append("heartbeat_capture_disposition")
-    has_bounded_nonclaim = (
-        COORDINATOR_ACCEPTANCE_BOUNDED_NONCLAIM_PATTERN.search(text) is not None
-        and COORDINATOR_ACCEPTANCE_MISSING_BOUNDED_NONCLAIM_PATTERN.search(text) is None
-    )
-    if not has_bounded_nonclaim:
-        missing.append("bounded_non_claims")
-    if not issue164_has_positive_field(text, ISSUE164_CONCRETE_NEXT_PATTERN):
-        missing.append("concrete_next_action")
-    return missing
-
-
-def issue164_runtime_drift(texts: dict[str, str]) -> dict[str, Any]:
-    offenders: list[str] = []
-    grounded: list[str] = []
-    reason_counts: Counter[str] = Counter()
-
-    for path, text in owner_evidence_texts(texts).items():
-        if is_work_management_signature_explainer(path, text):
-            grounded.append(path)
-            continue
-        if is_closure_runtime_distribution_explainer(path, text):
-            grounded.append(path)
-            continue
-        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml")):
-            continue
-        is_runtime_surface = ISSUE164_RUNTIME_SURFACE_PATTERN.search(text) is not None
-        is_acceptance_surface = COORDINATOR_ACCEPTANCE_SURFACE_PATTERN.search(text) is not None
-        if not is_runtime_surface and not is_acceptance_surface:
-            continue
-        missing = []
-        if is_runtime_surface and (
-            not is_acceptance_surface or ISSUE164_RUNTIME_LAUNCH_CONTEXT_PATTERN.search(text)
-        ):
-            missing.extend(issue164_runtime_missing_fields(text))
-        if is_acceptance_surface:
-            missing.extend(coordinator_acceptance_runtime_missing_fields(text))
-        missing = list(dict.fromkeys(missing))
-        if missing:
-            reason_counts.update(missing)
-            offenders.append(f"{path}=>missing:{','.join(missing)}")
-        else:
-            grounded.append(path)
-
-    details = [
-        f"issue164_runtime_drift=>{';'.join(offenders[:4]) or 'none'}",
-        f"issue164_runtime_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
-    ]
-    return {
-        "fired": bool(offenders),
-        "signals": {
-            "issue164_runtime_drift_count": len(offenders),
-            "issue164_runtime_grounded_count": len(set(grounded)),
-            "missing_acceptance_github_truth_count": reason_counts["github_issue_pr_check_merge_truth"],
-            "missing_acceptance_raw_runtime_evidence_count": reason_counts["raw_runtime_evidence"],
-            "missing_acceptance_heartbeat_disposition_count": reason_counts["heartbeat_capture_disposition"],
-            "missing_acceptance_bounded_non_claims_count": reason_counts["bounded_non_claims"],
-        },
-        "evidence": evidence_join(details),
-        "reason": "Issue #164 runtime launch or merge discipline is missing required coordinator fields" if offenders else "Issue #164 runtime surfaces are complete or absent",
-    }
-
-
 CAMPAIGN_PAUSE_SURFACE_PATTERN = re.compile(
     r"\b(issue\s*#?164|issue164|campaign|github[- ]native|active tracks?|"
     r"active child|next active track|owner[-_ ]surface|repo[- ]star)\b",
@@ -4364,14 +4114,6 @@ CAPABILITY_PLACEMENT_SURFACE_PATTERN = re.compile(
     r"Demotion/rejection trigger|Forbidden mode)\b",
     re.IGNORECASE,
 )
-CAPABILITY_PLACEMENT_CORE_SURFACE_PATTERN = re.compile(
-    r"\b(Autonomy Preview|capability[- ]placement|CAPABILITY_PLACEMENT_PREVIEW|"
-    r"best_current_owner|best current owner|best_future_owner|best future owner|"
-    r"allowed_reach_now|Allowed reach now|native_signal|native signal|"
-    r"kill_switch|kill switch|forbidden_mode|Forbidden mode|"
-    r"gbrain_slug_or_no_capture_reason|GBrain slug/no-capture reason)\b",
-    re.IGNORECASE,
-)
 CAPABILITY_PLACEMENT_REQUIRED_FIELDS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("missing_best_current_owner", re.compile(r"\b(best_current_owner|best current owner)\b", re.IGNORECASE)),
     ("missing_best_future_owner", re.compile(r"\b(best_future_owner|best future owner)\b", re.IGNORECASE)),
@@ -4458,113 +4200,6 @@ def capability_placement_authority_overclaim(text: str) -> bool:
     return False
 
 
-COORDINATOR_ACCEPTANCE_VERDICT_FIELD_PATTERN = re.compile(
-    r"\b(acceptance[_ -]verdict|acceptance verdict|verdict)\b",
-    re.IGNORECASE,
-)
-COORDINATOR_ACCEPTANCE_VALID_VERDICT_PATTERN = re.compile(
-    r"\b(acceptance[_ -]verdict|acceptance verdict|verdict)\b\s*[:=]?\s*"
-    r"[`\"']?(accepted|partial|rejected|not[_ -]applicable)[`\"']?\b|"
-    r"\bcoordinator autonomy acceptance\b.{0,80}\b(accepted|partial|rejected|not[_ -]applicable)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-COORDINATOR_ACCEPTANCE_EVIDENCE_VERDICT_VALUE_PATTERN = re.compile(
-    r"\b(acceptance[_ -]verdict|acceptance verdict|verdict)\b\s*[:=]?\s*"
-    r"[`\"']?(accepted|partial|rejected)[`\"']?\b|"
-    r"\bcoordinator autonomy acceptance\b.{0,80}\b(accepted|partial|rejected)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-COORDINATOR_ACCEPTANCE_DEMOTION_TRIGGER_PATTERN = re.compile(
-    r"\b(demotion/rejection trigger|demotion_rejection_trigger|demotion trigger|"
-    r"rejection trigger|demote|demotion|reject(?:ion)? trigger)\b",
-    re.IGNORECASE,
-)
-COORDINATOR_ACCEPTANCE_MISSING_DEMOTION_TRIGGER_PATTERN = re.compile(
-    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,60}"
-    r"\b(demotion/rejection trigger|demotion_rejection_trigger|demotion trigger|"
-    r"rejection trigger)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-COORDINATOR_ACCEPTANCE_MISSING_NEXT_OWNER_ACTION_PATTERN = re.compile(
-    r"\b(no|missing|lacks?|without|omit(?:s|ted)?)\b.{0,60}"
-    r"\b(next_owner_action|next owner action|owner action|owner[- ]surface action)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-COORDINATOR_ACCEPTANCE_GATE_VAGUE_PATTERN = re.compile(
-    r"\b(promotion gate|promotion_gate|demotion/rejection trigger|"
-    r"demotion_rejection_trigger|demotion trigger|rejection trigger)\b\s*[:=]\s*"
-    r"[`\"']?(tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b",
-    re.IGNORECASE,
-)
-
-
-def coordinator_acceptance_reasons(text: str) -> tuple[list[str], Counter[str]]:
-    reasons: list[str] = []
-    counts: Counter[str] = Counter()
-
-    if not COORDINATOR_ACCEPTANCE_VALID_VERDICT_PATTERN.search(text):
-        if COORDINATOR_ACCEPTANCE_VERDICT_FIELD_PATTERN.search(text):
-            reasons.append("invalid_acceptance_verdict")
-            counts["invalid_acceptance_verdict"] += 1
-        else:
-            reasons.append("missing_acceptance_verdict")
-            counts["missing_acceptance_verdict"] += 1
-        return reasons, counts
-
-    if not COORDINATOR_ACCEPTANCE_EVIDENCE_VERDICT_VALUE_PATTERN.search(text):
-        return reasons, counts
-
-    positive_checks: tuple[tuple[str, re.Pattern[str]], ...] = (
-        ("missing_acceptance_github_truth", COORDINATOR_ACCEPTANCE_GITHUB_TRUTH_PATTERN),
-        ("missing_acceptance_raw_runtime_evidence", COORDINATOR_ACCEPTANCE_RAW_RUNTIME_PATTERN),
-        ("missing_acceptance_goal_or_goal_null", ISSUE164_GOAL_PATTERN),
-        ("missing_acceptance_run_root_progress_ledger", ISSUE164_PROGRESS_LEDGER_PATTERN),
-    )
-    for reason, pattern in positive_checks:
-        if not issue164_has_positive_field(text, pattern):
-            reasons.append(reason)
-            counts[reason] += 1
-    direct_checks: tuple[tuple[str, re.Pattern[str], re.Pattern[str]], ...] = (
-        (
-            "missing_acceptance_demotion_trigger",
-            COORDINATOR_ACCEPTANCE_DEMOTION_TRIGGER_PATTERN,
-            COORDINATOR_ACCEPTANCE_MISSING_DEMOTION_TRIGGER_PATTERN,
-        ),
-        (
-            "missing_acceptance_next_owner_action",
-            ISSUE164_CONCRETE_NEXT_PATTERN,
-            COORDINATOR_ACCEPTANCE_MISSING_NEXT_OWNER_ACTION_PATTERN,
-        ),
-    )
-    for reason, present_pattern, missing_pattern in direct_checks:
-        if missing_pattern.search(text) or not present_pattern.search(text):
-            reasons.append(reason)
-            counts[reason] += 1
-    if not issue164_has_positive_field(text, ISSUE164_RUN_ROOT_PATTERN):
-        reason = "missing_acceptance_run_root_progress_ledger"
-        if reason not in reasons:
-            reasons.append(reason)
-            counts[reason] += 1
-    has_heartbeat_disposition = (
-        COORDINATOR_ACCEPTANCE_HEARTBEAT_DISPOSITION_PATTERN.search(text) is not None
-        and COORDINATOR_ACCEPTANCE_MISSING_HEARTBEAT_PATTERN.search(text) is None
-    )
-    if not has_heartbeat_disposition:
-        reasons.append("missing_acceptance_heartbeat_disposition")
-        counts["missing_acceptance_heartbeat_disposition"] += 1
-    has_bounded_nonclaim = (
-        COORDINATOR_ACCEPTANCE_BOUNDED_NONCLAIM_PATTERN.search(text) is not None
-        and COORDINATOR_ACCEPTANCE_MISSING_BOUNDED_NONCLAIM_PATTERN.search(text) is None
-    )
-    if not has_bounded_nonclaim:
-        reasons.append("missing_acceptance_bounded_non_claims")
-        counts["missing_acceptance_bounded_non_claims"] += 1
-    if COORDINATOR_ACCEPTANCE_GATE_VAGUE_PATTERN.search(text):
-        reasons.append("vague_acceptance_gate")
-        counts["vague_field"] += 1
-    return reasons, counts
-
-
 def capability_placement_gap(texts: dict[str, str]) -> dict[str, Any]:
     offenders: list[str] = []
     grounded: list[str] = []
@@ -4583,11 +4218,8 @@ def capability_placement_gap(texts: dict[str, str]) -> dict[str, Any]:
             continue
         if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
             continue
-        is_acceptance_surface = COORDINATOR_ACCEPTANCE_SURFACE_PATTERN.search(text) is not None
         is_placement_surface = CAPABILITY_PLACEMENT_SURFACE_PATTERN.search(text) is not None
-        if is_acceptance_surface:
-            is_placement_surface = CAPABILITY_PLACEMENT_CORE_SURFACE_PATTERN.search(text) is not None
-        if not is_placement_surface and not is_acceptance_surface:
+        if not is_placement_surface:
             continue
 
         reasons: list[str] = []
@@ -4600,11 +4232,6 @@ def capability_placement_gap(texts: dict[str, str]) -> dict[str, Any]:
                 elif vague:
                     reasons.append(f"vague_{reason.removeprefix('missing_')}")
                     reason_counts["vague_field"] += 1
-
-        if is_acceptance_surface:
-            acceptance_reasons, acceptance_counts = coordinator_acceptance_reasons(text)
-            reasons.extend(acceptance_reasons)
-            reason_counts.update(acceptance_counts)
 
         if capability_placement_authority_overclaim(text):
             reasons.append("forbidden_authority_overclaim")
@@ -4633,16 +4260,6 @@ def capability_placement_gap(texts: dict[str, str]) -> dict[str, Any]:
             "missing_kill_switch_count": reason_counts["missing_kill_switch"],
             "missing_forbidden_mode_count": reason_counts["missing_forbidden_mode"],
             "missing_gbrain_slug_or_no_capture_reason_count": reason_counts["missing_gbrain_slug_or_no_capture_reason"],
-            "missing_acceptance_verdict_count": reason_counts["missing_acceptance_verdict"],
-            "invalid_acceptance_verdict_count": reason_counts["invalid_acceptance_verdict"],
-            "missing_acceptance_github_truth_count": reason_counts["missing_acceptance_github_truth"],
-            "missing_acceptance_raw_runtime_evidence_count": reason_counts["missing_acceptance_raw_runtime_evidence"],
-            "missing_acceptance_goal_or_goal_null_count": reason_counts["missing_acceptance_goal_or_goal_null"],
-            "missing_acceptance_run_root_progress_ledger_count": reason_counts["missing_acceptance_run_root_progress_ledger"],
-            "missing_acceptance_heartbeat_disposition_count": reason_counts["missing_acceptance_heartbeat_disposition"],
-            "missing_acceptance_bounded_non_claims_count": reason_counts["missing_acceptance_bounded_non_claims"],
-            "missing_acceptance_demotion_trigger_count": reason_counts["missing_acceptance_demotion_trigger"],
-            "missing_acceptance_next_owner_action_count": reason_counts["missing_acceptance_next_owner_action"],
             "vague_field_count": reason_counts["vague_field"],
             "forbidden_authority_overclaim_count": reason_counts["forbidden_authority_overclaim"],
             "historical_evidence_skipped_count": historical_evidence_skipped,
@@ -4911,268 +4528,6 @@ def hermes_foreground_reliability_evidence_gap(texts: dict[str, str]) -> dict[st
     }
 
 
-CODEX_NATIVE_RUNTIME_EXPLAINER_PATTERN = re.compile(
-    r"\b(AS-45|Codex Native Runtime Readiness Evidence Gap)\b.{0,180}\b(detects|detector|signature|triggers?)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-CODEX_NATIVE_RUNTIME_SURFACE_PATTERN = re.compile(
-    r"\b(Codex native runtime readiness|Codex Native Runtime / Cloud / Remote Readiness|"
-    r"native runtime readiness|runtime[-_ ]context payload|runtime[-_ ]context preflight|"
-    r"remote/cloud readiness disposition|cloud/remote readiness disposition|"
-    r"Codex Cloud/remote readiness|local/worktree dogfood|worktree dogfood)\b",
-    re.IGNORECASE,
-)
-CODEX_NATIVE_RUNTIME_SURFACE_NEGATION_PATTERN = re.compile(
-    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b.{0,90}"
-    r"\b(Codex native runtime readiness|native runtime readiness|runtime[-_ ]context payload|"
-    r"runtime[-_ ]context preflight|cloud/remote readiness|local/worktree dogfood|worktree dogfood)\b",
-    re.IGNORECASE,
-)
-CODEX_RUNTIME_VAGUE_VALUE_PATTERN = re.compile(
-    r"[:=]\s*(?:\"?\s*)?(?:(?:tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b|"
-    r"(?:missing|absent|omitted)\s*\.?\s*$)",
-    re.IGNORECASE,
-)
-CODEX_RUNTIME_NEGATIVE_FIELD_PATTERN = re.compile(
-    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b",
-    re.IGNORECASE,
-)
-CODEX_NATIVE_RUNTIME_FIELD_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("missing_transfer_mode", re.compile(r"\b(transfer_mode|transfer mode|fresh[- ]thread|same[- ]thread|fork)\b", re.IGNORECASE)),
-    ("missing_goal_or_goal_null", re.compile(r"\b(goal_state|Goal state|Goal-null|Goal null|goal[- ]null)\b", re.IGNORECASE)),
-    ("missing_runtime_context_preflight", re.compile(r"\b(runtime[-_ ]context|issue164-native-preflight\.py|native preflight|preflight summary|runtime-context payload)\b", re.IGNORECASE)),
-    ("missing_heartbeat_lifecycle", re.compile(r"\b(heartbeat_lifecycle|heartbeat lifecycle|heartbeat status|heartbeat disposition|heartbeat capture)\b", re.IGNORECASE)),
-    ("missing_local_worktree_dogfood", re.compile(r"\b(local/worktree|local worktree|worktree dogfood|local dogfood|worktree runtime|local runtime)\b", re.IGNORECASE)),
-    ("missing_cloud_remote_disposition", re.compile(r"\b(cloud/remote disposition|remote/cloud readiness disposition|cloud readiness disposition|remote readiness disposition|no live cloud|no live remote|cloud/remote as context)\b", re.IGNORECASE)),
-    ("missing_official_codex_context", re.compile(r"\b(official Codex|Codex manual|OpenAI Codex docs|Codex docs|official OpenAI docs)\b", re.IGNORECASE)),
-    ("missing_github_truth", re.compile(r"\b(GitHub issue/PR/check/merge|issue/PR/check/merge|PR/check/merge|GitHub truth|merge truth|CI / check|CI/check)\b", re.IGNORECASE)),
-    ("missing_ci_polling_terminal_condition", re.compile(r"\b(CI polling|foreground CI polling|polling terminal condition|terminal condition|check run|green-clean|merge-or-blocker|GitHub-visible blocker)\b", re.IGNORECASE)),
-    ("missing_promotion_gate", re.compile(r"\b(proof_gate|proof gate|promotion_gate|promotion gate)\b", re.IGNORECASE)),
-    ("missing_demotion_rejection_trigger", re.compile(r"\b(demotion_rejection_trigger|demotion/rejection trigger|demotion trigger|rejection trigger)\b", re.IGNORECASE)),
-    ("missing_kill_switch", re.compile(r"\b(kill_switch|kill switch)\b", re.IGNORECASE)),
-    ("missing_bounded_non_claims", re.compile(r"\b(bounded_non_claims|bounded non-claims|bounded nonclaims|non-claims|forbidden mode|non-claim)\b", re.IGNORECASE)),
-    ("missing_next_owner_action", re.compile(r"\b(next_owner_action|next owner action|next active track|owner-surface action|owner surface action)\b", re.IGNORECASE)),
-)
-CODEX_NATIVE_RUNTIME_CONTRACT_PATH_HINTS = (
-    "codex-native-runtime-readiness-contract.md",
-    "codex-native-runtime-readiness.md",
-    "detect-as-codex-native-runtime-readiness-evidence-gap.sh",
-    "test-codex-native-runtime-readiness-evidence-gap.sh",
-)
-CODEX_RUNTIME_OFFICIAL_DOCS_AS_LIVE_PROOF_PATTERN = re.compile(
-    r"\b(official Codex|Codex manual|OpenAI Codex docs|Codex docs|official OpenAI docs)\b"
-    r".{0,140}\b(proves?|proof|validated?|verified?)\b"
-    r".{0,140}\b(live cloud|live remote|cloud execution|remote execution|Codex Cloud|remote pilot|cloud pilot|live run)\b|"
-    r"\b(live cloud|live remote|cloud execution|remote execution|Codex Cloud|remote pilot|cloud pilot|live run)\b"
-    r".{0,140}\b(proves?|proof|validated?|verified?)\b"
-    r".{0,140}\b(official Codex|Codex manual|OpenAI Codex docs|Codex docs|official OpenAI docs)\b",
-    re.IGNORECASE,
-)
-CODEX_RUNTIME_LIVE_CLOUD_REMOTE_OVERCLAIM_PATTERN = re.compile(
-    r"\b(Codex Cloud|cloud runtime|remote execution|remote runtime|cloud pilot|remote pilot)\b"
-    r".{0,120}\b(execut(?:ed|ion)|ran|run|pilot|dogfood|proof|validated?|verified?)\b|"
-    r"\b(live cloud|live remote)\b.{0,120}\b(execut(?:ed|ion)|ran|run|pilot|proof)\b",
-    re.IGNORECASE,
-)
-CODEX_RUNTIME_GOAL_IMPROVEMENT_PATTERN = re.compile(
-    r"\bGoal mode\b.{0,140}\b(improved|reduced|increased|better|self[- ]?healed|strengthened)\b"
-    r".{0,140}\b(runtime|autonomy|continuity|self[- ]?healing|throughput|operator steering|recovery)\b|"
-    r"\b(runtime|autonomy|continuity|self[- ]?healing|throughput|operator steering|recovery)\b"
-    r".{0,140}\b(improved|reduced|increased|better|self[- ]?healed|strengthened)\b"
-    r".{0,140}\bGoal mode\b",
-    re.IGNORECASE | re.DOTALL,
-)
-CODEX_RUNTIME_RAW_EVIDENCE_PATTERN = re.compile(
-    r"\b(session logs?|Goal metadata|command transcripts?|CI/check runs?|CI runs?|check runs?|"
-    r"runtime ledgers?|progress-ledger\.jsonl|replay logs?|raw runtime evidence|raw evidence)\b",
-    re.IGNORECASE,
-)
-CODEX_RUNTIME_CONTROL_PLANE_OVERCLAIM_PATTERN = re.compile(
-    r"\b(background automation|background subagent|subagent controller|subagent scheduler|subagent queue|"
-    r"automation controller|automation scheduler|automation queue|automation daemon|automation registry|"
-    r"controller|scheduler|queue|daemon|registry|background job)\b",
-    re.IGNORECASE,
-)
-CODEX_RUNTIME_AUTOMATIC_GITHUB_OVERCLAIM_PATTERN = re.compile(
-    r"\b(automatic issue creation|automatic PR creation|automatic pull request creation|"
-    r"automatic GitHub mutation|auto[- ]?merge|automatic merge)\b",
-    re.IGNORECASE,
-)
-CODEX_RUNTIME_RETAINED_CLOSEOUT_OVERCLAIM_PATTERN = re.compile(
-    r"\b(retained closeout package|retained closeout truth|local closeout truth|completion manifest|handoff closeout)\b",
-    re.IGNORECASE,
-)
-CODEX_RUNTIME_DOWNSTREAM_MUTATION_OVERCLAIM_PATTERN = re.compile(
-    r"\b(downstream mutation|mutate downstream|core-five mutation|mutate core-five|repo-upgrade-advisor mutation|repo-optimizer mutation)\b",
-    re.IGNORECASE,
-)
-CODEX_RUNTIME_NEGATION_PATTERN = re.compile(
-    r"\b(no|not|never|does not|do not|without|forbid(?:s|den)?|forbidden|non[- ]claim|boundary|bounded|"
-    r"context only|capability context|no live|no runtime-improvement claim|raw evidence required|read-only|untouched)\b",
-    re.IGNORECASE,
-)
-
-
-def is_codex_native_runtime_explainer(path: str, text: str) -> bool:
-    lowered = path.lower()
-    if any(hint in lowered for hint in CODEX_NATIVE_RUNTIME_CONTRACT_PATH_HINTS):
-        return True
-    return CODEX_NATIVE_RUNTIME_EXPLAINER_PATTERN.search(text) is not None
-
-
-def has_codex_native_runtime_surface(text: str) -> bool:
-    for line in text.splitlines():
-        if not CODEX_NATIVE_RUNTIME_SURFACE_PATTERN.search(line):
-            continue
-        if CODEX_NATIVE_RUNTIME_SURFACE_NEGATION_PATTERN.search(line):
-            continue
-        return True
-    return False
-
-
-def codex_runtime_field_missing_or_vague(text: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
-    positive_lines = []
-    for line in text.splitlines():
-        match = pattern.search(line)
-        if not match:
-            continue
-        prefix = line[max(0, match.start() - 90):match.start()]
-        if CODEX_RUNTIME_NEGATIVE_FIELD_PATTERN.search(prefix):
-            continue
-        positive_lines.append(line)
-    if not positive_lines:
-        return True, False
-    if all(CODEX_RUNTIME_VAGUE_VALUE_PATTERN.search(line) for line in positive_lines):
-        return False, True
-    return False, False
-
-
-def codex_runtime_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
-    prohibition_context = 0
-    for line in text.splitlines():
-        if re.search(r"\b(bounded_non_claims|bounded non-claims|forbidden mode|non-claims|bounded nonclaims)\b", line, re.IGNORECASE):
-            is_non_claims_header = re.search(
-                r"^\s*(?:#{1,6}\s*)?(?:bounded[_ -]non-claims|non-claims|bounded nonclaims)\s*:?\s*$",
-                line,
-                re.IGNORECASE,
-            )
-            has_negation = CODEX_RUNTIME_NEGATION_PATTERN.search(line) is not None
-            is_vague_nonclaim = CODEX_RUNTIME_VAGUE_VALUE_PATTERN.search(line) is not None
-            prohibition_context = 4 if (not is_vague_nonclaim and (has_negation or is_non_claims_header)) else 0
-        if not pattern.search(line):
-            if prohibition_context and line.strip():
-                prohibition_context -= 1
-            continue
-        if prohibition_context or CODEX_RUNTIME_NEGATION_PATTERN.search(line):
-            if prohibition_context and line.strip():
-                prohibition_context -= 1
-            continue
-        return True
-    return False
-
-
-def codex_runtime_goal_improvement_without_raw_evidence(text: str) -> bool:
-    return CODEX_RUNTIME_GOAL_IMPROVEMENT_PATTERN.search(text) is not None and CODEX_RUNTIME_RAW_EVIDENCE_PATTERN.search(text) is None
-
-
-def codex_native_runtime_readiness_evidence_gap(texts: dict[str, str]) -> dict[str, Any]:
-    offenders: list[str] = []
-    grounded: list[str] = []
-    reason_counts: Counter[str] = Counter()
-    historical_evidence_skipped = 0
-
-    for path, text in owner_evidence_texts(texts).items():
-        if path.startswith(HISTORICAL_CLOSURE_ARTIFACT_PREFIXES):
-            historical_evidence_skipped += 1
-            continue
-        if is_work_management_signature_explainer(path, text):
-            grounded.append(path)
-            continue
-        if is_codex_native_runtime_explainer(path, text):
-            grounded.append(path)
-            continue
-        if not path.endswith((".md", ".txt", ".json", ".jsonl", ".yml", ".yaml")):
-            continue
-        if not has_codex_native_runtime_surface(text):
-            continue
-
-        reasons: list[str] = []
-        for reason, pattern in CODEX_NATIVE_RUNTIME_FIELD_PATTERNS:
-            missing, vague = codex_runtime_field_missing_or_vague(text, pattern)
-            if missing:
-                reasons.append(reason)
-                reason_counts[reason] += 1
-            elif vague:
-                reasons.append(f"vague_{reason.removeprefix('missing_')}")
-                reason_counts["vague_field"] += 1
-        if not (issue164_has_positive_field(text, ISSUE164_RUN_ROOT_PATTERN) and issue164_has_positive_field(text, ISSUE164_PROGRESS_LEDGER_PATTERN)):
-            reasons.append("missing_run_root_progress_ledger")
-            reason_counts["missing_run_root_progress_ledger"] += 1
-
-        overclaim_patterns: tuple[tuple[str, re.Pattern[str]], ...] = (
-            ("official_docs_as_live_proof_count", CODEX_RUNTIME_OFFICIAL_DOCS_AS_LIVE_PROOF_PATTERN),
-            ("live_cloud_remote_overclaim_count", CODEX_RUNTIME_LIVE_CLOUD_REMOTE_OVERCLAIM_PATTERN),
-            ("control_plane_overclaim_count", CODEX_RUNTIME_CONTROL_PLANE_OVERCLAIM_PATTERN),
-            ("automatic_github_overclaim_count", CODEX_RUNTIME_AUTOMATIC_GITHUB_OVERCLAIM_PATTERN),
-            ("retained_closeout_overclaim_count", CODEX_RUNTIME_RETAINED_CLOSEOUT_OVERCLAIM_PATTERN),
-            ("downstream_mutation_overclaim_count", CODEX_RUNTIME_DOWNSTREAM_MUTATION_OVERCLAIM_PATTERN),
-        )
-        for reason, pattern in overclaim_patterns:
-            if codex_runtime_line_overclaim(text, pattern):
-                reasons.append(reason.removesuffix("_count"))
-                reason_counts[reason] += 1
-        if codex_runtime_goal_improvement_without_raw_evidence(text):
-            reasons.append("goal_improvement_without_raw_evidence")
-            reason_counts["goal_improvement_without_raw_evidence_count"] += 1
-
-        if reasons:
-            offenders.append(f"{path}=>{';'.join(reasons[:6])}")
-        else:
-            grounded.append(path)
-
-    details = [
-        f"codex_native_runtime_readiness_gap=>{';'.join(offenders[:4]) or 'none'}",
-        f"codex_native_runtime_readiness_grounded=>{','.join(sorted(set(grounded))[:4]) or 'none'}",
-    ]
-    return {
-        "fired": bool(offenders),
-        "signals": {
-            "codex_native_runtime_readiness_gap_count": len(offenders),
-            "codex_native_runtime_readiness_grounded_count": len(set(grounded)),
-            "missing_transfer_mode_count": reason_counts["missing_transfer_mode"],
-            "missing_goal_or_goal_null_count": reason_counts["missing_goal_or_goal_null"],
-            "missing_run_root_progress_ledger_count": reason_counts["missing_run_root_progress_ledger"],
-            "missing_runtime_context_preflight_count": reason_counts["missing_runtime_context_preflight"],
-            "missing_heartbeat_lifecycle_count": reason_counts["missing_heartbeat_lifecycle"],
-            "missing_local_worktree_dogfood_count": reason_counts["missing_local_worktree_dogfood"],
-            "missing_cloud_remote_disposition_count": reason_counts["missing_cloud_remote_disposition"],
-            "missing_official_codex_context_count": reason_counts["missing_official_codex_context"],
-            "missing_github_truth_count": reason_counts["missing_github_truth"],
-            "missing_ci_polling_terminal_condition_count": reason_counts["missing_ci_polling_terminal_condition"],
-            "missing_promotion_gate_count": reason_counts["missing_promotion_gate"],
-            "missing_demotion_rejection_trigger_count": reason_counts["missing_demotion_rejection_trigger"],
-            "missing_kill_switch_count": reason_counts["missing_kill_switch"],
-            "missing_bounded_non_claims_count": reason_counts["missing_bounded_non_claims"],
-            "missing_next_owner_action_count": reason_counts["missing_next_owner_action"],
-            "vague_field_count": reason_counts["vague_field"],
-            "official_docs_as_live_proof_count": reason_counts["official_docs_as_live_proof_count"],
-            "live_cloud_remote_overclaim_count": reason_counts["live_cloud_remote_overclaim_count"],
-            "goal_improvement_without_raw_evidence_count": reason_counts["goal_improvement_without_raw_evidence_count"],
-            "control_plane_overclaim_count": reason_counts["control_plane_overclaim_count"],
-            "automatic_github_overclaim_count": reason_counts["automatic_github_overclaim_count"],
-            "retained_closeout_overclaim_count": reason_counts["retained_closeout_overclaim_count"],
-            "downstream_mutation_overclaim_count": reason_counts["downstream_mutation_overclaim_count"],
-            "historical_evidence_skipped_count": historical_evidence_skipped,
-        },
-        "evidence": evidence_join(details, limit=2),
-        "reason": (
-            "Codex native runtime readiness material lacks runtime evidence fields or overclaims cloud/remote/control-plane authority"
-            if offenders
-            else "Codex native runtime readiness evidence is complete or absent"
-        ),
-    }
-
-
 DEEP_RESEARCH_CORPUS_EXPLAINER_PATTERN = re.compile(
     r"\b(AS-46|Deep Research Source-Intelligence Native Corpus Evidence Gap)\b"
     r".{0,180}\b(detects|detector|signature|triggers?)\b",
@@ -5251,6 +4606,15 @@ DEEP_RESEARCH_NEGATION_PATTERN = re.compile(
     r"context only|capability context|no live|manual only|manual sidecar|raw evidence required|read-only|untouched)\b",
     re.IGNORECASE,
 )
+DEEP_RESEARCH_VAGUE_VALUE_PATTERN = re.compile(
+    r"[:=]\s*(?:\"?\s*)?(?:(?:tbd|todo|unknown|unclear|maybe|later|none|n/a|null|to be decided)\b|"
+    r"(?:missing|absent|omitted)\s*\.?\s*$)",
+    re.IGNORECASE,
+)
+DEEP_RESEARCH_NEGATIVE_FIELD_PATTERN = re.compile(
+    r"\b(no|not|without|absent|lacks?|missing|omit(?:s|ted)?)\b",
+    re.IGNORECASE,
+)
 
 
 def is_deep_research_corpus_explainer(path: str, text: str) -> bool:
@@ -5277,12 +4641,12 @@ def deep_research_field_missing_or_vague(text: str, pattern: re.Pattern[str]) ->
         if not match:
             continue
         prefix = line[max(0, match.start() - 90):match.start()]
-        if CODEX_RUNTIME_NEGATIVE_FIELD_PATTERN.search(prefix):
+        if DEEP_RESEARCH_NEGATIVE_FIELD_PATTERN.search(prefix):
             continue
         positive_lines.append(line)
     if not positive_lines:
         return True, False
-    if all(CODEX_RUNTIME_VAGUE_VALUE_PATTERN.search(line) for line in positive_lines):
+    if all(DEEP_RESEARCH_VAGUE_VALUE_PATTERN.search(line) for line in positive_lines):
         return False, True
     return False, False
 
@@ -5297,7 +4661,7 @@ def deep_research_line_overclaim(text: str, pattern: re.Pattern[str]) -> bool:
                 re.IGNORECASE,
             )
             has_negation = DEEP_RESEARCH_NEGATION_PATTERN.search(line) is not None
-            is_vague_nonclaim = CODEX_RUNTIME_VAGUE_VALUE_PATTERN.search(line) is not None
+            is_vague_nonclaim = DEEP_RESEARCH_VAGUE_VALUE_PATTERN.search(line) is not None
             prohibition_context = 4 if (not is_vague_nonclaim and (has_negation or is_non_claims_header)) else 0
         if not pattern.search(line):
             if prohibition_context and line.strip():
@@ -8552,7 +7916,6 @@ EVALUATORS = {
     "AS-34": closure_run_identity_gap,
     "AS-35": upstream_capability_intake_gap,
     "AS-36": gbrain_instruction_distribution_overclaim,
-    "AS-37": issue164_runtime_drift,
     "AS-38": self_authored_campaign_pause_authority,
     "AS-39": scheduled_evidence_boundary_gap,
     "AS-40": hermes_github_reliability_boundary_gap,
@@ -8560,7 +7923,6 @@ EVALUATORS = {
     "AS-42": route_changing_learning_propagation_gap,
     "AS-43": capability_placement_gap,
     "AS-44": hermes_foreground_reliability_evidence_gap,
-    "AS-45": codex_native_runtime_readiness_evidence_gap,
     "AS-46": deep_research_source_intelligence_native_corpus_gap,
     "AS-47": integrated_native_acceptance_gap,
     "AS-48": standalone_external_intelligence_sidecar_gap,

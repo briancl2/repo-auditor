@@ -18,16 +18,7 @@ AGENTS.md is the canonical instruction surface.
 GBrain is canonical for repo-local instruction distribution and overrides repo
 evidence. Use GBrain sync --watch to keep instruction surfaces fresh.
 
-Issue #164 fresh coordinator launch should begin now, then ask the operator to
-choose a category for the next owner action after CI. This omits the live-truth
-check, Goal or Goal-null fallback, progress-ledger evidence, merge-or-blocker
-discipline, and concrete owner-surface next action.
-
-Codex Native Runtime Readiness: official Codex docs prove live cloud execution
-and the remote pilot. This omits runtime-context preflight, lifecycle capture,
-local/worktree dogfood, cloud/remote disposition, GitHub truth, bounded
-non-claims, kill switch, and next owner action. Goal mode improved runtime
-autonomy.
+Goal mode improved runtime autonomy. No raw runtime evidence was retained.
 EOF
 
 cat > "$TEST_REPO/README.md" <<'EOF'
@@ -428,8 +419,8 @@ stdout_report = json.load(open(sys.argv[1]))
 output_report = json.load(open(sys.argv[2]))
 
 assert stdout_report["repo"] == "as-fixture-repo"
-assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 59
-assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 59
+assert stdout_report["capability_metadata"]["family_totals"]["AS"]["total"] == 57
+assert output_report["capability_metadata"]["family_totals"]["AS"]["total"] == 57
 
 as_ids = {item["ds_id"] for item in output_report["results"] if item.get("family") == "AS"}
 assert as_ids == {
@@ -469,7 +460,6 @@ assert as_ids == {
     "AS-34",
     "AS-35",
     "AS-36",
-    "AS-37",
     "AS-38",
     "AS-39",
     "AS-40",
@@ -477,7 +467,6 @@ assert as_ids == {
     "AS-42",
     "AS-43",
     "AS-44",
-    "AS-45",
     "AS-46",
     "AS-47",
     "AS-48",
@@ -812,12 +801,6 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Fire condition:** `gbrain_instruction_gap_count > 0`
 - **Script:** `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh`
 
-### AS-37: Issue 164 Runtime Drift
-- **Detects:** Issue #164 coordinator runtime launch surfaces that omit transfer mode, live truth, Goal or Goal-null fallback, run-root/progress-ledger evidence, heartbeat ordering, CI polling, merge-or-blocker discipline, concrete next action, or evidence-bearing coordinator autonomy acceptance fields.
-- **Signal:** Issue #164 runtime guidance mentions coordinator launch or heartbeat but lacks required runtime fields; coordinator autonomy acceptance verdicts of accepted, partial, or rejected lack GitHub issue/PR/check/merge truth, raw runtime evidence, Goal state, run-root/progress-ledger evidence, heartbeat disposition, bounded non-claims, or concrete next owner action.
-- **Fire condition:** `issue164_runtime_drift_count > 0`
-- **Script:** `scripts/detect-as-issue164-runtime-drift.sh`
-
 ### AS-38: Self-Authored Campaign Pause Authority
 - **Detects:** Campaign sync surfaces that set `Next active track: None selected` using no open issues, stale downstream references, or self-authored no-action proof.
 - **Signal:** A campaign pause or stop disposition lacks operator-approved pause evidence or true campaign closure with no unresolved campaign families.
@@ -829,16 +812,6 @@ cat > "$EXPLAINER_REPO/detection-signatures/DS-43-plus.md" <<'EOF'
 - **Signal:** Runtime Learning Shadow scheduled readback material treats comments/artifacts as closure truth, lacks event/run fields, lacks review disposition, or regrows scheduler/controller wording.
 - **Fire condition:** `scheduled_evidence_boundary_gap_count > 0`
 - **Script:** `scripts/detect-as-scheduled-evidence-boundary-gap.sh`
-
-### AS-45: Codex Native Runtime Readiness Evidence Gap
-- **Detects:** Codex native runtime readiness surfaces that omit runtime
-evidence fields or overclaim Codex Cloud, remote execution, or control-plane
-authority.
-- **Signal:** Missing transfer mode, Goal-null state, runtime-context preflight,
-heartbeat lifecycle, local/worktree dogfood, cloud/remote disposition, GitHub
-truth, bounded non-claims, or next owner action.
-- **Fire condition:** `codex_native_runtime_readiness_gap_count > 0`
-- **Script:** `scripts/detect-as-codex-native-runtime-readiness-evidence-gap.sh`
 
 ### AS-46: Deep Research Source-Intelligence Native Corpus Evidence Gap
 - **Detects:** Deep Research/source-intelligence native corpus material that
@@ -954,14 +927,6 @@ behavior, omits the advisory boundary, omits source/citation expectations,
 omits fallback/no-capture evidence, omits a no-canonical boundary, or omits a
 no-background boundary.
 
-**Triggers:** AS-37 fires when Issue #164 runtime launch guidance omits transfer
-mode, live truth, Goal or Goal-null fallback, run-root/progress-ledger evidence,
-heartbeat-after-child/run-root ordering, CI polling, merge-or-blocker discipline,
-or concrete owner-surface next action, or when an accepted/partial/rejected
-coordinator autonomy acceptance verdict lacks GitHub issue/PR/check/merge truth,
-raw runtime evidence, Goal state, run-root/progress-ledger evidence, heartbeat
-disposition, bounded non-claims, or concrete next owner action.
-
 **Triggers:** AS-38 fires when a campaign sync says Next active track: None
 selected or pauses the campaign based only on no open issues or PRs, stale
 downstream references, or an agent-authored no-action assertion instead of an
@@ -985,11 +950,7 @@ background GBrain/Hermes/controller behavior.
 **Triggers:** AS-43 fires when capability-placement / Autonomy Preview material
 omits owner, reach, native signal, promotion, demotion, kill-switch, forbidden
 mode, or GBrain no-capture fields, keeps fields vague, or claims forbidden
-automation authority; or when coordinator autonomy acceptance material omits a
-valid accepted/partial/rejected/not_applicable verdict, lacks evidence-bearing
-fields for a non-not_applicable verdict, keeps gates vague, or claims background
-autonomy, Hermes-primary ownership, canonical GBrain memory, remote execution,
-automatic GitHub mutation, or other forbidden control-plane ownership.
+automation authority.
 
 **Triggers:** AS-44 fires when Hermes foreground reliability material omits
 eligibility, attempt role, launcher/run receipt, pre-fallback failure guidance,
@@ -998,16 +959,6 @@ checker disposition, or bounded non-claims; or when it makes Hermes validation
 owner, grants checker-shadow approval/edit ownership, publishes branches/PRs
 without scoped authority, claims autonomous retry/fix-cycle behavior, or grants
 Hermes forbidden foreground/control-plane authority.
-
-**Triggers:** AS-45 fires when Codex native runtime readiness material omits
-transfer mode, Goal/Goal-null state, run root/progress-ledger, runtime-context
-preflight, heartbeat lifecycle, local/worktree dogfood, cloud/remote
-disposition, official Codex context, GitHub truth, CI polling terminal
-condition, promotion/demotion/kill-switch fields, bounded non-claims, or next
-owner action; or when it overclaims official docs as live cloud/remote proof,
-claims live cloud/remote execution, claims Goal-mode runtime improvement without
-raw evidence, or grants control-plane, automatic GitHub mutation, retained
-closeout, or downstream mutation authority.
 
 **Triggers:** AS-46 fires when Deep Research/source-intelligence native corpus
 material omits the native corpus token, SOURCE_INSIGHT_PACKET, source
@@ -1221,7 +1172,6 @@ scripts = {
     "AS-34": "detect-as-closure-run-identity-gap.sh",
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
     "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
-    "AS-37": "detect-as-issue164-runtime-drift.sh",
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
     "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",
@@ -2158,7 +2108,6 @@ scripts = {
     "AS-34": "detect-as-closure-run-identity-gap.sh",
     "AS-35": "detect-as-upstream-capability-intake-gap.sh",
     "AS-36": "detect-as-gbrain-instruction-distribution-overclaim.sh",
-    "AS-37": "detect-as-issue164-runtime-drift.sh",
     "AS-38": "detect-as-self-authored-campaign-pause-authority.sh",
     "AS-39": "detect-as-scheduled-evidence-boundary-gap.sh",
     "AS-41": "detect-as-campaign-sync-completed-track-gap.sh",

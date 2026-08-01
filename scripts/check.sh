@@ -42,7 +42,7 @@ fi
 
 # ── Inventory match ───────────────────────────────────────────────────
 echo "── inventory ──"
-EXPECTED=99  # shell scripts only; includes the commit-provenance guard
+EXPECTED=97  # shell scripts only; AS-37 and AS-45 wrappers are retired
 COUNTED=$(find scripts -maxdepth 1 -name '*.sh' -type f | wc -l | tr -d ' ')
 if [ "$COUNTED" != "$EXPECTED" ]; then
     echo "  FAIL: expected $EXPECTED scripts, found $COUNTED"
@@ -61,8 +61,8 @@ fi
 echo "── owner convergence ──"
 CONVERGENCE_ARGS=(
     --repo .
-    --base-ref "${OWNER_CONVERGENCE_BASE_REF:-174fc769c029060270eca7d405decb08c9b7919b}"
-    --core-ref "${CORE_BASELINE_REF:-a93abeece9d237a2a642f96926b4590dc1a373c9}"
+    --base-ref "${OWNER_CONVERGENCE_BASE_REF:-e8b42763eb3e323d0e0238e84fe81c4c87898627}"
+    --core-ref "${CORE_BASELINE_REF:-9da7b41b83a10b9fd71ad24b0529a50425a8d373}"
 )
 if [ -n "${CORE_REPO:-}" ]; then
     CONVERGENCE_ARGS+=(--core-repo "$CORE_REPO")

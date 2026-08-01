@@ -4,8 +4,8 @@ TARGET ?= .
 OUTPUT_DIR ?= audit_output
 SNAPSHOT_DIR ?= $(OUTPUT_DIR).clean-head-snapshot
 SOURCE_PACK ?= tests/fixtures/token-efficiency-measurement-pilot/source-pack.json
-OWNER_CONVERGENCE_BASE_REF ?= 174fc769c029060270eca7d405decb08c9b7919b
-CORE_BASELINE_REF ?= a93abeece9d237a2a642f96926b4590dc1a373c9
+OWNER_CONVERGENCE_BASE_REF ?= e8b42763eb3e323d0e0238e84fe81c4c87898627
+CORE_BASELINE_REF ?= 9da7b41b83a10b9fd71ad24b0529a50425a8d373
 
 help:
 	@echo "repo-auditor — read-only repository health scorer"

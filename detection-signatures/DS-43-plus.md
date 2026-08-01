@@ -320,17 +320,6 @@
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-gbrain-instruction-distribution-overclaim.sh`
 
-### AS-37: Issue 164 Runtime Drift
-- **Detects:** Issue #164 coordinator or campaign-runtime surfaces that omit the required fresh-thread launch, Goal/Goal-null, run-root, heartbeat, CI polling, concrete next-action discipline, or raw runtime evidence for non-`not_applicable` coordinator autonomy acceptance verdicts.
-- **Signal:** An Issue #164 runtime surface names coordinator launch, Goal state, run roots, heartbeat, CI polling, merge discipline, or next action but lacks transfer mode, live-truth checks, Goal or Goal-null fallback, canonical `/tmp/issue164-*` run root plus `progress-ledger.jsonl`, heartbeat-after-child/run-root ordering, CI polling or merge-or-blocker discipline, or a concrete owner-surface next action. A coordinator autonomy acceptance surface with verdict `accepted`, `partial`, or `rejected` also fires when it lacks GitHub issue/PR/check/merge truth, raw runtime evidence, Goal or Goal-null state, run-root/progress-ledger evidence, heartbeat capture/disposition, bounded non-claims, or concrete next owner action. Verdict `not_applicable` does not require the full runtime evidence set.
-- **Phase range:** Issue #164 child launch prompts, coordinator handoffs, campaign sync runtime digests, heartbeat prompts, owner-surface recommendation notes, and coordinator autonomy acceptance readbacks.
-- **Check:** Scan Issue #164 runtime/coordinator evidence text and coordinator autonomy acceptance verdicts for the required launch, merge-discipline, and evidence-bearing acceptance fields; suppress detector docs/templates and the shared repo-agent-core closure/runtime distribution contract or template.
-- **Shared contract:** repo-agent-core `docs/repo-star-closure-runtime-distribution-contract.md` defines the runtime drift classes used for repo-star detector/advisor distribution.
-- **Fire condition:** `issue164_runtime_drift_count > 0`
-- **Prevention tier:** T1
-- **Severity:** HIGH
-- **Script:** `scripts/detect-as-issue164-runtime-drift.sh`
-
 ### AS-38: Self-Authored Campaign Pause Authority
 - **Detects:** Campaign-sync or active-track surfaces that pause, stop, or clear active GitHub-native work using self-authored negative proof instead of operator-approved pause evidence or true campaign closure.
 - **Signal:** A surface says `Next active track: None selected`, pauses/stops/completes the campaign, or asserts that no admissible owner-surface action remains while relying on no open issue/PR search results, stale downstream references, or an agent-authored no-action assertion.
@@ -383,10 +372,10 @@
 - **Script:** `scripts/detect-as-route-changing-learning-propagation-gap.sh`
 
 ### AS-43: Capability Placement Preview Gap
-- **Detects:** Capability-placement / Autonomy Preview material and coordinator autonomy acceptance material that omits required placement or verdict fields, keeps fields vague, or overclaims forbidden autonomy authority.
-- **Signal:** A capability-placement or Autonomy Preview surface omits best current owner, best future owner, allowed reach now, native signal, promotion gate, demotion/rejection trigger, kill switch, forbidden mode, or GBrain slug/no-capture reason; fills those fields with vague placeholders; or claims controllers, schedulers, queues, registries, daemons, dashboards, background Hermes/GBrain, automatic issue/PR creation, auto-merge, Codex cloud/background write authority, downstream mutation, or replacement closure truth. A coordinator autonomy acceptance surface fires when the verdict is missing or outside `accepted`, `partial`, `rejected`, or `not_applicable`; when a non-`not_applicable` verdict lacks GitHub issue/PR/check/merge truth, raw runtime evidence, Goal or Goal-null state, run-root/progress-ledger evidence, heartbeat disposition, bounded non-claims, demotion trigger, or next owner action; when promotion/demotion gates are vague; or when it claims background autonomy, Hermes-primary ownership, canonical GBrain memory, Codex Cloud/remote execution, automatic GitHub mutation, or other control-plane ownership.
-- **Phase range:** Issue #164 high-priority carrier issues, owner PR bodies, launch comments, capability-placement templates, repo-star adoption surfaces, and coordinator autonomy acceptance readbacks.
-- **Check:** Scan owner evidence text for capability-placement / Autonomy Preview surfaces and coordinator autonomy acceptance surfaces; require compact placement fields, valid acceptance verdicts, evidence-bearing fields for accepted/partial/rejected verdicts, and bounded advisory-only non-claims. Suppress detector docs/templates/tests/fixtures and the shared repo-agent-core capability-placement contract/template.
+- **Detects:** Capability-placement / Autonomy Preview material that omits required placement fields, keeps fields vague, or overclaims forbidden authority.
+- **Signal:** A capability-placement or Autonomy Preview surface omits best current owner, best future owner, allowed reach now, native signal, promotion gate, demotion/rejection trigger, kill switch, forbidden mode, or GBrain slug/no-capture reason; fills those fields with vague placeholders; or claims controllers, schedulers, queues, registries, daemons, dashboards, background Hermes/GBrain, automatic issue/PR creation, auto-merge, Codex cloud/background write authority, downstream mutation, or replacement closure truth.
+- **Phase range:** Capability-placement records, owner PR bodies, templates, and repo-star adoption surfaces.
+- **Check:** Scan only capability-placement / Autonomy Preview surfaces; require compact placement fields and preserve forbidden-authority detection. Suppress detector docs/templates/tests/fixtures and the shared repo-agent-core capability-placement contract/template.
 - **Shared contract:** repo-agent-core `docs/capability-placement-contract.md` defines `CAPABILITY_PLACEMENT_PREVIEW`.
 - **Fire condition:** `capability_placement_gap_count > 0`
 - **Prevention tier:** T2
@@ -403,16 +392,6 @@
 - **Prevention tier:** T1
 - **Severity:** HIGH
 - **Script:** `scripts/detect-as-hermes-foreground-reliability-evidence-gap.sh`
-
-### AS-45: Codex Native Runtime Readiness Evidence Gap
-- **Detects:** Codex native runtime / cloud / remote readiness material that omits raw runtime fields or overclaims Codex Cloud, remote execution, Goal-mode improvement, background automation/subagent ownership, automatic GitHub mutation, retained closeout truth, or downstream mutation.
-- **Signal:** A Codex native runtime readiness, runtime-context, cloud/remote readiness, or local/worktree dogfood surface omits transfer mode, Goal or Goal-null state, run root plus `progress-ledger.jsonl`, runtime-context preflight, heartbeat lifecycle, local/worktree dogfood evidence, cloud/remote disposition, official Codex capability context, GitHub issue/PR/check/merge truth, CI polling terminal condition, promotion gate, demotion/rejection trigger, kill switch, bounded non-claims, or next owner action; fills those fields with vague placeholders; treats official Codex docs as live cloud/remote execution proof; claims live cloud/remote execution without raw task evidence; claims Goal-mode runtime improvement without raw evidence; or grants controller/scheduler/queue/daemon/registry, automatic issue/PR creation, auto-merge, retained closeout truth, or downstream mutation authority.
-- **Phase range:** Issue #164 Codex native runtime readiness carrier issues, owner PR bodies, runtime digests, Campaign Sync readbacks, heartbeat prompts, and repo-star propagation surfaces.
-- **Check:** Scan owner evidence text for Codex native runtime readiness surfaces and require portable runtime evidence fields plus bounded non-claims; suppress detector docs/templates/tests/fixtures and shared contract surfaces.
-- **Fire condition:** `codex_native_runtime_readiness_gap_count > 0`, `official_docs_as_live_proof_count > 0`, `live_cloud_remote_overclaim_count > 0`, `goal_improvement_without_raw_evidence_count > 0`, `control_plane_overclaim_count > 0`, `automatic_github_overclaim_count > 0`, `retained_closeout_overclaim_count > 0`, or `downstream_mutation_overclaim_count > 0`
-- **Prevention tier:** T1
-- **Severity:** HIGH
-- **Script:** `scripts/detect-as-codex-native-runtime-readiness-evidence-gap.sh`
 
 ### AS-46: Deep Research Source-Intelligence Native Corpus Evidence Gap
 - **Detects:** Deep Research/source-intelligence native corpus material that omits native corpus fields or overclaims live Deep Research API, Codex Cloud/remote execution, crawler/registry/watcher/control-plane authority, raw authenticated capture retention, automatic GitHub mutation, retained closeout truth, or downstream mutation.
