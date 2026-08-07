@@ -73,10 +73,13 @@ Every new path must also be named here.
 | `docs/live-capability-inventory.md` | owner manifest |
 | `scripts/as_signature_scan.py` | retired registry/evaluators and narrowed AS-43 |
 | `scripts/check.sh` | current script count and convergence defaults |
+| `scripts/detect-automation-theater.sh` | zero-match counting repair |
 | `scripts/detect-new-signatures.sh` | retired runner entries |
+| `scripts/repo-auditor.sh` | deep dispatch failure propagation |
 | `scripts/replay-work-management-signatures.py` | retained work-management runner entries |
 | `scripts/validate_owner_convergence.py` | current owner/core identities |
 | `tests/test-as-signatures.sh` | active family registry and smoke fixtures |
+| `tests/test-audit-deep-activation.sh` | deep caller semantic regression fixture |
 | `tests/test-capability-placement-gap.sh` | narrowed AS-43 behavior fixtures |
 | `tests/test-compact-ordinary-task-signatures.sh` | compact ordinary-task and retained-risk fixtures |
 | `tests/test-owner-convergence.sh` | current convergence receipts |

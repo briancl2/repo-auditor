@@ -39,7 +39,7 @@ measure-dual-inventory-cap-curve:
 
 audit-deep:
 	@mkdir -p $(OUTPUT_DIR)
-	@bash scripts/repo-auditor.sh "$(TARGET)" "$(OUTPUT_DIR)"
+	@bash scripts/repo-auditor.sh "$(TARGET)" "$(OUTPUT_DIR)" --mode deep
 
 audit-quick:
 	@mkdir -p $(OUTPUT_DIR)
