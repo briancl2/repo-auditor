@@ -33,7 +33,7 @@ fi
 
 CI_BASE_COUNT=$(
     git -C "$ROOT" show :.github/workflows/ci.yml \
-        | grep -c 'e8b42763eb3e323d0e0238e84fe81c4c87898627' \
+        | grep -c '3c7155c2c1f5c439749ee52b3a6afa14033e896f' \
         || true
 )
 if [ "$CI_BASE_COUNT" -eq 2 ]; then

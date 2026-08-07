@@ -24,12 +24,12 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      # Owner convergence is frozen to issue #219's exact starting main. A
+      # Owner convergence is frozen to issue #221's exact starting main. A
       # successor owner change must deliberately re-pin this invariant.
       - name: Verify frozen owner base
         env:
-          EVENT_OWNER_BASE: ${{ github.event.pull_request.base.sha || 'e8b42763eb3e323d0e0238e84fe81c4c87898627' }}
-          EXPECTED_OWNER_BASE: e8b42763eb3e323d0e0238e84fe81c4c87898627
+          EVENT_OWNER_BASE: ${{ github.event.pull_request.base.sha || '3c7155c2c1f5c439749ee52b3a6afa14033e896f' }}
+          EXPECTED_OWNER_BASE: 3c7155c2c1f5c439749ee52b3a6afa14033e896f
         run: test "$EVENT_OWNER_BASE" = "$EXPECTED_OWNER_BASE"
       - name: Check out frozen compatible core baseline
         uses: actions/checkout@v4
