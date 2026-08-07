@@ -44,6 +44,239 @@
 
 set -euo pipefail
 
+repo_auditor_timeout_status() {
+    [ "$1" -eq 124 ] || [ "$1" -eq 137 ]
+}
+
+repo_auditor_cleanup_incomplete_status() {
+    [ "$1" -eq 125 ]
+}
+
+repo_auditor_write_deadline_receipt() {
+    local output_dir="$1"
+    local context_id="$2"
+    local compare_version="$3"
+    local started_at="$4"
+    local started_epoch="$5"
+    local reason="$6"
+    local failed_tool="$7"
+    local domain
+
+    mkdir -p "$output_dir/pre-scan"
+    rm -f "$output_dir/DEEP_FINDINGS.json"
+    for domain in governance surface skill measurement improvement theater; do
+        rm -f "$output_dir/payloads/${domain}-auditor.md" \
+            "$output_dir/payloads/${domain}.md"
+    done
+
+    python3 - "$output_dir" "$context_id" "$compare_version" "$started_at" \
+        "$started_epoch" "$reason" "$failed_tool" <<'PY'
+import datetime
+import json
+import os
+import pathlib
+import sys
+import time
+
+(
+    output_dir,
+    context_id,
+    compare_version,
+    started_at,
+    started_epoch,
+    reason,
+    failed_tool,
+) = sys.argv[1:8]
+out = pathlib.Path(output_dir)
+required = ["SCORECARD.json", "SCORECARD_RECEIPTS.json", "AUDIT_REPORT.md"]
+missing = [name for name in required if not (out / name).is_file()]
+artifact_status = "partial" if missing else "completed"
+
+scorecard = out / "SCORECARD.json"
+if scorecard.is_file():
+    try:
+        data = json.loads(scorecard.read_text())
+        meta = data.setdefault("meta", {})
+        meta["audit_status"] = "failed"
+        meta["artifact_status"] = artifact_status
+        meta["missing_required_artifacts"] = missing
+        meta["audit_status_reason"] = reason
+        scorecard.write_text(json.dumps(data, indent=2) + "\n")
+    except (OSError, TypeError, ValueError):
+        pass
+
+completed_epoch = int(time.time())
+completed_at = datetime.datetime.fromtimestamp(
+    completed_epoch, datetime.timezone.utc
+).strftime("%Y-%m-%dT%H:%M:%SZ")
+artifacts = {}
+for name in required:
+    path = out / name
+    present = path.is_file()
+    artifacts[name] = {
+        "present": present,
+        "bytes": path.stat().st_size if present else 0,
+    }
+receipt = {
+    "receipt_version": "1.0.0",
+    "status": "failed",
+    "reason": reason,
+    "exit_code": 3,
+    "timestamp": completed_at,
+    "started_at": started_at,
+    "completed_at": completed_at,
+    "elapsed_seconds": max(0, completed_epoch - int(started_epoch)),
+    "audit_context_id": context_id,
+    "compare_oracle_version": compare_version,
+    "artifact_status": artifact_status,
+    "required_artifacts": artifacts,
+    "missing_required_artifacts": missing,
+    "failed_tools": [failed_tool],
+}
+(out / "AUDIT_RUN_RECEIPT.json").write_text(
+    json.dumps(receipt, indent=2, sort_keys=True) + "\n"
+)
+PY
+}
+
+repo_auditor_run_deadline() {
+    local run_timeout="$1"
+    local script_path="$2"
+    local run_started_at="$3"
+    local run_started_epoch="$4"
+    local run_started_monotonic="$5"
+    shift 5
+
+    python3 - "$run_timeout" "$script_path" "$run_started_at" \
+        "$run_started_epoch" "$run_started_monotonic" "$@" <<'PY'
+import os
+import signal
+import subprocess
+import sys
+import time
+
+limit = int(sys.argv[1])
+script_path = sys.argv[2]
+started_at = sys.argv[3]
+started_epoch = sys.argv[4]
+started_monotonic = float(sys.argv[5])
+public_args = sys.argv[6:]
+deadline = started_monotonic + limit
+cleanup_reserve = min(2.0, max(0.25, limit * 0.25))
+operation_budget = deadline - time.monotonic() - cleanup_reserve
+if operation_budget <= 0:
+    raise SystemExit(124)
+worker = r'''
+script_path="$1"
+shift
+source "$script_path"
+repo_auditor_main "$@"
+'''
+command = [
+    "bash",
+    "-c",
+    worker,
+    "repo-auditor-deadline-worker",
+    script_path,
+    started_at,
+    started_epoch,
+    str(limit),
+    *public_args,
+]
+process = subprocess.Popen(command, start_new_session=True)
+
+
+class CleanupIncomplete(Exception):
+    pass
+
+
+def remaining_cleanup_time():
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise CleanupIncomplete("whole-run cleanup deadline expired")
+    return remaining
+
+
+def session_pids():
+    try:
+        result = subprocess.run(
+            ["ps", "-axo", "pid="],
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=remaining_cleanup_time(),
+        )
+    except (subprocess.SubprocessError, OSError) as error:
+        raise CleanupIncomplete("could not inspect deadline session") from error
+    pids = []
+    for row in result.stdout.splitlines():
+        try:
+            pid = int(row.strip())
+            session = os.getsid(pid)
+        except (OSError, ValueError):
+            continue
+        if session == process.pid:
+            pids.append(pid)
+    return pids
+
+
+def signal_process_group(sig):
+    try:
+        os.killpg(process.pid, sig)
+    except OSError:
+        pass
+
+
+def signal_session(sig):
+    signal_process_group(sig)
+    for pid in session_pids():
+        try:
+            os.kill(pid, sig)
+        except ProcessLookupError:
+            pass
+
+
+try:
+    status = process.wait(timeout=operation_budget)
+except subprocess.TimeoutExpired:
+    try:
+        signal_session(signal.SIGTERM)
+        term_deadline = min(
+            deadline,
+            time.monotonic() + min(1.0, remaining_cleanup_time() / 2.0),
+        )
+        while True:
+            process.poll()
+            if not session_pids():
+                raise SystemExit(124)
+            if time.monotonic() >= term_deadline:
+                break
+            signal_session(signal.SIGTERM)
+            time.sleep(min(0.05, remaining_cleanup_time()))
+
+        signal_session(signal.SIGKILL)
+        if process.poll() is None:
+            process.wait(timeout=remaining_cleanup_time())
+        while session_pids():
+            signal_session(signal.SIGKILL)
+            time.sleep(min(0.05, remaining_cleanup_time()))
+        raise SystemExit(137)
+    except (CleanupIncomplete, subprocess.TimeoutExpired):
+        signal_process_group(signal.SIGKILL)
+        raise SystemExit(125)
+
+if status < 0:
+    status = 128 + abs(status)
+raise SystemExit(status)
+PY
+}
+
+repo_auditor_main() {
+RUN_STARTED_AT="$1"
+RUN_STARTED_EPOCH="$2"
+AUDIT_RUN_TIMEOUT="$3"
+shift 3
+
 # ── Argument parsing ──────────────────────────────────────────────────
 AUDIT_MODE="standard"
 AUDIT_CONTEXT_ID="${AUDIT_CONTEXT_ID:-standard}"
@@ -89,9 +322,18 @@ fi
 
 REPO="${POSITIONAL[0]}"
 OUTPUT_DIR="${POSITIONAL[1]:-audit_output}"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-RUN_STARTED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-RUN_STARTED_EPOCH="$(date '+%s')"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+case "$AUDIT_RUN_TIMEOUT" in
+    ''|*[!0-9]*|0|0*)
+        echo "ERROR: AUDIT_RUN_TIMEOUT must be an integer from 1 to 900" >&2
+        exit 1
+        ;;
+esac
+if [ "${#AUDIT_RUN_TIMEOUT}" -gt 3 ] || [ "$AUDIT_RUN_TIMEOUT" -gt 900 ]; then
+    echo "ERROR: AUDIT_RUN_TIMEOUT must be an integer from 1 to 900" >&2
+    exit 1
+fi
 
 FAILURES=""
 FAIL_COUNT=0
@@ -101,15 +343,20 @@ REPORT_GENERATION_REASON=""
 # state is dirty only with generated files; empty means none tolerated.
 TOLERATED_DIRTY_NOISE_JSON=""
 
+clear_deep_artifacts() {
+    local domain
+
+    rm -f "$OUTPUT_DIR/DEEP_FINDINGS.json"
+    for domain in governance surface skill measurement improvement theater; do
+        rm -f "$OUTPUT_DIR/payloads/${domain}-auditor.md" \
+            "$OUTPUT_DIR/payloads/${domain}.md"
+    done
+}
+
 # Create output structure before any auditable failure so receipts have a home.
 mkdir -p "$OUTPUT_DIR/pre-scan"
 rm -f "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" "$OUTPUT_DIR/target-native-quality-gates-log.txt"
-if [ "$AUDIT_MODE" = "deep" ]; then
-    rm -f "$OUTPUT_DIR/DEEP_FINDINGS.json"
-    for domain in governance surface skill measurement improvement theater; do
-        rm -f "$OUTPUT_DIR/payloads/${domain}.md"
-    done
-fi
+clear_deep_artifacts
 
 required_artifacts_missing() {
     local missing=""
@@ -723,6 +970,27 @@ if [ "$AUDIT_MODE" = "deep" ]; then
     _to="timeout"; command -v timeout >/dev/null 2>&1 || _to="gtimeout"
     _has_timeout=false; command -v "$_to" >/dev/null 2>&1 && _has_timeout=true
 
+    case "$DEEP_TIMEOUT" in
+        ''|*[!0-9]*|0|0*) _has_timeout=false ;;
+    esac
+    if [ "$_has_timeout" = true ]; then
+        if [ "${#DEEP_TIMEOUT}" -gt 3 ] || [ "$DEEP_TIMEOUT" -gt 900 ]; then
+            _has_timeout=false
+        fi
+    fi
+
+    remaining_run_seconds() {
+        local current_epoch
+        local elapsed_seconds
+
+        current_epoch="$(date '+%s')"
+        elapsed_seconds=$((current_epoch - RUN_STARTED_EPOCH))
+        if [ "$elapsed_seconds" -ge "$AUDIT_RUN_TIMEOUT" ]; then
+            return 1
+        fi
+        echo $((AUDIT_RUN_TIMEOUT - elapsed_seconds))
+    }
+
     # Domain agents to dispatch (6 domains)
     DEEP_DOMAINS="governance surface skill measurement improvement theater"
     DEEP_OK=0
@@ -736,7 +1004,7 @@ if [ "$AUDIT_MODE" = "deep" ]; then
     else
         for domain in $DEEP_DOMAINS; do
             agent_file="$AGENTS_DIR/${domain}-auditor.agent.md"
-            payload_file="$PAYLOADS_DIR/${domain}.md"
+            payload_file="$PAYLOADS_DIR/${domain}-auditor.md"
             rm -f "$payload_file"
             if [ ! -f "$agent_file" ]; then
                 echo "  [$domain] SKIP: agent file not found"
@@ -748,9 +1016,36 @@ if [ "$AUDIT_MODE" = "deep" ]; then
             echo "  [$domain] dispatching..."
             prompt_text="Read .agents/${domain}-auditor.agent.md for instructions. Audit the target repo at $REPO. Write all findings to stdout in markdown table format."
             dispatch_ok=false
-            if (cd "$SCRIPT_DIR/.." && $_to "$DEEP_TIMEOUT" copilot --model "$DEEP_MODEL" \
-                -p "$prompt_text" --allow-all --no-ask-user < /dev/null > "$payload_file" 2>/dev/null); then
+            dispatch_rc=0
+            if ! remaining_seconds="$(remaining_run_seconds)"; then
+                echo "  ERROR: deep mode exhausted the whole-run deadline (${AUDIT_RUN_TIMEOUT}s; hard maximum 900s)"
+                DEEP_FAIL=$((DEEP_FAIL + 1))
+                FAILURES="$FAILURES deep-run-timeout"
+                FAIL_COUNT=$((FAIL_COUNT + 1))
+                break
+            fi
+            call_timeout="$DEEP_TIMEOUT"
+            deadline_bounded=false
+            if [ "$remaining_seconds" -le "$call_timeout" ]; then
+                call_timeout="$remaining_seconds"
+                deadline_bounded=true
+            fi
+            if (cd "$SCRIPT_DIR/.." && $_to --kill-after=1s "${call_timeout}s" bash -c '
+trap "while :; do sleep 1; done" TERM
+copilot "$@"
+' repo-auditor-copilot-child --model "$DEEP_MODEL" -p "$prompt_text" \
+                --allow-all --no-ask-user < /dev/null > "$payload_file" 2>/dev/null); then
                 dispatch_ok=true
+            else
+                dispatch_rc=$?
+            fi
+            if repo_auditor_timeout_status "$dispatch_rc" && [ "$deadline_bounded" = true ]; then
+                echo "  [$domain] FAILED: whole-run deadline exhausted"
+                rm -f "$payload_file"
+                DEEP_FAIL=$((DEEP_FAIL + 1))
+                FAILURES="$FAILURES deep-run-timeout"
+                FAIL_COUNT=$((FAIL_COUNT + 1))
+                break
             fi
             if [ "$dispatch_ok" = true ] && [ -s "$payload_file" ]; then
                 echo "  [$domain] done ($(wc -l < "$payload_file" | tr -d ' ') lines)"
@@ -774,11 +1069,39 @@ if [ "$AUDIT_MODE" = "deep" ]; then
         echo "  [synthesis] combining domain findings..."
         synth_prompt="Read .agents/audit-synthesis.agent.md for instructions. Combine all domain audit payloads in $OUTPUT_DIR/payloads/ into a unified deep audit summary. Write a JSON summary to stdout with total_findings and findings_by_severity."
         synth_ok=false
-        if (cd "$SCRIPT_DIR/.." && $_to "$DEEP_TIMEOUT" copilot --model claude-opus-4.7 \
-            -p "$synth_prompt" --allow-all --no-ask-user < /dev/null > "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null); then
-            synth_ok=true
+        synth_deadline_failed=false
+        synth_rc=0
+        if ! remaining_seconds="$(remaining_run_seconds)"; then
+            echo "  [synthesis] FAILED: whole-run deadline exhausted"
+            FAILURES="$FAILURES deep-run-timeout"
+            FAIL_COUNT=$((FAIL_COUNT + 1))
+            synth_deadline_failed=true
+        else
+            call_timeout="$DEEP_TIMEOUT"
+            deadline_bounded=false
+            if [ "$remaining_seconds" -le "$call_timeout" ]; then
+                call_timeout="$remaining_seconds"
+                deadline_bounded=true
+            fi
+            if (cd "$SCRIPT_DIR/.." && $_to --kill-after=1s "${call_timeout}s" bash -c '
+trap "while :; do sleep 1; done" TERM
+copilot "$@"
+' repo-auditor-copilot-child --model claude-opus-4.7 -p "$synth_prompt" \
+                --allow-all --no-ask-user < /dev/null > "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null); then
+                synth_ok=true
+            else
+                synth_rc=$?
+            fi
+            if repo_auditor_timeout_status "$synth_rc" && [ "$deadline_bounded" = true ]; then
+                echo "  [synthesis] FAILED: whole-run deadline exhausted"
+                FAILURES="$FAILURES deep-run-timeout"
+                FAIL_COUNT=$((FAIL_COUNT + 1))
+                synth_deadline_failed=true
+            fi
         fi
-        if [ "$synth_ok" = true ] && [ -s "$OUTPUT_DIR/DEEP_FINDINGS.json" ] && \
+        if [ "$synth_deadline_failed" = true ]; then
+            rm -f "$OUTPUT_DIR/DEEP_FINDINGS.json"
+        elif [ "$synth_ok" = true ] && [ -s "$OUTPUT_DIR/DEEP_FINDINGS.json" ] && \
             python3 - "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null <<'PY'
 import json
 import sys
@@ -835,4 +1158,115 @@ fi
 
 if [ "$AUDIT_EXIT" -ne 0 ]; then
     exit "$AUDIT_EXIT"
+fi
+}
+
+repo_auditor_entry() {
+    local public_args=("$@")
+    local audit_mode="standard"
+    local output_dir="audit_output"
+    local context_id="${AUDIT_CONTEXT_ID:-standard}"
+    local compare_version="${COMPARE_ORACLE_VERSION:-1.0.0}"
+    local positional_count=0
+    local run_started_at
+    local run_started_epoch
+    local run_started_monotonic
+    local run_timeout="${AUDIT_RUN_TIMEOUT:-900}"
+    local script_path="${BASH_SOURCE[0]}"
+    local run_to="timeout"
+    local child_status
+
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --mode)
+                if [ "$#" -lt 2 ]; then
+                    break
+                fi
+                audit_mode="$2"
+                shift 2
+                ;;
+            --context-id)
+                if [ "$#" -lt 2 ]; then
+                    break
+                fi
+                context_id="$2"
+                shift 2
+                ;;
+            --representativeness-authority)
+                if [ "$#" -lt 2 ]; then
+                    break
+                fi
+                shift 2
+                ;;
+            --require-portable-context|--allow-dirty-closeout-post-audit)
+                shift
+                ;;
+            *)
+                positional_count=$((positional_count + 1))
+                if [ "$positional_count" -eq 2 ]; then
+                    output_dir="$1"
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    case "$run_timeout" in
+        ''|*[!0-9]*|0|0*)
+            echo "ERROR: AUDIT_RUN_TIMEOUT must be an integer from 1 to 900" >&2
+            return 1
+            ;;
+    esac
+    if [ "${#run_timeout}" -gt 3 ] || [ "$run_timeout" -gt 900 ]; then
+        echo "ERROR: AUDIT_RUN_TIMEOUT must be an integer from 1 to 900" >&2
+        return 1
+    fi
+
+    run_started_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    run_started_epoch="$(date '+%s')"
+    run_started_monotonic="$(python3 -c 'import time; print(time.monotonic())')"
+    if [ "$audit_mode" != "deep" ]; then
+        repo_auditor_main "$run_started_at" "$run_started_epoch" \
+            "$run_timeout" "${public_args[@]}"
+        return
+    fi
+
+    command -v timeout >/dev/null 2>&1 || run_to="gtimeout"
+    if ! command -v "$run_to" >/dev/null 2>&1; then
+        echo "ERROR: deep mode requires timeout or gtimeout for the whole-run deadline" >&2
+        repo_auditor_write_deadline_receipt "$output_dir" "$context_id" \
+            "$compare_version" "$run_started_at" "$run_started_epoch" \
+            "deep mode requires timeout or gtimeout for the whole-run deadline" \
+            "deep-timeout"
+        return 3
+    fi
+
+    set +e
+    repo_auditor_run_deadline "$run_timeout" "$script_path" \
+        "$run_started_at" "$run_started_epoch" "$run_started_monotonic" \
+        "${public_args[@]}"
+    child_status=$?
+    set -e
+
+    if repo_auditor_timeout_status "$child_status"; then
+        echo "ERROR: whole-run deadline exhausted after ${run_timeout}s" >&2
+        repo_auditor_write_deadline_receipt "$output_dir" "$context_id" \
+            "$compare_version" "$run_started_at" "$run_started_epoch" \
+            "whole-run deadline exhausted after ${run_timeout}s" \
+            "deep-run-timeout"
+        return 3
+    fi
+    if repo_auditor_cleanup_incomplete_status "$child_status"; then
+        echo "ERROR: whole-run deadline cleanup could not verify zero descendants" >&2
+        repo_auditor_write_deadline_receipt "$output_dir" "$context_id" \
+            "$compare_version" "$run_started_at" "$run_started_epoch" \
+            "whole-run deadline cleanup could not verify zero descendants" \
+            "deep-run-timeout-cleanup"
+        return 3
+    fi
+    return "$child_status"
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    repo_auditor_entry "$@"
 fi
