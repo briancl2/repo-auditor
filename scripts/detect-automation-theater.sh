@@ -126,7 +126,7 @@ BYPASS_COUNT=0
 # Check committed artifacts for --no-verify
 NOVERIFY_IN_ARTIFACTS=$(find "$REPO" -maxdepth 2 -name "HANDOFF-*.md" -o -name "*.txt" 2>/dev/null | head -50 | xargs grep -l "\-\-no-verify" 2>/dev/null | wc -l | tr -d ' ')
 # Check git log messages
-NOVERIFY_IN_LOG=$(git -C "$REPO" log --format=%B -n 200 2>/dev/null | grep -c "\-\-no-verify" || echo 0)
+NOVERIFY_IN_LOG=$(git -C "$REPO" log --format=%B -n 200 2>/dev/null | grep -c "\-\-no-verify") || NOVERIFY_IN_LOG=0
 BYPASS_COUNT=$((NOVERIFY_IN_ARTIFACTS + NOVERIFY_IN_LOG))
 echo "    --no-verify in artifacts=$NOVERIFY_IN_ARTIFACTS in_log=$NOVERIFY_IN_LOG"
 if [ "$BYPASS_COUNT" -gt 2 ]; then

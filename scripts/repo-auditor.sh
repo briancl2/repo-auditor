@@ -104,6 +104,12 @@ TOLERATED_DIRTY_NOISE_JSON=""
 # Create output structure before any auditable failure so receipts have a home.
 mkdir -p "$OUTPUT_DIR/pre-scan"
 rm -f "$OUTPUT_DIR/TARGET_NATIVE_QUALITY_GATES.json" "$OUTPUT_DIR/target-native-quality-gates-log.txt"
+if [ "$AUDIT_MODE" = "deep" ]; then
+    rm -f "$OUTPUT_DIR/DEEP_FINDINGS.json"
+    for domain in governance surface skill measurement improvement theater; do
+        rm -f "$OUTPUT_DIR/payloads/${domain}.md"
+    done
+fi
 
 required_artifacts_missing() {
     local missing=""
@@ -722,67 +728,91 @@ if [ "$AUDIT_MODE" = "deep" ]; then
     DEEP_OK=0
     DEEP_FAIL=0
 
-    for domain in $DEEP_DOMAINS; do
-        agent_file="$AGENTS_DIR/${domain}-auditor.agent.md"
-        payload_file="$PAYLOADS_DIR/${domain}.md"
-        if [ ! -f "$agent_file" ]; then
-            echo "  [$domain] SKIP: agent file not found"
-            DEEP_FAIL=$((DEEP_FAIL + 1))
-            continue
-        fi
-        echo "  [$domain] dispatching..."
-        prompt_text="Read .agents/${domain}-auditor.agent.md for instructions. Audit the target repo at $REPO. Write all findings to stdout in markdown table format."
-        dispatch_ok=false
-        if [ "$_has_timeout" = true ]; then
+    if [ "$_has_timeout" != true ]; then
+        echo "  ERROR: deep mode requires timeout or gtimeout; refusing unbounded dispatch"
+        DEEP_FAIL=6
+        FAILURES="$FAILURES deep-timeout"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+    else
+        for domain in $DEEP_DOMAINS; do
+            agent_file="$AGENTS_DIR/${domain}-auditor.agent.md"
+            payload_file="$PAYLOADS_DIR/${domain}.md"
+            rm -f "$payload_file"
+            if [ ! -f "$agent_file" ]; then
+                echo "  [$domain] SKIP: agent file not found"
+                DEEP_FAIL=$((DEEP_FAIL + 1))
+                FAILURES="$FAILURES deep-domain-$domain"
+                FAIL_COUNT=$((FAIL_COUNT + 1))
+                continue
+            fi
+            echo "  [$domain] dispatching..."
+            prompt_text="Read .agents/${domain}-auditor.agent.md for instructions. Audit the target repo at $REPO. Write all findings to stdout in markdown table format."
+            dispatch_ok=false
             if (cd "$SCRIPT_DIR/.." && $_to "$DEEP_TIMEOUT" copilot --model "$DEEP_MODEL" \
                 -p "$prompt_text" --allow-all --no-ask-user < /dev/null > "$payload_file" 2>/dev/null); then
                 dispatch_ok=true
             fi
-        else
-            if (cd "$SCRIPT_DIR/.." && copilot --model "$DEEP_MODEL" \
-                -p "$prompt_text" --allow-all --no-ask-user < /dev/null > "$payload_file" 2>/dev/null); then
-                dispatch_ok=true
+            if [ "$dispatch_ok" = true ] && [ -s "$payload_file" ]; then
+                echo "  [$domain] done ($(wc -l < "$payload_file" | tr -d ' ') lines)"
+                DEEP_OK=$((DEEP_OK + 1))
+            else
+                echo "  [$domain] FAILED"
+                rm -f "$payload_file"
+                DEEP_FAIL=$((DEEP_FAIL + 1))
+                FAILURES="$FAILURES deep-domain-$domain"
+                FAIL_COUNT=$((FAIL_COUNT + 1))
             fi
-        fi
-        if [ "$dispatch_ok" = true ] && [ -s "$payload_file" ]; then
-            echo "  [$domain] done ($(wc -l < "$payload_file" | tr -d ' ') lines)"
-            DEEP_OK=$((DEEP_OK + 1))
-        else
-            echo "  [$domain] FAILED"
-            DEEP_FAIL=$((DEEP_FAIL + 1))
-        fi
-    done
+        done
+    fi
 
     echo ""
     echo "  Domain dispatch: $DEEP_OK OK, $DEEP_FAIL failed"
 
     # Synthesis: combine domain findings into deep audit summary
-    if [ "$DEEP_OK" -gt 0 ]; then
+    if [ "$DEEP_FAIL" -eq 0 ] && [ "$DEEP_OK" -gt 0 ]; then
         echo ""
         echo "  [synthesis] combining domain findings..."
         synth_prompt="Read .agents/audit-synthesis.agent.md for instructions. Combine all domain audit payloads in $OUTPUT_DIR/payloads/ into a unified deep audit summary. Write a JSON summary to stdout with total_findings and findings_by_severity."
         synth_ok=false
-        if [ "$_has_timeout" = true ]; then
-            if (cd "$SCRIPT_DIR/.." && $_to "$DEEP_TIMEOUT" copilot --model claude-opus-4.7 \
-                -p "$synth_prompt" --allow-all --no-ask-user < /dev/null > "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null); then
-                synth_ok=true
-            fi
-        else
-            if (cd "$SCRIPT_DIR/.." && copilot --model claude-opus-4.7 \
-                -p "$synth_prompt" --allow-all --no-ask-user < /dev/null > "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null); then
-                synth_ok=true
-            fi
+        if (cd "$SCRIPT_DIR/.." && $_to "$DEEP_TIMEOUT" copilot --model claude-opus-4.7 \
+            -p "$synth_prompt" --allow-all --no-ask-user < /dev/null > "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null); then
+            synth_ok=true
         fi
-        if [ "$synth_ok" = true ] && [ -s "$OUTPUT_DIR/DEEP_FINDINGS.json" ]; then
+        if [ "$synth_ok" = true ] && [ -s "$OUTPUT_DIR/DEEP_FINDINGS.json" ] && \
+            python3 - "$OUTPUT_DIR/DEEP_FINDINGS.json" 2>/dev/null <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+if not isinstance(data, dict):
+    raise SystemExit(1)
+total = data.get("total_findings")
+severities = data.get("findings_by_severity")
+if isinstance(total, bool) or not isinstance(total, int) or total < 0:
+    raise SystemExit(1)
+if not isinstance(severities, dict):
+    raise SystemExit(1)
+for name, count in severities.items():
+    if not isinstance(name, str):
+        raise SystemExit(1)
+    if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+        raise SystemExit(1)
+PY
+        then
             echo "  [synthesis] done"
             # Append deep findings summary to AUDIT_REPORT.md
-            DEEP_COUNT=$(python3 -c "import json; d=json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json')); print(d.get('total_findings',0))" 2>/dev/null || echo "$DEEP_OK domains")
-            DEEP_HIGH=$(python3 -c "import json; d=json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json')); print(d.get('findings_by_severity',{}).get('HIGH',0))" 2>/dev/null || echo "?")
+            DEEP_COUNT=$(python3 -c "import json; print(json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json'))['total_findings'])")
+            DEEP_HIGH=$(python3 -c "import json; print(json.load(open('$OUTPUT_DIR/DEEP_FINDINGS.json'))['findings_by_severity'].get('HIGH',0))")
             printf '\n## Deep Semantic Analysis\n\n| Metric | Value |\n|---|---|\n| Mode | deep |\n| Domains dispatched | %s/%s |\n| Total findings | %s |\n| HIGH severity | %s |\n\nSee DEEP_FINDINGS.json and payloads/ for full details.\n' \
                 "$DEEP_OK" "6" "$DEEP_COUNT" "$DEEP_HIGH" >> "$OUTPUT_DIR/AUDIT_REPORT.md"
         else
             echo "  [synthesis] FAILED (domain payloads still available in payloads/)"
+            rm -f "$OUTPUT_DIR/DEEP_FINDINGS.json"
+            FAILURES="$FAILURES deep-synthesis"
+            FAIL_COUNT=$((FAIL_COUNT + 1))
         fi
+    elif [ "$DEEP_FAIL" -gt 0 ]; then
+        echo "  [synthesis] SKIPPED: one or more domain dispatches failed"
     fi
 fi
 

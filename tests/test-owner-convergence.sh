@@ -45,8 +45,8 @@ fi
 for expected in \
     '"deleted_paths": 4' \
     '"rollback_paths": 4' \
-    '"changed_retained_paths": 15' \
-    '"new_paths": 1' \
+    '"changed_retained_paths": 17' \
+    '"new_paths": 2' \
     '"core_export_rows": 6' \
     '"core_caller_checks": 6' \
     '"orphan_active_exports": 0' \
