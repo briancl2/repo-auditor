@@ -362,6 +362,7 @@ SIGNATURES: dict[str, dict[str, str]] = {
 
 
 INSTRUCTION_FILES = {
+    "CONSTITUTION.md",
     "AGENTS.md",
     "AGENT.md",
     "CLAUDE.md",
@@ -384,6 +385,7 @@ SCAN_ORDER_NOTE = (
     "regardless of either budget."
 )
 PRIORITY_ROOT_FILES = {
+    "CONSTITUTION.md",
     "AGENTS.md",
     "AGENT.md",
     "CLAUDE.md",

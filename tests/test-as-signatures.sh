@@ -1500,14 +1500,22 @@ for index in range(225):
     "Use foreground Hermes through hermes chat -q prompt -Q and retain HERMES_FOREGROUND_RUN_RECEIPT.\n",
     encoding="utf-8",
 )
+(repo / "CONSTITUTION.md").write_text(
+    "# Shared Constitution\n\nAuthoritative owner-bounded semantic floor.\n",
+    encoding="utf-8",
+)
 PY
 
 python3 - "$REPO_ROOT" "$AS29_BARE_COMMAND_REPO" "$AS29_LARGE_UNGROUNDED_REPO" "$AS29_LARGE_GROUNDED_REPO" "$AS29_LARGE_ROOT_GROUNDED_REPO" <<'PY'
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 repo_root, target_repo, large_ungrounded_repo, large_grounded_repo, large_root_grounded_repo = sys.argv[1:6]
+sys.path.insert(0, repo_root)
+from scripts import as_signature_scan as signature_scan
+
 script = f"{repo_root}/scripts/detect-as-hermes-foreground-receipt-adoption-gap.sh"
 
 completed = subprocess.run(
@@ -1572,9 +1580,18 @@ assert payload["fired"] is False, payload
 assert payload["signals"]["hermes_foreground_guidance_count"] == 1, payload
 assert payload["signals"]["foreground_receipt_grounded_count"] == 1, payload
 assert "AGENTS.md" in payload["evidence"], payload
-assert payload["eligible_files"] == 226, payload
+assert payload["eligible_files"] == 227, payload
 assert payload["scanned_files"] == 200, payload
 assert payload["scan_limited"] is True, payload
+
+root_scan = signature_scan.load_text_scan(Path(large_root_grounded_repo))
+assert "AGENTS.md" in root_scan.texts, root_scan.texts.keys()
+assert "CONSTITUTION.md" in root_scan.texts, root_scan.texts.keys()
+assert ".agents/skills/filler-224/AGENTS.md" not in root_scan.texts, root_scan.texts.keys()
+assert signature_scan.scan_priority_key(
+    Path(large_root_grounded_repo),
+    Path(large_root_grounded_repo) / "CONSTITUTION.md",
+) == (0, "CONSTITUTION.md")
 PY
 
 AS33_FAILURE_TO_ISSUE_GAP_REPO="$TMPDIR/as33-failure-to-issue-gap-repo"
